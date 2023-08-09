@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -e
+
+script_dir=$(dirname $0)
+root_dir="$script_dir/../"
+
+if [ ! -f "$script_dir/SwiftFormat/.build/release/swift-format" ];
+then
+    (cd $root_dir && swift run -c release --package-path Tools/SwiftFormat swift-format "$@")
+else
+    (cd $root_dir && swift run --skip-build -c release --package-path Tools/SwiftFormat swift-format "$@")
+fi
