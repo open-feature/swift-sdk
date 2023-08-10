@@ -1,0 +1,13 @@
+.DS_Store
+/.build
+/Packages
+/*.xcodeproj
+xcuserdata/
+DerivedData/
+.swiftpm/config/registries.json
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.swiftpm/xcode/xcshareddata/xcschemes/OpenFeature.xcscheme
+.netrc
+.build
+.mockingbird
+project.json
