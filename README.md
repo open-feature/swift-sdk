@@ -47,7 +47,7 @@ First, ensure you have your GitHub account added as an option (+ > Add Source Co
 
 If you manage dependencies through SPM, in the dependencies section of Package.swift add:
 ```swift
-.package(url: "git@github.com:open-feature/swift-sdk.git", from: "0.0.1")
+.package(url: "git@github.com:open-feature/swift-sdk.git", from: "0.0.2")
 ```
 
 and in the target dependencies section add:
