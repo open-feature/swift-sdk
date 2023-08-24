@@ -1,0 +1,32 @@
+on:
+  push:
+    branches:
+      - main
+
+name: Run Release Please
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+
+    # Release-please creates a PR that tracks all changes
+    steps:
+      - uses: google-github-actions/release-please-action@v3
+        id: release
+        with:
+          release-type: simple
+          command: manifest
+          token: ${{secrets.GITHUB_TOKEN}}
+          default-branch: main
+
+      - name: Dump Release Please Output
+        env:
+          RELEASE_PLEASE_OUTPUT: ${{ toJson(steps.release.outputs) }}
+        run: |
+          echo "$RELEASE_PLEASE_OUTPUT"
+
+    # Outputs are namespaced by package when using a manifest in Release Please
+    outputs:
+      release_created: ${{ steps.release.outputs['OpenFeature--release_created'] }}
+      # Version doesn't include `v` as a prefix. This is undocumented
+      version: ${{ steps.release.outputs['OpenFeature--version'] }}
+      upload_url: ${{ steps.release.outputs['OpenFeature--upload_url'] }}
