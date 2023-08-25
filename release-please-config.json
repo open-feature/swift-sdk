@@ -1,11 +1,13 @@
 {
     "bootstrap-sha": "bc555337044c0b52f8e7cc79d62024c31c437474",
     "packages": {
-        "Sources": {
+        ".": {
             "release-type": "simple",
             "bump-minor-pre-major": true,
             "bump-patch-for-minor-pre-major": true,
-            "versioning": "default"
+            "versioning": "default",
+            "include-v-in-tag": false,
+            "extra-files": ["README.md"]
         }
     },
     "changelog-sections": [
