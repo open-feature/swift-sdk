@@ -46,9 +46,12 @@ First, ensure you have your GitHub account added as an option (+ > Add Source Co
 ### Swift Package Manager
 
 If you manage dependencies through SPM, in the dependencies section of Package.swift add:
+
+<!---x-release-please-start-version-->
 ```swift
 .package(url: "git@github.com:open-feature/swift-sdk.git", from: "0.0.2")
 ```
+<!---x-release-please-end-->
 
 and in the target dependencies section add:
 ```swift
