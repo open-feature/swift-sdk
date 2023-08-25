@@ -6,7 +6,6 @@
             "bump-minor-pre-major": true,
             "bump-patch-for-minor-pre-major": true,
             "versioning": "default",
-            "version-file": "./Source/version.txt",
             "include-v-in-tag": false,
             "extra-files": ["README.md"]
         }
