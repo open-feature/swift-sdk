@@ -5,7 +5,7 @@ let package = Package(
     name: "SwiftFormat",
     platforms: [.macOS(.v10_14)],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-format", from: "508.0.1")
+        .package(url: "https://github.com/apple/swift-format", from: "509.0.0")
     ],
     targets: [.target(name: "SwiftFormat", path: "")]
 )
