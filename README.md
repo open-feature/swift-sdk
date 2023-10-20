@@ -49,7 +49,7 @@ If you manage dependencies through SPM, in the dependencies section of Package.s
 
 <!---x-release-please-start-version-->
 ```swift
-.package(url: "git@github.com:open-feature/swift-sdk.git", from: "0.0.2")
+.package(url: "git@github.com:open-feature/swift-sdk.git", from: "0.0.3")
 ```
 <!---x-release-please-end-->
 

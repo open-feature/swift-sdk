@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.0.3](https://github.com/open-feature/swift-sdk/compare/0.0.2...0.0.3) (2023-10-20)
+
+
+### 🧹 Chore
+
+* **deps:** update actions/checkout action to v4 ([#18](https://github.com/open-feature/swift-sdk/issues/18)) ([eb0cd56](https://github.com/open-feature/swift-sdk/commit/eb0cd56d1b7c7bb24faf905e67361738731bbeb4))
+* **deps:** update dependency apple/swift-format to v509 ([#21](https://github.com/open-feature/swift-sdk/issues/21)) ([5f12304](https://github.com/open-feature/swift-sdk/commit/5f12304fde5531b957d999a41a24e2122c0038c2))
+
+
+### 📚 Documentation
+
+* Update README.md ([#19](https://github.com/open-feature/swift-sdk/issues/19)) ([ec599ff](https://github.com/open-feature/swift-sdk/commit/ec599ff7228019286fdad66f4c38f78caf354025))
+
 ## [0.0.2](https://github.com/open-feature/swift-sdk/compare/v0.0.1...0.0.2) (2023-08-25)
 
 
