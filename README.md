@@ -10,6 +10,7 @@
 <h2 align="center">OpenFeature Swift SDK</h2>
 
 ![Status](https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopen-feature%2Fswift-sdk.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopen-feature%2Fswift-sdk?ref=badge_shield)
 
 ## 👋 Hey there! Thanks for checking out the OpenFeature Swift SDK
 
@@ -188,3 +189,6 @@ Made with [contrib.rocks](https://contrib.rocks).
 [Apache License 2.0](LICENSE)
 
 [openfeature-website]: https://openfeature.dev
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopen-feature%2Fswift-sdk.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopen-feature%2Fswift-sdk?ref=badge_large)
