@@ -1,35 +1,48 @@
 <!-- markdownlint-disable MD033 -->
+<!-- x-hide-in-docs-start -->
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/open-feature/community/0e23508c163a6a1ac8c0ced3e4bd78faafe627c7/assets/logo/horizontal/white/openfeature-horizontal-white.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/open-feature/community/0e23508c163a6a1ac8c0ced3e4bd78faafe627c7/assets/logo/horizontal/black/openfeature-horizontal-black.svg">
-    <img align="center" alt="OpenFeature Logo">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/open-feature/community/0e23508c163a6a1ac8c0ced3e4bd78faafe627c7/assets/logo/horizontal/white/openfeature-horizontal-white.svg" />
+    <img align="center" alt="OpenFeature Logo" src="https://raw.githubusercontent.com/open-feature/community/0e23508c163a6a1ac8c0ced3e4bd78faafe627c7/assets/logo/horizontal/black/openfeature-horizontal-black.svg" />
   </picture>
 </p>
 
-<h2 align="center">OpenFeature Swift SDK</h2>
+<h2 align="center">OpenFeature iOS SDK</h2>
 
-![Status](https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg)
+<!-- x-hide-in-docs-end -->
+<!-- The 'github-badges' class is used in the docs -->
+<p align="center" class="github-badges">
+<!-- TODO: update this with the version of the SDK your implementation supports -->
 
-## 👋 Hey there! Thanks for checking out the OpenFeature Swift SDK
+  <a href="https://github.com/open-feature/spec/releases/tag/v0.7.0">
+    <img alt="Specification" src="https://img.shields.io/static/v1?label=specification&message=v0.7.0&color=yellow&style=for-the-badge" />
+  </a>
+  <!-- x-release-please-start-version -->
 
-### What is OpenFeature?
+  <a href="https://github.com/open-feature/swift-sdk/releases/tag/0.0.2">
+    <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.0.2&color=blue&style=for-the-badge" />
+  </a>
 
-[OpenFeature][openfeature-website] is an open specification that provides a vendor-agnostic, community-driven API for feature flagging that works with your favorite feature flag management tool.
+  <!-- x-release-please-end -->
+  <br/>
+  <img alt="Status" src="https://img.shields.io/badge/lifecycle-alpha-a0c3d2.svg" />
+</p>
+<!-- x-hide-in-docs-start -->
 
-### Why standardize feature flags?
+[OpenFeature](https://openfeature.dev) is an open specification that provides a vendor-agnostic, community-driven API for feature flagging that works with your favorite feature flag management tool or in-house solution.
 
-Standardizing feature flags unifies tools and vendors behind a common interface which avoids vendor lock-in at the code level. Additionally, it offers a framework for building extensions and integrations and allows providers to focus on their unique value proposition.
+<!-- x-hide-in-docs-end -->
+## 🚀 Quick start
 
-## 🔍 Requirements
+### Requirements
 
 - The minimum iOS version supported is: `iOS 14`.
 
 Note that this library is intended to be used in a mobile context, and has not been evaluated for use in other type of applications (e.g. server applications, macOS, tvOS, watchOS, etc.).
 
-## 📦 Installation
+### Install
 
-### Xcode Dependencies
+#### Xcode Dependencies
 
 You have two options, both start from File > Add Packages... in the code menu.
 
@@ -43,7 +56,7 @@ First, ensure you have your GitHub account added as an option (+ > Add Source Co
 
 **Note:** Option 2 is only recommended if you are making changes to the client SDK.
 
-### Swift Package Manager
+#### Swift Package Manager
 
 If you manage dependencies through SPM, in the dependencies section of Package.swift add:
 
@@ -58,14 +71,7 @@ and in the target dependencies section add:
 .product(name: "OpenFeature", package: "swift-sdk"),
 ```
 
-## 🌟 Features
-
-- Support for various backend [providers](https://openfeature.dev/docs/reference/concepts/provider)
-- Easy integration and extension via [hooks](https://openfeature.dev/docs/reference/concepts/hooks)
-- Bool, string, numeric, and object flag types
-- [Context-aware](https://openfeature.dev/docs/reference/concepts/evaluation-context) evaluation
-
-## 🚀 Usage
+### Usage
 
 ```swift
 import OpenFeature
@@ -85,24 +91,97 @@ let client = OpenFeatureAPI.shared.getClient()
 let flagValue = client.getBooleanValue(key: "boolFlag", defaultValue: false)
 ```
 
-Setting a new provider or setting a new evaluation context are synchronous operations. The provider might execute I/O operations as part of these method calls (e.g. fetching flag evaluations from the backend and store them in a local cache). It's advised to not interact with the OpenFeature client until the relevant event has been emitted (see events below).
+Setting a new provider or setting a new evaluation context might trigger asynchronous operations (e.g. fetching flag evaluations from the backend and store them in a local cache). It's advised to not interact with the OpenFeature client until the `ProviderReady` event has been emitted (see [Eventing](#eventing) below).
 
-Please refer to our [documentation on static-context APIs](https://github.com/open-feature/spec/pull/171) for further information on how these APIs are structured for the use-case of mobile clients.
+## 🌟 Features
 
-### Events
 
-Events allow you to react to state changes in the provider or underlying flag management system, such as flag definition changes, provider readiness, or error conditions.
-Initialization events (`PROVIDER_READY` on success, `PROVIDER_ERROR` on failure) are emitted for every provider.
-Some providers support additional events, such as `PROVIDER_CONFIGURATION_CHANGED`.
-Please refer to the documentation of the provider you're using to see what events are supported and when they are emitted.
+| Status | Features                        | Description                                                                                                                        |
+| ------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| ✅      | [Providers](#providers)         | Integrate with a commercial, open source, or in-house feature management tool.                                                     |
+| ✅      | [Targeting](#targeting)         | Contextually-aware flag evaluation using [evaluation context](https://openfeature.dev/docs/reference/concepts/evaluation-context). |
+| ✅      | [Hooks](#hooks)                 | Add functionality to various stages of the flag evaluation life-cycle.                                                             |
+| ❌      | [Logging](#logging)             | Integrate with popular logging packages.                                                                                           |
+| ❌      | [Named clients](#named-clients) | Utilize multiple providers in a single application.                                                                                |
+| ✅      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
+| ❌      | [Shutdown](#shutdown)           | Gracefully clean up a provider during application shutdown.                                                                        |
+| ✅      | [Extending](#extending)         | Extend OpenFeature with custom providers and hooks.                                                                                |
 
-To register a handler for API level provider events, use the `OpenFeatureAPI` `addHandler(observer:selector:event:)` function. Event handlers can also be removed using the equivalent `removeHandler` function. `Client`s also provide add and remove functions for listening to that specific client. A `ProviderEvent` enum is defined to ease subscription.
-
-Events can contain extra information in the `userInfo` dictionary of the notification. All events will contain a reference to the provider that emitted the event (under the `providerEventDetailsKeyProvider` key). Error events will also provide a reference to the underlying error (under the `providerEventDetailsKeyError` key). Finally, client specific events will contain a reference to the client (under the `providerEventDetailsKeyClient` key)
+<sub>Implemented: ✅ | In-progress: ⚠️ | Not implemented yet: ❌</sub>
 
 ### Providers
 
-To develop a provider, you need to create a new project and include the OpenFeature SDK as a dependency. This can be a new repository or included in the existing contrib repository available under the OpenFeature organization. Finally, you’ll then need to write the provider itself. This can be accomplished by implementing the `FeatureProvider` protocol exported by the OpenFeature SDK.
+[Providers](https://openfeature.dev/docs/reference/concepts/provider) are an abstraction between a flag management system and the OpenFeature SDK.
+Look [here](https://openfeature.dev/ecosystem?instant_search%5BrefinementList%5D%5Btype%5D%5B0%5D=Provider&instant_search%5BrefinementList%5D%5Btechnology%5D%5B0%5D=Swift) for a complete list of available providers.
+If the provider you're looking for hasn't been created yet, see the [develop a provider](#develop-a-provider) section to learn how to build it yourself.
+
+Once you've added a provider as a dependency, it can be registered with OpenFeature like this:
+
+```swift
+OpenFeatureAPI.shared.setEvaluationContext(evaluationContext: ctx)
+```
+
+### Targeting
+
+Sometimes, the value of a flag must consider some dynamic criteria about the application or user, such as the user's location, IP, email address, or the server's location.
+In OpenFeature, we refer to this as [targeting](https://openfeature.dev/specification/glossary#targeting).
+If the flag management system you're using supports targeting, you can provide the input data using the [evaluation context](https://openfeature.dev/docs/reference/concepts/evaluation-context).
+
+```swift
+// Configure your evaluation context and pass it to OpenFeatureAPI
+let ctx = MutableContext(
+    targetingKey: userId,
+    structure: MutableStructure(attributes: ["product": Value.string(productId)]))
+OpenFeatureAPI.shared.setEvaluationContext(evaluationContext: ctx)
+```
+
+### Hooks
+
+[Hooks](https://openfeature.dev/docs/reference/concepts/hooks) allow for custom logic to be added at well-defined points of the flag evaluation life-cycle.
+Look [here](https://openfeature.dev/ecosystem/?instant_search%5BrefinementList%5D%5Btype%5D%5B0%5D=Hook&instant_search%5BrefinementList%5D%5Btechnology%5D%5B0%5D=Swift) for a complete list of available hooks.
+If the hook you're looking for hasn't been created yet, see the [develop a hook](#develop-a-hook) section to learn how to build it yourself.
+
+Once you've added a hook as a dependency, it can be registered at the global, client, or flag invocation level.
+
+```swift
+// add a hook globally, to run on all evaluations
+OpenFeatureAPI.shared.addHooks(hooks: ExampleHook())
+
+// add a hook on this client, to run on all evaluations made by this client
+val client = OpenFeatureAPI.shared.getClient()
+client.addHooks(ExampleHook())
+
+// add a hook for this evaluation only
+_ = client.getValue(
+    key: "key",
+    defaultValue: false,
+    options: FlagEvaluationOptions(hooks: [ExampleHook()]))
+```
+
+### Eventing
+
+Events allow you to react to state changes in the provider or underlying flag management system, such as flag definition changes, provider readiness, or error conditions.
+Initialization events (`PROVIDER_READY` on success, `PROVIDER_ERROR` on failure) are dispatched for every provider.
+Some providers support additional events, such as `PROVIDER_CONFIGURATION_CHANGED`.
+
+Please refer to the documentation of the provider you're using to see what events are supported.
+
+```swift
+OpenFeatureAPI.shared.addHandler(
+    observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
+)
+
+func readyEventEmitted(notification: NSNotification) {
+    // to something now that the provider is ready
+}
+```
+
+## Extending
+
+### Develop a provider
+
+To develop a provider, you need to create a new project and include the OpenFeature SDK as a dependency.
+You’ll then need to write the provider by implementing the `FeatureProvider` interface exported by the OpenFeature SDK.
 
 ```swift
 import OpenFeature
@@ -127,64 +206,61 @@ final class CustomProvider: FeatureProvider {
         // resolve a boolean flag value
     }
 
-    func getStringEvaluation(
-        key: String,
-        defaultValue: String,
-        context: EvaluationContext?
-    ) throws -> ProviderEvaluation<String> {
-        // resolve a string flag value
-    }
-
-    func getIntegerEvaluation(
-        key: String,
-        defaultValue: Int64,
-        context: EvaluationContext?
-    ) throws -> ProviderEvaluation<Int64> {
-        // resolve an integer flag value
-    }
-
-    func getDoubleEvaluation(
-        key: String,
-        defaultValue: Double,
-        context: EvaluationContext?
-    ) throws -> ProviderEvaluation<Double> {
-        // resolve a double flag value
-    }
-
-    func getObjectEvaluation(
-        key: String,
-        defaultValue: Value,
-        context: EvaluationContext?
-    ) throws -> ProviderEvaluation<Value> {
-        // resolve an object flag value
-    }
+    ...
 }
 
 ```
+> Built a new provider? [Let us know](https://github.com/open-feature/openfeature.dev/issues/new?assignees=&labels=provider&projects=&template=document-provider.yaml&title=%5BProvider%5D%3A+) so we can add it to the docs!
 
+### Develop a hook
+
+To develop a hook, you need to create a new project and include the OpenFeature SDK as a dependency.
+Implement your own hook by conforming to the `Hook interface`.
+To satisfy the interface, all methods (`Before`/`After`/`Finally`/`Error`) need to be defined.
+
+```swift
+class BooleanHook: Hook {
+    typealias HookValue = Bool
+
+    func before<HookValue>(ctx: HookContext<HookValue>, hints: [String: Any]) {
+        // do something
+    }
+
+    func after<HookValue>(ctx: HookContext<HookValue>, details: FlagEvaluationDetails<HookValue>, hints: [String: Any]) {
+        // do something
+    }
+
+    func error<HookValue>(ctx: HookContext<HookValue>, error: Error, hints: [String: Any]) {
+        // do something
+    }
+
+    func finallyAfter<HookValue>(ctx: HookContext<HookValue>, hints: [String: Any]) {
+        // do something
+    }
+}
+```
+
+> Built a new hook? [Let us know](https://github.com/open-feature/openfeature.dev/issues/new?assignees=&labels=hook&projects=&template=document-hook.yaml&title=%5BHook%5D%3A+) so we can add it to the docs!
+
+<!-- x-hide-in-docs-start -->
 ## ⭐️ Support the project
 
 - Give this repo a ⭐️!
 - Follow us on social media:
-    - Twitter: [@openfeature](https://twitter.com/openfeature)
-    - LinkedIn: [OpenFeature](https://www.linkedin.com/company/openfeature/)
+  - Twitter: [@openfeature](https://twitter.com/openfeature)
+  - LinkedIn: [OpenFeature](https://www.linkedin.com/company/openfeature/)
 - Join us on [Slack](https://cloud-native.slack.com/archives/C0344AANLA1)
-- For more check out our [community page](https://openfeature.dev/community/)
+- For more, check out our [community page](https://openfeature.dev/community/)
 
 ## 🤝 Contributing
 
 Interested in contributing? Great, we'd love your help! To get started, take a look at the [CONTRIBUTING](CONTRIBUTING.md) guide.
 
-### Thanks to everyone that has already contributed
+### Thanks to everyone who has already contributed
 
 <a href="https://github.com/open-feature/swift-sdk/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=open-feature/swift-sdk" alt="Pictures of the folks who have contributed to the project" />
 </a>
 
 Made with [contrib.rocks](https://contrib.rocks).
-
-## 📜 License
-
-[Apache License 2.0](LICENSE)
-
-[openfeature-website]: https://openfeature.dev
+<!-- x-hide-in-docs-end -->
