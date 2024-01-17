@@ -6,6 +6,7 @@ public class OpenFeatureAPI {
     private var _provider: FeatureProvider?
     private var _context: EvaluationContext?
     private(set) var hooks: [any Hook] = []
+    private let semaphore = DispatchSemaphore(value: 0)
 
     private let providerNotificationCentre = NotificationCenter()
 
@@ -13,6 +14,15 @@ public class OpenFeatureAPI {
     static public let shared = OpenFeatureAPI()
 
     public init() {
+        addHandler(
+            observer: self,
+            selector: #selector(providerReadyObserved(notification:)),
+            event: .ready
+        )
+    }
+
+    @objc private func providerReadyObserved(notification: Notification) {
+        self.semaphore.signal()
     }
 
     public func setProvider(provider: FeatureProvider) {
@@ -26,6 +36,20 @@ public class OpenFeatureAPI {
         }
 
         provider.initialize(initialContext: self._context)
+    }
+
+    public func setProviderAndWait(provider: FeatureProvider) {
+        self.setProviderAndWait(provider: provider, initialContext: nil)
+    }
+
+    public func setProviderAndWait(provider: FeatureProvider, initialContext: EvaluationContext?) {
+        self._provider = provider
+        if let context = initialContext {
+            self._context = context
+        }
+
+        provider.initialize(initialContext: self._context)
+        semaphore.wait()
     }
 
     public func getProvider() -> FeatureProvider? {
@@ -89,6 +113,7 @@ extension OpenFeatureAPI {
         error: Error? = nil,
         details: [AnyHashable: Any]? = nil
     ) {
+        print(">> Emit")
         var userInfo: [AnyHashable: Any] = [:]
         userInfo[providerEventDetailsKeyProvider] = provider
 

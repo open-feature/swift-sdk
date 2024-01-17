@@ -19,6 +19,14 @@ final class DeveloperExperienceTests: XCTestCase {
         XCTAssertFalse(flagValue)
     }
 
+    func testSimpleBooleanFlagAwaitProviderReady() async {
+        OpenFeatureAPI.shared.setProviderAndWait(provider: DoSomethingProvider())
+        let client = OpenFeatureAPI.shared.getClient()
+
+        let flagValue = client.getValue(key: "test", defaultValue: false)
+        XCTAssertTrue(flagValue)
+    }
+
     func testClientHooks() {
         OpenFeatureAPI.shared.setProvider(provider: NoOpProvider())
         let client = OpenFeatureAPI.shared.getClient()

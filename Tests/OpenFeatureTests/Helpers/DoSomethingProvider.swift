@@ -3,13 +3,20 @@ import OpenFeature
 
 class DoSomethingProvider: FeatureProvider {
     public static let name = "Something"
+    private var ready = false
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
         OpenFeatureAPI.shared.emitEvent(.configurationChanged, provider: self)
     }
 
     func initialize(initialContext: OpenFeature.EvaluationContext?) {
-        OpenFeatureAPI.shared.emitEvent(.ready, provider: self)
+        Task {
+            print(">> Starting")
+            try! await Task.sleep(nanoseconds: 1 * 1000000)
+            print(">> Done")
+            self.ready = true
+            OpenFeatureAPI.shared.emitEvent(.ready, provider: self)
+        }
     }
 
     var hooks: [any OpenFeature.Hook] = []
@@ -20,7 +27,11 @@ class DoSomethingProvider: FeatureProvider {
             Bool
         >
     {
-        return ProviderEvaluation(value: !defaultValue)
+        if (ready) {
+            return ProviderEvaluation(value: !defaultValue)
+        } else {
+            throw OpenFeatureError.providerNotReadyError
+        }
     }
 
     func getStringEvaluation(key: String, defaultValue: String, context: EvaluationContext?) throws
