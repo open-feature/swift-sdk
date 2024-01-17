@@ -55,7 +55,7 @@ If you manage dependencies through SPM, in the dependencies section of Package.s
 
 and in the target dependencies section add:
 ```swift
-.product(name: "OpenFeature", package: "openfeature-swift-sdk"),
+.product(name: "OpenFeature", package: "swift-sdk"),
 ```
 
 ## 🌟 Features
