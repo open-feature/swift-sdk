@@ -5,15 +5,16 @@ import Foundation
 class AlwaysBrokenProvider: FeatureProvider {
     var metadata: ProviderMetadata = AlwaysBrokenMetadata()
     var hooks: [any Hook] = []
+    private let eventHandler = EventHandler()
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
         let error = OpenFeatureError.generalError(message: "Always Fails")
-        OpenFeatureAPI.shared.emitEvent(.error, provider: self, error: error)
+        eventHandler.emit(.error, provider: self, error: error)
     }
 
     func initialize(initialContext: OpenFeature.EvaluationContext?) {
         let error = OpenFeatureError.generalError(message: "Always Fails")
-        OpenFeatureAPI.shared.emitEvent(.error, provider: self, error: error)
+        eventHandler.emit(.error, provider: self, error: error)
     }
 
     func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?) throws
@@ -44,6 +45,14 @@ class AlwaysBrokenProvider: FeatureProvider {
         -> OpenFeature.ProviderEvaluation<OpenFeature.Value>
     {
         throw OpenFeatureError.flagNotFoundError(key: key)
+    }
+
+    func addHandler(observer: Any, selector: Selector, event: ProviderEvent) {
+        eventHandler.addHandler(observer: observer, selector: selector, event: event)
+    }
+
+    func removeHandler(observer: Any, event: ProviderEvent) {
+        eventHandler.removeHandler(observer: observer, event: event)
     }
 }
 

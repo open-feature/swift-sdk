@@ -6,18 +6,18 @@ import XCTest
 final class HookSpecTests: XCTestCase {
     override func setUp() {
         super.setUp()
-
-        OpenFeatureAPI.shared.addHandler(
-            observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
-        )
-
-        OpenFeatureAPI.shared.addHandler(
-            observer: self, selector: #selector(errorEventEmitted(notification:)), event: .error
-        )
     }
 
     func testNoErrorHookCalled() {
-        OpenFeatureAPI.shared.setProvider(provider: NoOpProvider())
+        let provider = NoOpProvider()
+        provider.addHandler(
+            observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
+        )
+
+        provider.addHandler(
+            observer: self, selector: #selector(errorEventEmitted(notification:)), event: .error
+        )
+        OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
 
         let client = OpenFeatureAPI.shared.getClient()
@@ -36,7 +36,15 @@ final class HookSpecTests: XCTestCase {
     }
 
     func testErrorHookButNoAfterCalled() {
-        OpenFeatureAPI.shared.setProvider(provider: AlwaysBrokenProvider())
+        let provider = AlwaysBrokenProvider()
+        provider.addHandler(
+            observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
+        )
+
+        provider.addHandler(
+            observer: self, selector: #selector(errorEventEmitted(notification:)), event: .error
+        )
+        OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [errorExpectation], timeout: 5)
 
         let client = OpenFeatureAPI.shared.getClient()
@@ -62,6 +70,13 @@ final class HookSpecTests: XCTestCase {
         let providerMock = NoOpProviderMock(hooks: [
             BooleanHookMock(prefix: "provider", addEval: addEval)
         ])
+        providerMock.addHandler(
+            observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
+        )
+
+        providerMock.addHandler(
+            observer: self, selector: #selector(errorEventEmitted(notification:)), event: .error
+        )
         OpenFeatureAPI.shared.setProvider(provider: providerMock)
         wait(for: [readyExpectation], timeout: 5)
 

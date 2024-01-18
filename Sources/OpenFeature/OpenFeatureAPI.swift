@@ -7,8 +7,6 @@ public class OpenFeatureAPI {
     private var _context: EvaluationContext?
     private(set) var hooks: [any Hook] = []
 
-    private let providerNotificationCentre = NotificationCenter()
-
     /// The ``OpenFeatureAPI`` singleton
     static public let shared = OpenFeatureAPI()
 
@@ -64,42 +62,5 @@ public class OpenFeatureAPI {
 
     public func clearHooks() {
         self.hooks.removeAll()
-    }
-}
-
-// MARK: Provider Events
-
-extension OpenFeatureAPI {
-    public func addHandler(observer: Any, selector: Selector, event: ProviderEvent) {
-        providerNotificationCentre.addObserver(
-            observer,
-            selector: selector,
-            name: event.notification,
-            object: nil
-        )
-    }
-
-    public func removeHandler(observer: Any, event: ProviderEvent) {
-        providerNotificationCentre.removeObserver(observer, name: event.notification, object: nil)
-    }
-
-    public func emitEvent(
-        _ event: ProviderEvent,
-        provider: FeatureProvider,
-        error: Error? = nil,
-        details: [AnyHashable: Any]? = nil
-    ) {
-        var userInfo: [AnyHashable: Any] = [:]
-        userInfo[providerEventDetailsKeyProvider] = provider
-
-        if let error {
-            userInfo[providerEventDetailsKeyError] = error
-        }
-
-        if let details {
-            userInfo.merge(details) { $1 } // Merge, keeping value from `details` if any conflicts
-        }
-
-        providerNotificationCentre.post(name: event.notification, object: nil, userInfo: userInfo)
     }
 }

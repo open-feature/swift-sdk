@@ -6,7 +6,7 @@ final class ProviderEventsTests: XCTestCase {
     let provider = DoSomethingProvider()
 
     func testReadyEventEmitted() {
-        OpenFeatureAPI.shared.addHandler(
+        provider.addHandler(
             observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
         )
 

@@ -3,6 +3,7 @@ import Foundation
 /// A ``FeatureProvider`` that simply returns the default values passed to it.
 class NoOpProvider: FeatureProvider {
     public static let passedInDefault = "Passed in default"
+    private let eventHandler = EventHandler()
 
     public enum Mode {
         case normal
@@ -13,11 +14,11 @@ class NoOpProvider: FeatureProvider {
     var hooks: [any Hook] = []
 
     func onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
-        OpenFeatureAPI.shared.emitEvent(.configurationChanged, provider: self)
+        eventHandler.emit(.configurationChanged, provider: self)
     }
 
     func initialize(initialContext: EvaluationContext?) {
-        OpenFeatureAPI.shared.emitEvent(.ready, provider: self)
+        eventHandler.emit(.ready, provider: self)
     }
 
     func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?) throws
@@ -63,6 +64,14 @@ class NoOpProvider: FeatureProvider {
     {
         return ProviderEvaluation(
             value: defaultValue, variant: NoOpProvider.passedInDefault, reason: Reason.defaultReason.rawValue)
+    }
+
+    func addHandler(observer: Any, selector: Selector, event: ProviderEvent) {
+        eventHandler.addHandler(observer: observer, selector: selector, event: event)
+    }
+
+    func removeHandler(observer: Any, event: ProviderEvent) {
+        eventHandler.removeHandler(observer: observer, event: event)
     }
 }
 

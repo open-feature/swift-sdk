@@ -6,14 +6,6 @@ import XCTest
 final class FlagEvaluationTests: XCTestCase {
     override func setUp() {
         super.setUp()
-
-        OpenFeatureAPI.shared.addHandler(
-            observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
-        )
-
-        OpenFeatureAPI.shared.addHandler(
-            observer: self, selector: #selector(errorEventEmitted(notification:)), event: .error
-        )
     }
 
     func testSingletonPersists() {
@@ -23,7 +15,6 @@ final class FlagEvaluationTests: XCTestCase {
     func testApiSetsProvider() {
         let provider = NoOpProvider()
         OpenFeatureAPI.shared.setProvider(provider: provider)
-
         XCTAssertTrue((OpenFeatureAPI.shared.getProvider() as? NoOpProvider) === provider)
     }
 
@@ -64,7 +55,15 @@ final class FlagEvaluationTests: XCTestCase {
     }
 
     func testSimpleFlagEvaluation() {
-        OpenFeatureAPI.shared.setProvider(provider: DoSomethingProvider())
+        let provider = DoSomethingProvider()
+        provider.addHandler(
+            observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
+        )
+
+        provider.addHandler(
+            observer: self, selector: #selector(errorEventEmitted(notification:)), event: .error
+        )
+        OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
 
         let client = OpenFeatureAPI.shared.getClient()
@@ -103,7 +102,15 @@ final class FlagEvaluationTests: XCTestCase {
     }
 
     func testDetailedFlagEvaluation() async {
-        OpenFeatureAPI.shared.setProvider(provider: DoSomethingProvider())
+        let provider = DoSomethingProvider()
+        provider.addHandler(
+            observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
+        )
+
+        provider.addHandler(
+            observer: self, selector: #selector(errorEventEmitted(notification:)), event: .error
+        )
+        OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
 
         let client = OpenFeatureAPI.shared.getClient()
@@ -148,7 +155,15 @@ final class FlagEvaluationTests: XCTestCase {
     }
 
     func testHooksAreFired() async {
-        OpenFeatureAPI.shared.setProvider(provider: NoOpProvider())
+        let provider = NoOpProvider()
+        provider.addHandler(
+            observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
+        )
+
+        provider.addHandler(
+            observer: self, selector: #selector(errorEventEmitted(notification:)), event: .error
+        )
+        OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
 
         let client = OpenFeatureAPI.shared.getClient()
@@ -167,7 +182,15 @@ final class FlagEvaluationTests: XCTestCase {
     }
 
     func testBrokenProvider() {
-        OpenFeatureAPI.shared.setProvider(provider: AlwaysBrokenProvider())
+        let provider = AlwaysBrokenProvider()
+        provider.addHandler(
+            observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
+        )
+
+        provider.addHandler(
+            observer: self, selector: #selector(errorEventEmitted(notification:)), event: .error
+        )
+        OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [errorExpectation], timeout: 5)
 
         let client = OpenFeatureAPI.shared.getClient()

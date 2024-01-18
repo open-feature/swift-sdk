@@ -3,13 +3,14 @@ import OpenFeature
 
 class DoSomethingProvider: FeatureProvider {
     public static let name = "Something"
+    private let eventHandler = EventHandler()
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
-        OpenFeatureAPI.shared.emitEvent(.configurationChanged, provider: self)
+        eventHandler.emit(.configurationChanged, provider: self)
     }
 
     func initialize(initialContext: OpenFeature.EvaluationContext?) {
-        OpenFeatureAPI.shared.emitEvent(.ready, provider: self)
+        eventHandler.emit(.ready, provider: self)
     }
 
     var hooks: [any OpenFeature.Hook] = []
@@ -53,6 +54,14 @@ class DoSomethingProvider: FeatureProvider {
         >
     {
         return ProviderEvaluation(value: .null)
+    }
+
+    func addHandler(observer: Any, selector: Selector, event: ProviderEvent) {
+        eventHandler.addHandler(observer: observer, selector: selector, event: event)
+    }
+
+    func removeHandler(observer: Any, event: ProviderEvent) {
+        eventHandler.removeHandler(observer: observer, event: event)
     }
 
     public struct DoMetadata: ProviderMetadata {

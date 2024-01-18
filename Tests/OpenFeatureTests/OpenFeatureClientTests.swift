@@ -22,25 +22,6 @@ final class OpenFeatureClientTests: XCTestCase {
         XCTAssertEqual(doubleDetails.value, 12_310)
     }
 
-    func testProviderEvents() {
-        setupExpectations()
-
-        let provider = DoSomethingProvider()
-        OpenFeatureAPI.shared.setProvider(provider: provider)
-
-        let client = OpenFeatureAPI.shared.getClient()
-        ProviderEvent.allCases.forEach { event in
-            client.addHandler(observer: self, selector: #selector(eventEmitted(notification:)), event: event)
-
-            OpenFeatureAPI.shared.emitEvent(event, provider: provider)
-            if let expectation = eventExpectations[event] {
-                wait(for: [expectation], timeout: 5)
-            } else {
-                XCTFail("No expectation for provider event: \(event)")
-            }
-        }
-    }
-
     // MARK: Event Handlers
     private var eventExpectations: [ProviderEvent: XCTestExpectation] = [:]
 
