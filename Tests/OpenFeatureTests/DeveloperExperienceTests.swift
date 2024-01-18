@@ -19,6 +19,22 @@ final class DeveloperExperienceTests: XCTestCase {
         XCTAssertFalse(flagValue)
     }
 
+    func testObserveProviderReady() {
+        OpenFeatureAPI.shared.addHandler(
+            observer: self,
+            selector: #selector(readyEventEmitted(notification:)),
+            event: .ready)
+        OpenFeatureAPI.shared.setProvider(provider: DoSomethingProvider())
+        wait(for: [readyExpectation], timeout: 5)
+    }
+
+    // MARK: Event Handlers
+    let readyExpectation = XCTestExpectation(description: "Ready")
+
+    func readyEventEmitted(notification: NSNotification) {
+        readyExpectation.fulfill()
+    }
+
     func testClientHooks() {
         OpenFeatureAPI.shared.setProvider(provider: NoOpProvider())
         let client = OpenFeatureAPI.shared.getClient()

@@ -2,10 +2,11 @@ import Foundation
 
 /// A global singleton which holds base configuration for the OpenFeature library.
 /// Configuration here will be shared across all ``Client``s.
-public class OpenFeatureAPI {
+public class OpenFeatureAPI: EventPublisher {
     private var _provider: FeatureProvider?
     private var _context: EvaluationContext?
     private(set) var hooks: [any Hook] = []
+    private(set) var handlers: [Handler] = []
 
     /// The ``OpenFeatureAPI`` singleton
     static public let shared = OpenFeatureAPI()
@@ -23,6 +24,9 @@ public class OpenFeatureAPI {
             self._context = context
         }
 
+        handlers.forEach { handler in
+            provider.addHandler(observer: handler.observer, selector: handler.selector, event: handler.event)
+        }
         provider.initialize(initialContext: self._context)
     }
 
@@ -62,5 +66,22 @@ public class OpenFeatureAPI {
 
     public func clearHooks() {
         self.hooks.removeAll()
+    }
+
+    public func addHandler(observer: Any, selector: Selector, event: ProviderEvent) {
+        handlers.append(Handler(observer: observer, selector: selector, event: event))
+        // TODO If a provider is already set, the handler should receive an event for the current status according to specs
+        getProvider()?.addHandler(observer: observer, selector: selector, event: event)
+    }
+
+    public func removeHandler(observer: Any, event: ProviderEvent) {
+        // TODO remove in local 'handlers' arrays
+        getProvider()?.removeHandler(observer: observer, event: event)
+    }
+
+    struct Handler {
+        let observer: Any
+        let selector: Selector
+        let event: ProviderEvent
     }
 }
