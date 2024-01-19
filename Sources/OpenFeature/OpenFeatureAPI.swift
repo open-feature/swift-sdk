@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// A global singleton which holds base configuration for the OpenFeature library.
 /// Configuration here will be shared across all ``Client``s.
@@ -22,10 +23,6 @@ public class OpenFeatureAPI: EventPublisher {
         self._provider = provider
         if let context = initialContext {
             self._context = context
-        }
-
-        handlers.forEach { handler in
-            provider.addHandler(observer: handler.observer, selector: handler.selector, event: handler.event)
         }
         provider.initialize(initialContext: self._context)
     }
@@ -68,15 +65,8 @@ public class OpenFeatureAPI: EventPublisher {
         self.hooks.removeAll()
     }
 
-    public func addHandler(observer: Any, selector: Selector, event: ProviderEvent) {
-        handlers.append(Handler(observer: observer, selector: selector, event: event))
-        // TODO If a provider is already set, the handler should receive an event for the current status according to specs
-        getProvider()?.addHandler(observer: observer, selector: selector, event: event)
-    }
-
-    public func removeHandler(observer: Any, event: ProviderEvent) {
-        // TODO remove in local 'handlers' arrays
-        getProvider()?.removeHandler(observer: observer, event: event)
+    public func observe() -> Publishers.MergeMany<NotificationCenter.Publisher> {
+        getProvider()!.observe() // TODO Fix!
     }
 
     struct Handler {

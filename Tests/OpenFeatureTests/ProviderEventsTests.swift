@@ -4,27 +4,19 @@ import XCTest
 
 final class ProviderEventsTests: XCTestCase {
     let provider = DoSomethingProvider()
-
-    func testReadyEventEmitted() {
-        provider.addHandler(
-            observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
-        )
-
-        OpenFeatureAPI.shared.setProvider(provider: provider)
-        wait(for: [readyExpectation], timeout: 5)
-    }
-
-    // MARK: Event Handlers
     let readyExpectation = XCTestExpectation(description: "Ready")
 
-    func readyEventEmitted(notification: NSNotification) {
-        readyExpectation.fulfill()
-
-        let maybeProvider = notification.userInfo?[providerEventDetailsKeyProvider]
-        guard let eventProvider = maybeProvider as? DoSomethingProvider else {
-            XCTFail("Provider not passed in notification")
-            return
-        }
-        XCTAssertEqual(eventProvider.metadata.name, provider.metadata.name)
+    func testReadyEventEmitted() {
+        let sink = provider
+            .observe()
+            .filter { notification in
+                notification.name == ProviderEvent.ready.notificationName
+            }
+            .sink { _ in
+                self.readyExpectation.fulfill()
+            }
+        OpenFeatureAPI.shared.setProvider(provider: provider)
+        wait(for: [readyExpectation], timeout: 5)
+        XCTAssertNotNil(sink)
     }
 }

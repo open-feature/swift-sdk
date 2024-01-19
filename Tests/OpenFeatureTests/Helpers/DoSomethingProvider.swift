@@ -1,9 +1,11 @@
 import Foundation
 import OpenFeature
+import Combine
 
 class DoSomethingProvider: FeatureProvider {
     public static let name = "Something"
     private let eventHandler = EventHandler()
+    private var holdit: AnyCancellable?
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
         eventHandler.emit(.configurationChanged, provider: self)
@@ -56,12 +58,8 @@ class DoSomethingProvider: FeatureProvider {
         return ProviderEvaluation(value: .null)
     }
 
-    func addHandler(observer: Any, selector: Selector, event: ProviderEvent) {
-        eventHandler.addHandler(observer: observer, selector: selector, event: event)
-    }
-
-    func removeHandler(observer: Any, event: ProviderEvent) {
-        eventHandler.removeHandler(observer: observer, event: event)
+    func observe() -> Publishers.MergeMany<NotificationCenter.Publisher> {
+        eventHandler.observe()
     }
 
     public struct DoMetadata: ProviderMetadata {

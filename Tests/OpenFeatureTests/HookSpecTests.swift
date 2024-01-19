@@ -10,13 +10,16 @@ final class HookSpecTests: XCTestCase {
 
     func testNoErrorHookCalled() {
         let provider = NoOpProvider()
-        provider.addHandler(
-            observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
-        )
-
-        provider.addHandler(
-            observer: self, selector: #selector(errorEventEmitted(notification:)), event: .error
-        )
+        let cancellable = provider.observe().sink { notification in
+            switch notification.name {
+            case ProviderEvent.ready.notificationName:
+                self.readyExpectation.fulfill()
+            case ProviderEvent.error.notificationName:
+                self.errorExpectation.fulfill()
+            default:
+                XCTFail("Unexpected event")
+            }
+        }
         OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
 
@@ -33,17 +36,21 @@ final class HookSpecTests: XCTestCase {
         XCTAssertEqual(hook.afterCalled, 1)
         XCTAssertEqual(hook.errorCalled, 0)
         XCTAssertEqual(hook.finallyAfterCalled, 1)
+        XCTAssertNotNil(cancellable)
     }
 
     func testErrorHookButNoAfterCalled() {
         let provider = AlwaysBrokenProvider()
-        provider.addHandler(
-            observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
-        )
-
-        provider.addHandler(
-            observer: self, selector: #selector(errorEventEmitted(notification:)), event: .error
-        )
+        let cancellable = provider.observe().sink { notification in
+            switch notification.name {
+            case ProviderEvent.ready.notificationName:
+                self.readyExpectation.fulfill()
+            case ProviderEvent.error.notificationName:
+                self.errorExpectation.fulfill()
+            default:
+                XCTFail("Unexpected event")
+            }
+        }
         OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [errorExpectation], timeout: 5)
 
@@ -59,6 +66,7 @@ final class HookSpecTests: XCTestCase {
         XCTAssertEqual(hook.afterCalled, 0)
         XCTAssertEqual(hook.errorCalled, 1)
         XCTAssertEqual(hook.finallyAfterCalled, 1)
+        XCTAssertNotNil(cancellable)
     }
 
     func testHookEvaluationOrder() {
@@ -70,13 +78,16 @@ final class HookSpecTests: XCTestCase {
         let providerMock = NoOpProviderMock(hooks: [
             BooleanHookMock(prefix: "provider", addEval: addEval)
         ])
-        providerMock.addHandler(
-            observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
-        )
-
-        providerMock.addHandler(
-            observer: self, selector: #selector(errorEventEmitted(notification:)), event: .error
-        )
+        let cancellable = providerMock.observe().sink { notification in
+            switch notification.name {
+            case ProviderEvent.ready.notificationName:
+                self.readyExpectation.fulfill()
+            case ProviderEvent.error.notificationName:
+                self.errorExpectation.fulfill()
+            default:
+                XCTFail("Unexpected event")
+            }
+        }
         OpenFeatureAPI.shared.setProvider(provider: providerMock)
         wait(for: [readyExpectation], timeout: 5)
 
@@ -105,6 +116,7 @@ final class HookSpecTests: XCTestCase {
                 "client finallyAfter",
                 "api finallyAfter",
             ])
+        XCTAssertNotNil(cancellable)
     }
 
     // MARK: Event Handlers

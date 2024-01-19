@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 public class EventHandler: EventEmitter, EventPublisher {
     private let providerNotificationCentre = NotificationCenter()
@@ -6,17 +7,12 @@ public class EventHandler: EventEmitter, EventPublisher {
     public init() {
     }
 
-    public func addHandler(observer: Any, selector: Selector, event: ProviderEvent) {
-        providerNotificationCentre.addObserver(
-            observer,
-            selector: selector,
-            name: event.notification,
-            object: nil
-        )
-    }
-
-    public func removeHandler(observer: Any, event: ProviderEvent) {
-        providerNotificationCentre.removeObserver(observer, name: event.notification, object: nil)
+    public func observe() -> Publishers.MergeMany<NotificationCenter.Publisher> {
+        // TODO Use sealed enum to ensure completeness
+        providerNotificationCentre.publisher(for: ProviderEvent.ready.notificationName)
+            .merge(with: providerNotificationCentre.publisher(for: ProviderEvent.error.notificationName))
+            .merge(with: providerNotificationCentre.publisher(for: ProviderEvent.stale.notificationName))
+            .merge(with: providerNotificationCentre.publisher(for: ProviderEvent.configurationChanged.notificationName))
     }
 
     public func emit(
@@ -36,13 +32,12 @@ public class EventHandler: EventEmitter, EventPublisher {
             userInfo.merge(details) { $1 } // Merge, keeping value from `details` if any conflicts
         }
 
-        providerNotificationCentre.post(name: event.notification, object: nil, userInfo: userInfo)
+        providerNotificationCentre.post(name: event.notificationName, object: nil, userInfo: userInfo)
     }
 }
 
 public protocol EventPublisher {
-    func addHandler(observer: Any, selector: Selector, event: ProviderEvent)
-    func removeHandler(observer: Any, event: ProviderEvent)
+    func observe() -> Publishers.MergeMany<NotificationCenter.Publisher>
 }
 
 public protocol EventEmitter {

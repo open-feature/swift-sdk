@@ -174,12 +174,13 @@ Some providers support additional events, such as `PROVIDER_CONFIGURATION_CHANGE
 Please refer to the documentation of the provider you're using to see what events are supported.
 
 ```swift
-OpenFeatureAPI.shared.addHandler(
-    observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
-)
-
-func readyEventEmitted(notification: NSNotification) {
-    // to something now that the provider is ready
+let cancellable = OpenFeatureAPI.shared.observe().sink { notification in
+    switch notification.name {
+    case ProviderEvent.ready.notificationName:
+        // ...
+    default:
+        // ...
+    }
 }
 ```
 

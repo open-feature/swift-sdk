@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// A ``FeatureProvider`` that simply returns the default values passed to it.
 class NoOpProvider: FeatureProvider {
@@ -66,12 +67,8 @@ class NoOpProvider: FeatureProvider {
             value: defaultValue, variant: NoOpProvider.passedInDefault, reason: Reason.defaultReason.rawValue)
     }
 
-    func addHandler(observer: Any, selector: Selector, event: ProviderEvent) {
-        eventHandler.addHandler(observer: observer, selector: selector, event: event)
-    }
-
-    func removeHandler(observer: Any, event: ProviderEvent) {
-        eventHandler.removeHandler(observer: observer, event: event)
+    func observe() -> Publishers.MergeMany<NotificationCenter.Publisher> {
+        return eventHandler.observe()
     }
 }
 

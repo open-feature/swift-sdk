@@ -10,7 +10,7 @@ public enum ProviderEvent: String, CaseIterable {
     case configurationChanged = "PROVIDER_CONFIGURATION_CHANGED"
     case stale = "PROVIDER_STALE"
 
-    var notification: NSNotification.Name {
+    public var notificationName: NSNotification.Name {
         NSNotification.Name(rawValue)
     }
 }

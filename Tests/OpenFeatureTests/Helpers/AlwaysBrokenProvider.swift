@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 @testable import OpenFeature
 
@@ -47,12 +48,8 @@ class AlwaysBrokenProvider: FeatureProvider {
         throw OpenFeatureError.flagNotFoundError(key: key)
     }
 
-    func addHandler(observer: Any, selector: Selector, event: ProviderEvent) {
-        eventHandler.addHandler(observer: observer, selector: selector, event: event)
-    }
-
-    func removeHandler(observer: Any, event: ProviderEvent) {
-        eventHandler.removeHandler(observer: observer, event: event)
+    func observe() -> Publishers.MergeMany<NotificationCenter.Publisher> {
+        eventHandler.observe()
     }
 }
 
