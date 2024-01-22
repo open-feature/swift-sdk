@@ -19,11 +19,11 @@ final class DeveloperExperienceTests: XCTestCase {
         XCTAssertFalse(flagValue)
     }
 
-    func testObserveProviderReady() {
+    func testObserveGlobalEvents() {
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         let staleExpectation = XCTestExpectation(description: "Stale")
-        let eventState = OpenFeatureAPI.shared.observe().sink { event in
+        var eventState = OpenFeatureAPI.shared.observe().sink { event in
             switch event {
             case ProviderEvent.ready:
                 readyExpectation.fulfill()
@@ -35,8 +35,17 @@ final class DeveloperExperienceTests: XCTestCase {
                 XCTFail("Unexpected event")
             }
         }
-        OpenFeatureAPI.shared.setProvider(provider: DoSomethingProvider())
+        let provider = DoSomethingProvider()
+        OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
+
+        // Clearing the Provider shouldn't send further global events from it
+        eventState = OpenFeatureAPI.shared.observe().sink { _ in
+            XCTFail("Unexpected event")
+        }
+        OpenFeatureAPI.shared.clearProvider()
+        provider.initialize(initialContext: MutableContext(attributes: ["Test": Value.string("Test")]))
+
         XCTAssertNotNil(eventState)
     }
 
