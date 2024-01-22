@@ -13,7 +13,7 @@ final class HookSpecTests: XCTestCase {
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         let staleExpectation = XCTestExpectation(description: "Stale")
-        let subject = provider.observe().sink { event in
+        let eventState = provider.observe().sink { event in
             switch event {
             case ProviderEvent.ready:
                 readyExpectation.fulfill()
@@ -41,7 +41,7 @@ final class HookSpecTests: XCTestCase {
         XCTAssertEqual(hook.afterCalled, 1)
         XCTAssertEqual(hook.errorCalled, 0)
         XCTAssertEqual(hook.finallyAfterCalled, 1)
-        XCTAssertNotNil(subject)
+        XCTAssertNotNil(eventState)
     }
 
     func testErrorHookButNoAfterCalled() {
@@ -49,7 +49,7 @@ final class HookSpecTests: XCTestCase {
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         let staleExpectation = XCTestExpectation(description: "Stale")
-        let subject = provider.observe().sink { event in
+        let eventState = provider.observe().sink { event in
             switch event {
             case ProviderEvent.ready:
                 readyExpectation.fulfill()
@@ -76,7 +76,7 @@ final class HookSpecTests: XCTestCase {
         XCTAssertEqual(hook.afterCalled, 0)
         XCTAssertEqual(hook.errorCalled, 1)
         XCTAssertEqual(hook.finallyAfterCalled, 1)
-        XCTAssertNotNil(subject)
+        XCTAssertNotNil(eventState)
     }
 
     func testHookEvaluationOrder() {
@@ -91,7 +91,7 @@ final class HookSpecTests: XCTestCase {
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         let staleExpectation = XCTestExpectation(description: "Stale")
-        let subject = providerMock.observe().sink { event in
+        let eventState = providerMock.observe().sink { event in
             switch event {
             case ProviderEvent.ready:
                 readyExpectation.fulfill()
@@ -131,7 +131,7 @@ final class HookSpecTests: XCTestCase {
                 "client finallyAfter",
                 "api finallyAfter",
             ])
-        XCTAssertNotNil(subject)
+        XCTAssertNotNil(eventState)
     }
 }
 

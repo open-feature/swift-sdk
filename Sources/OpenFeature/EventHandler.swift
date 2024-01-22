@@ -2,20 +2,20 @@ import Foundation
 import Combine
 
 public class EventHandler: EventSender, EventPublisher {
-    private let subject: CurrentValueSubject<ProviderEvent, Never>
+    private let eventState: CurrentValueSubject<ProviderEvent, Never>
 
     public init(_ state: ProviderEvent) {
-        subject = CurrentValueSubject<ProviderEvent, Never>(ProviderEvent.stale)
+        eventState = CurrentValueSubject<ProviderEvent, Never>(ProviderEvent.stale)
     }
 
     public func observe() -> CurrentValueSubject<ProviderEvent, Never> {
-        return subject
+        return eventState
     }
 
     public func send(
         _ event: ProviderEvent
     ) {
-        subject.send(event)
+        eventState.send(event)
     }
 }
 

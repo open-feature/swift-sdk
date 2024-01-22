@@ -60,7 +60,7 @@ final class FlagEvaluationTests: XCTestCase {
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         let staleExpectation = XCTestExpectation(description: "Stale")
-        let subject = provider.observe().sink { event in
+        let eventState = provider.observe().sink { event in
             switch event {
             case ProviderEvent.ready:
                 readyExpectation.fulfill()
@@ -108,7 +108,7 @@ final class FlagEvaluationTests: XCTestCase {
         XCTAssertEqual(value, .null)
         value = client.getValue(key: key, defaultValue: .structure([:]), options: FlagEvaluationOptions())
         XCTAssertEqual(value, .null)
-        XCTAssertNotNil(subject)
+        XCTAssertNotNil(eventState)
     }
 
     func testDetailedFlagEvaluation() async {
@@ -116,7 +116,7 @@ final class FlagEvaluationTests: XCTestCase {
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         let staleExpectation = XCTestExpectation(description: "Stale")
-        let subject = provider.observe().sink { event in
+        let eventState = provider.observe().sink { event in
             switch event {
             case ProviderEvent.ready:
                 readyExpectation.fulfill()
@@ -169,7 +169,7 @@ final class FlagEvaluationTests: XCTestCase {
             client.getDetails(
                 key: key, defaultValue: .structure([:]), options: FlagEvaluationOptions()),
             objectDetails)
-        XCTAssertNotNil(subject)
+        XCTAssertNotNil(eventState)
     }
 
     func testHooksAreFired() async {
@@ -177,7 +177,7 @@ final class FlagEvaluationTests: XCTestCase {
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         let staleExpectation = XCTestExpectation(description: "Stale")
-        let subject = provider.observe().sink { event in
+        let eventState = provider.observe().sink { event in
             switch event {
             case ProviderEvent.ready:
                 readyExpectation.fulfill()
@@ -206,7 +206,7 @@ final class FlagEvaluationTests: XCTestCase {
 
         XCTAssertEqual(clientHook.beforeCalled, 1)
         XCTAssertEqual(invocationHook.beforeCalled, 1)
-        XCTAssertNotNil(subject)
+        XCTAssertNotNil(eventState)
     }
 
     func testBrokenProvider() {
@@ -214,7 +214,7 @@ final class FlagEvaluationTests: XCTestCase {
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         let staleExpectation = XCTestExpectation(description: "Stale")
-        let subject = provider.observe().sink { event in
+        let eventState = provider.observe().sink { event in
             switch event {
             case ProviderEvent.ready:
                 readyExpectation.fulfill()
@@ -237,7 +237,7 @@ final class FlagEvaluationTests: XCTestCase {
         XCTAssertEqual(details.errorCode, .flagNotFound)
         XCTAssertEqual(details.reason, Reason.error.rawValue)
         XCTAssertEqual(details.errorMessage, "Could not find flag for key: testkey")
-        XCTAssertNotNil(subject)
+        XCTAssertNotNil(eventState)
     }
 
     func testClientMetadata() {
