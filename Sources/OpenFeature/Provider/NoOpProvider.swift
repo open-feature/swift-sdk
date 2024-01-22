@@ -15,7 +15,7 @@ class NoOpProvider: FeatureProvider {
     var hooks: [any Hook] = []
 
     func onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
-        eventHandler.send(.configurationChanged)
+        eventHandler.send(.ready)
     }
 
     func initialize(initialContext: EvaluationContext?) {

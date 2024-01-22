@@ -8,7 +8,7 @@ class DoSomethingProvider: FeatureProvider {
     private var holdit: AnyCancellable?
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
-        eventHandler.send(.configurationChanged)
+        eventHandler.send(.ready)
     }
 
     func initialize(initialContext: OpenFeature.EvaluationContext?) {
