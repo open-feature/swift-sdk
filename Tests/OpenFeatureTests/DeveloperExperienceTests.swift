@@ -3,8 +3,6 @@ import XCTest
 @testable import OpenFeature
 
 final class DeveloperExperienceTests: XCTestCase {
-    let readyExpectation = XCTestExpectation(description: "Ready")
-
     func testNoProviderSet() {
         OpenFeatureAPI.shared.clearProvider()
         let client = OpenFeatureAPI.shared.getClient()
@@ -21,19 +19,26 @@ final class DeveloperExperienceTests: XCTestCase {
         XCTAssertFalse(flagValue)
     }
 
-//    func testObserveProviderReady() {
-//        let cancellable = OpenFeatureAPI.shared.observe().sink { notification in
-//            switch notification.name {
-//            case ProviderEvent.ready.notificationName:
-//                self.readyExpectation.fulfill()
-//            default:
-//                XCTFail("Unexpected event")
-//            }
-//        }
-//        OpenFeatureAPI.shared.setProvider(provider: DoSomethingProvider())
-//        wait(for: [readyExpectation], timeout: 5)
-//        XCTAssertNotNil(cancellable)
-//    }
+    func testObserveProviderReady() {
+        let readyExpectation = XCTestExpectation(description: "Ready")
+        let errorExpectation = XCTestExpectation(description: "Error")
+        let staleExpectation = XCTestExpectation(description: "Stale")
+        let eventState = OpenFeatureAPI.shared.observe().sink { event in
+            switch event {
+            case ProviderEvent.ready:
+                readyExpectation.fulfill()
+            case ProviderEvent.error:
+                errorExpectation.fulfill()
+            case ProviderEvent.stale:
+                staleExpectation.fulfill()
+            default:
+                XCTFail("Unexpected event")
+            }
+        }
+        OpenFeatureAPI.shared.setProvider(provider: DoSomethingProvider())
+        wait(for: [readyExpectation], timeout: 5)
+        XCTAssertNotNil(eventState)
+    }
 
     func testClientHooks() {
         OpenFeatureAPI.shared.setProvider(provider: NoOpProvider())

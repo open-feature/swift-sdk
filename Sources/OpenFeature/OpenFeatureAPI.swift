@@ -3,11 +3,12 @@ import Combine
 
 /// A global singleton which holds base configuration for the OpenFeature library.
 /// Configuration here will be shared across all ``Client``s.
-public class OpenFeatureAPI: EventPublisher {
+public class OpenFeatureAPI: GlobalEventPublisher {
     private var _provider: FeatureProvider?
     private var _context: EvaluationContext?
     private(set) var hooks: [any Hook] = []
-    private(set) var handlers: [Handler] = []
+    private var providerObserver: AnyCancellable?
+    private var globalEventState = PassthroughSubject<ProviderEvent, Never>()
 
     /// The ``OpenFeatureAPI`` singleton
     static public let shared = OpenFeatureAPI()
@@ -21,6 +22,9 @@ public class OpenFeatureAPI: EventPublisher {
 
     public func setProvider(provider: FeatureProvider, initialContext: EvaluationContext?) {
         self._provider = provider
+        self.providerObserver = provider.observe().sink { event in
+            self.globalEventState.send(event)
+        }
         if let context = initialContext {
             self._context = context
         }
@@ -33,6 +37,7 @@ public class OpenFeatureAPI: EventPublisher {
 
     public func clearProvider() {
         self._provider = nil
+        self.providerObserver = nil
     }
 
     public func setEvaluationContext(evaluationContext: EvaluationContext) {
@@ -65,8 +70,8 @@ public class OpenFeatureAPI: EventPublisher {
         self.hooks.removeAll()
     }
 
-    public func observe() -> CurrentValueSubject<ProviderEvent, Never> {
-        getProvider()!.observe() // TODO Fix!
+    public func observe() -> PassthroughSubject<ProviderEvent, Never> {
+        return globalEventState
     }
 
     struct Handler {
