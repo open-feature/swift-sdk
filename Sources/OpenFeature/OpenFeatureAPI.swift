@@ -65,7 +65,7 @@ public class OpenFeatureAPI: EventPublisher {
         self.hooks.removeAll()
     }
 
-    public func observe() -> Publishers.MergeMany<NotificationCenter.Publisher> {
+    public func observe() -> CurrentValueSubject<ProviderEvent, Never> {
         getProvider()!.observe() // TODO Fix!
     }
 

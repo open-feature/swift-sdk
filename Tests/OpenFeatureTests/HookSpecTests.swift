@@ -10,12 +10,17 @@ final class HookSpecTests: XCTestCase {
 
     func testNoErrorHookCalled() {
         let provider = NoOpProvider()
-        let cancellable = provider.observe().sink { notification in
-            switch notification.name {
-            case ProviderEvent.ready.notificationName:
-                self.readyExpectation.fulfill()
-            case ProviderEvent.error.notificationName:
-                self.errorExpectation.fulfill()
+        let readyExpectation = XCTestExpectation(description: "Ready")
+        let errorExpectation = XCTestExpectation(description: "Error")
+        let staleExpectation = XCTestExpectation(description: "Stale")
+        let subject = provider.observe().sink { event in
+            switch event {
+            case ProviderEvent.ready:
+                readyExpectation.fulfill()
+            case ProviderEvent.error:
+                errorExpectation.fulfill()
+            case ProviderEvent.stale:
+                staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")
             }
@@ -36,17 +41,22 @@ final class HookSpecTests: XCTestCase {
         XCTAssertEqual(hook.afterCalled, 1)
         XCTAssertEqual(hook.errorCalled, 0)
         XCTAssertEqual(hook.finallyAfterCalled, 1)
-        XCTAssertNotNil(cancellable)
+        XCTAssertNotNil(subject)
     }
 
     func testErrorHookButNoAfterCalled() {
         let provider = AlwaysBrokenProvider()
-        let cancellable = provider.observe().sink { notification in
-            switch notification.name {
-            case ProviderEvent.ready.notificationName:
-                self.readyExpectation.fulfill()
-            case ProviderEvent.error.notificationName:
-                self.errorExpectation.fulfill()
+        let readyExpectation = XCTestExpectation(description: "Ready")
+        let errorExpectation = XCTestExpectation(description: "Error")
+        let staleExpectation = XCTestExpectation(description: "Stale")
+        let subject = provider.observe().sink { event in
+            switch event {
+            case ProviderEvent.ready:
+                readyExpectation.fulfill()
+            case ProviderEvent.error:
+                errorExpectation.fulfill()
+            case ProviderEvent.stale:
+                staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")
             }
@@ -66,7 +76,7 @@ final class HookSpecTests: XCTestCase {
         XCTAssertEqual(hook.afterCalled, 0)
         XCTAssertEqual(hook.errorCalled, 1)
         XCTAssertEqual(hook.finallyAfterCalled, 1)
-        XCTAssertNotNil(cancellable)
+        XCTAssertNotNil(subject)
     }
 
     func testHookEvaluationOrder() {
@@ -78,12 +88,17 @@ final class HookSpecTests: XCTestCase {
         let providerMock = NoOpProviderMock(hooks: [
             BooleanHookMock(prefix: "provider", addEval: addEval)
         ])
-        let cancellable = providerMock.observe().sink { notification in
-            switch notification.name {
-            case ProviderEvent.ready.notificationName:
-                self.readyExpectation.fulfill()
-            case ProviderEvent.error.notificationName:
-                self.errorExpectation.fulfill()
+        let readyExpectation = XCTestExpectation(description: "Ready")
+        let errorExpectation = XCTestExpectation(description: "Error")
+        let staleExpectation = XCTestExpectation(description: "Stale")
+        let subject = providerMock.observe().sink { event in
+            switch event {
+            case ProviderEvent.ready:
+                readyExpectation.fulfill()
+            case ProviderEvent.error:
+                errorExpectation.fulfill()
+            case ProviderEvent.stale:
+                staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")
             }
@@ -116,20 +131,7 @@ final class HookSpecTests: XCTestCase {
                 "client finallyAfter",
                 "api finallyAfter",
             ])
-        XCTAssertNotNil(cancellable)
-    }
-
-    // MARK: Event Handlers
-    let readyExpectation = XCTestExpectation(description: "Ready")
-
-    func readyEventEmitted(notification: NSNotification) {
-        readyExpectation.fulfill()
-    }
-
-    let errorExpectation = XCTestExpectation(description: "Error")
-
-    func errorEventEmitted(notification: NSNotification) {
-        errorExpectation.fulfill()
+        XCTAssertNotNil(subject)
     }
 }
 

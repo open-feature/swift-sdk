@@ -2,44 +2,27 @@ import Foundation
 import Combine
 
 public class EventHandler: EventEmitter, EventPublisher {
-    private let providerNotificationCentre = NotificationCenter()
+    private let subject: CurrentValueSubject<ProviderEvent, Never>
 
-    public init() {
+    public init(_ state: ProviderEvent) {
+        subject = CurrentValueSubject<ProviderEvent, Never>(ProviderEvent.stale)
     }
 
-    public func observe() -> Publishers.MergeMany<NotificationCenter.Publisher> {
-        // TODO Use sealed enum to ensure completeness
-        providerNotificationCentre.publisher(for: ProviderEvent.ready.notificationName)
-            .merge(with: providerNotificationCentre.publisher(for: ProviderEvent.error.notificationName))
-            .merge(with: providerNotificationCentre.publisher(for: ProviderEvent.stale.notificationName))
-            .merge(with: providerNotificationCentre.publisher(for: ProviderEvent.configurationChanged.notificationName))
+    public func observe() -> CurrentValueSubject<ProviderEvent, Never> {
+        return subject
     }
 
     public func emit(
-        _ event: ProviderEvent,
-        provider: FeatureProvider,
-        error: Error? = nil,
-        details: [AnyHashable: Any]? = nil
+        _ event: ProviderEvent
     ) {
-        var userInfo: [AnyHashable: Any] = [:]
-        userInfo[providerEventDetailsKeyProvider] = provider
-
-        if let error {
-            userInfo[providerEventDetailsKeyError] = error
-        }
-
-        if let details {
-            userInfo.merge(details) { $1 } // Merge, keeping value from `details` if any conflicts
-        }
-
-        providerNotificationCentre.post(name: event.notificationName, object: nil, userInfo: userInfo)
+        subject.send(event)
     }
 }
 
 public protocol EventPublisher {
-    func observe() -> Publishers.MergeMany<NotificationCenter.Publisher>
+    func observe() -> CurrentValueSubject<ProviderEvent, Never>
 }
 
 public protocol EventEmitter {
-    func emit(_ event: ProviderEvent, provider: FeatureProvider, error: Error?, details: [AnyHashable: Any]?)
+    func emit(_ event: ProviderEvent)
 }

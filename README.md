@@ -174,9 +174,9 @@ Some providers support additional events, such as `PROVIDER_CONFIGURATION_CHANGE
 Please refer to the documentation of the provider you're using to see what events are supported.
 
 ```swift
-let cancellable = OpenFeatureAPI.shared.observe().sink { notification in
-    switch notification.name {
-    case ProviderEvent.ready.notificationName:
+let cancellable = OpenFeatureAPI.shared.observe().sink { event in
+    switch event {
+    case ProviderEvent.ready:
         // ...
     default:
         // ...

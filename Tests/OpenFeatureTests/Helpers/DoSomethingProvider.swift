@@ -4,15 +4,15 @@ import Combine
 
 class DoSomethingProvider: FeatureProvider {
     public static let name = "Something"
-    private let eventHandler = EventHandler()
+    private let eventHandler = EventHandler(.ready)
     private var holdit: AnyCancellable?
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
-        eventHandler.emit(.configurationChanged, provider: self)
+        eventHandler.emit(.configurationChanged)
     }
 
     func initialize(initialContext: OpenFeature.EvaluationContext?) {
-        eventHandler.emit(.ready, provider: self)
+        eventHandler.emit(.ready)
     }
 
     var hooks: [any OpenFeature.Hook] = []
@@ -58,7 +58,7 @@ class DoSomethingProvider: FeatureProvider {
         return ProviderEvaluation(value: .null)
     }
 
-    func observe() -> Publishers.MergeMany<NotificationCenter.Publisher> {
+    func observe() -> CurrentValueSubject<ProviderEvent, Never> {
         eventHandler.observe()
     }
 

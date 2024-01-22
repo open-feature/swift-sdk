@@ -4,7 +4,7 @@ import Combine
 /// A ``FeatureProvider`` that simply returns the default values passed to it.
 class NoOpProvider: FeatureProvider {
     public static let passedInDefault = "Passed in default"
-    private let eventHandler = EventHandler()
+    private let eventHandler = EventHandler(.ready)
 
     public enum Mode {
         case normal
@@ -15,11 +15,11 @@ class NoOpProvider: FeatureProvider {
     var hooks: [any Hook] = []
 
     func onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
-        eventHandler.emit(.configurationChanged, provider: self)
+        eventHandler.emit(.configurationChanged)
     }
 
     func initialize(initialContext: EvaluationContext?) {
-        eventHandler.emit(.ready, provider: self)
+        eventHandler.emit(.ready)
     }
 
     func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?) throws
@@ -67,7 +67,7 @@ class NoOpProvider: FeatureProvider {
             value: defaultValue, variant: NoOpProvider.passedInDefault, reason: Reason.defaultReason.rawValue)
     }
 
-    func observe() -> Publishers.MergeMany<NotificationCenter.Publisher> {
+    func observe() -> CurrentValueSubject<ProviderEvent, Never> {
         return eventHandler.observe()
     }
 }

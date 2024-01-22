@@ -1,12 +1,10 @@
 import Foundation
 import XCTest
+import Combine
 
 @testable import OpenFeature
 
 final class FlagEvaluationTests: XCTestCase {
-    let readyExpectation = XCTestExpectation(description: "Ready")
-    let errorExpectation = XCTestExpectation(description: "Error")
-
     override func setUp() {
         super.setUp()
     }
@@ -59,22 +57,27 @@ final class FlagEvaluationTests: XCTestCase {
 
     func testSimpleFlagEvaluation() {
         let provider = DoSomethingProvider()
-        let cancellable = provider.observe().sink { notification in
-            switch notification.name {
-            case ProviderEvent.ready.notificationName:
-                self.readyExpectation.fulfill()
-            case ProviderEvent.error.notificationName:
-                self.errorExpectation.fulfill()
+        let readyExpectation = XCTestExpectation(description: "Ready")
+        let errorExpectation = XCTestExpectation(description: "Error")
+        let staleExpectation = XCTestExpectation(description: "Stale")
+        let subject = provider.observe().sink { event in
+            switch event {
+            case ProviderEvent.ready:
+                readyExpectation.fulfill()
+            case ProviderEvent.error:
+                errorExpectation.fulfill()
+            case ProviderEvent.stale:
+                staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")
             }
         }
+
+        wait(for: [staleExpectation], timeout: 5)
         OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
-
         let client = OpenFeatureAPI.shared.getClient()
         let key = "key"
-
         XCTAssertEqual(client.getValue(key: key, defaultValue: false), true)
         XCTAssertEqual(client.getValue(key: key, defaultValue: false), true)
         XCTAssertEqual(
@@ -105,27 +108,31 @@ final class FlagEvaluationTests: XCTestCase {
         XCTAssertEqual(value, .null)
         value = client.getValue(key: key, defaultValue: .structure([:]), options: FlagEvaluationOptions())
         XCTAssertEqual(value, .null)
-        XCTAssertNotNil(cancellable)
+        XCTAssertNotNil(subject)
     }
 
     func testDetailedFlagEvaluation() async {
         let provider = DoSomethingProvider()
-        let cancellable = provider.observe().sink { notification in
-            switch notification.name {
-            case ProviderEvent.ready.notificationName:
-                self.readyExpectation.fulfill()
-            case ProviderEvent.error.notificationName:
-                self.errorExpectation.fulfill()
+        let readyExpectation = XCTestExpectation(description: "Ready")
+        let errorExpectation = XCTestExpectation(description: "Error")
+        let staleExpectation = XCTestExpectation(description: "Stale")
+        let subject = provider.observe().sink { event in
+            switch event {
+            case ProviderEvent.ready:
+                readyExpectation.fulfill()
+            case ProviderEvent.error:
+                errorExpectation.fulfill()
+            case ProviderEvent.stale:
+                staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")
             }
         }
+
         OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
-
         let client = OpenFeatureAPI.shared.getClient()
         let key = "key"
-
         let booleanDetails = FlagEvaluationDetails(flagKey: key, value: true, variant: nil)
         XCTAssertEqual(client.getDetails(key: key, defaultValue: false), booleanDetails)
         XCTAssertEqual(client.getDetails(key: key, defaultValue: false), booleanDetails)
@@ -162,21 +169,27 @@ final class FlagEvaluationTests: XCTestCase {
             client.getDetails(
                 key: key, defaultValue: .structure([:]), options: FlagEvaluationOptions()),
             objectDetails)
-        XCTAssertNotNil(cancellable)
+        XCTAssertNotNil(subject)
     }
 
     func testHooksAreFired() async {
         let provider = NoOpProvider()
-        let cancellable = provider.observe().sink { notification in
-            switch notification.name {
-            case ProviderEvent.ready.notificationName:
-                self.readyExpectation.fulfill()
-            case ProviderEvent.error.notificationName:
-                self.errorExpectation.fulfill()
+        let readyExpectation = XCTestExpectation(description: "Ready")
+        let errorExpectation = XCTestExpectation(description: "Error")
+        let staleExpectation = XCTestExpectation(description: "Stale")
+        let subject = provider.observe().sink { event in
+            switch event {
+            case ProviderEvent.ready:
+                readyExpectation.fulfill()
+            case ProviderEvent.error:
+                errorExpectation.fulfill()
+            case ProviderEvent.stale:
+                staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")
             }
         }
+
         OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
 
@@ -193,17 +206,22 @@ final class FlagEvaluationTests: XCTestCase {
 
         XCTAssertEqual(clientHook.beforeCalled, 1)
         XCTAssertEqual(invocationHook.beforeCalled, 1)
-        XCTAssertNotNil(cancellable)
+        XCTAssertNotNil(subject)
     }
 
     func testBrokenProvider() {
         let provider = AlwaysBrokenProvider()
-        let cancellable = provider.observe().sink { notification in
-            switch notification.name {
-            case ProviderEvent.ready.notificationName:
-                self.readyExpectation.fulfill()
-            case ProviderEvent.error.notificationName:
-                self.errorExpectation.fulfill()
+        let readyExpectation = XCTestExpectation(description: "Ready")
+        let errorExpectation = XCTestExpectation(description: "Error")
+        let staleExpectation = XCTestExpectation(description: "Stale")
+        let subject = provider.observe().sink { event in
+            switch event {
+            case ProviderEvent.ready:
+                readyExpectation.fulfill()
+            case ProviderEvent.error:
+                errorExpectation.fulfill()
+            case ProviderEvent.stale:
+                staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")
             }
@@ -219,7 +237,7 @@ final class FlagEvaluationTests: XCTestCase {
         XCTAssertEqual(details.errorCode, .flagNotFound)
         XCTAssertEqual(details.reason, Reason.error.rawValue)
         XCTAssertEqual(details.errorMessage, "Could not find flag for key: testkey")
-        XCTAssertNotNil(cancellable)
+        XCTAssertNotNil(subject)
     }
 
     func testClientMetadata() {

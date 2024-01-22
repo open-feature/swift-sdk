@@ -6,16 +6,16 @@ import Combine
 class AlwaysBrokenProvider: FeatureProvider {
     var metadata: ProviderMetadata = AlwaysBrokenMetadata()
     var hooks: [any Hook] = []
-    private let eventHandler = EventHandler()
+    private let eventHandler = EventHandler(.stale)
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
         let error = OpenFeatureError.generalError(message: "Always Fails")
-        eventHandler.emit(.error, provider: self, error: error)
+        eventHandler.emit(.error)
     }
 
     func initialize(initialContext: OpenFeature.EvaluationContext?) {
         let error = OpenFeatureError.generalError(message: "Always Fails")
-        eventHandler.emit(.error, provider: self, error: error)
+        eventHandler.emit(.error)
     }
 
     func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?) throws
@@ -48,7 +48,7 @@ class AlwaysBrokenProvider: FeatureProvider {
         throw OpenFeatureError.flagNotFoundError(key: key)
     }
 
-    func observe() -> Publishers.MergeMany<NotificationCenter.Publisher> {
+    func observe() -> CurrentValueSubject<ProviderEvent, Never> {
         eventHandler.observe()
     }
 }

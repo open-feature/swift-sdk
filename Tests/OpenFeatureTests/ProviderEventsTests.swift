@@ -9,8 +9,8 @@ final class ProviderEventsTests: XCTestCase {
     func testReadyEventEmitted() {
         let sink = provider
             .observe()
-            .filter { notification in
-                notification.name == ProviderEvent.ready.notificationName
+            .filter { event in
+                event == ProviderEvent.ready
             }
             .sink { _ in
                 self.readyExpectation.fulfill()
