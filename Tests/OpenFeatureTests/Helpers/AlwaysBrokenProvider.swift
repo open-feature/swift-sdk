@@ -9,13 +9,11 @@ class AlwaysBrokenProvider: FeatureProvider {
     private let eventHandler = EventHandler(.stale)
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
-        let error = OpenFeatureError.generalError(message: "Always Fails")
-        eventHandler.emit(.error)
+        eventHandler.send(.error)
     }
 
     func initialize(initialContext: OpenFeature.EvaluationContext?) {
-        let error = OpenFeatureError.generalError(message: "Always Fails")
-        eventHandler.emit(.error)
+        eventHandler.send(.error)
     }
 
     func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?) throws

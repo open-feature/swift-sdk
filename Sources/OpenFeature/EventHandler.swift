@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-public class EventHandler: EventEmitter, EventPublisher {
+public class EventHandler: EventSender, EventPublisher {
     private let subject: CurrentValueSubject<ProviderEvent, Never>
 
     public init(_ state: ProviderEvent) {
@@ -12,7 +12,7 @@ public class EventHandler: EventEmitter, EventPublisher {
         return subject
     }
 
-    public func emit(
+    public func send(
         _ event: ProviderEvent
     ) {
         subject.send(event)
@@ -23,6 +23,6 @@ public protocol EventPublisher {
     func observe() -> CurrentValueSubject<ProviderEvent, Never>
 }
 
-public protocol EventEmitter {
-    func emit(_ event: ProviderEvent)
+public protocol EventSender {
+    func send(_ event: ProviderEvent)
 }

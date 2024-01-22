@@ -15,11 +15,11 @@ class NoOpProvider: FeatureProvider {
     var hooks: [any Hook] = []
 
     func onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
-        eventHandler.emit(.configurationChanged)
+        eventHandler.send(.configurationChanged)
     }
 
     func initialize(initialContext: EvaluationContext?) {
-        eventHandler.emit(.ready)
+        eventHandler.send(.ready)
     }
 
     func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?) throws

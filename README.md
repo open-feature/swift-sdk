@@ -91,7 +91,7 @@ let client = OpenFeatureAPI.shared.getClient()
 let flagValue = client.getBooleanValue(key: "boolFlag", defaultValue: false)
 ```
 
-Setting a new provider or setting a new evaluation context might trigger asynchronous operations (e.g. fetching flag evaluations from the backend and store them in a local cache). It's advised to not interact with the OpenFeature client until the `ProviderReady` event has been emitted (see [Eventing](#eventing) below).
+Setting a new provider or setting a new evaluation context might trigger asynchronous operations (e.g. fetching flag evaluations from the backend and store them in a local cache). It's advised to not interact with the OpenFeature client until the `ProviderReady` event has been sent (see [Eventing](#eventing) below).
 
 ## 🌟 Features
 

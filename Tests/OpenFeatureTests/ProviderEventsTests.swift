@@ -6,7 +6,7 @@ final class ProviderEventsTests: XCTestCase {
     let provider = DoSomethingProvider()
     let readyExpectation = XCTestExpectation(description: "Ready")
 
-    func testReadyEventEmitted() {
+    func testReadyEventSent() {
         let sink = provider
             .observe()
             .filter { event in
