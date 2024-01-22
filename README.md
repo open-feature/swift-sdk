@@ -157,6 +157,13 @@ _ = client.getValue(
     defaultValue: false,
     options: FlagEvaluationOptions(hooks: [ExampleHook()]))
 ```
+### Logging
+
+Logging customization is not yet available in the iOS SDK.
+
+### Named clients
+
+Support for named clients is not yet available in the iOS SDK.
 
 ### Eventing
 
@@ -175,6 +182,10 @@ func readyEventEmitted(notification: NSNotification) {
     // to something now that the provider is ready
 }
 ```
+
+### Shutdown
+
+A shutdown function is not yet available in the iOS SDK.
 
 ## Extending
 
