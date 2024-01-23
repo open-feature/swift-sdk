@@ -8,8 +8,8 @@ public class EventHandler: EventSender, EventPublisher {
         eventState = CurrentValueSubject<ProviderEvent, Never>(ProviderEvent.stale)
     }
 
-    public func observe() -> CurrentValueSubject<ProviderEvent, Never> {
-        return eventState
+    public func observe() -> AnyPublisher<ProviderEvent, Never> {
+        return eventState.eraseToAnyPublisher()
     }
 
     public func send(
@@ -20,7 +20,7 @@ public class EventHandler: EventSender, EventPublisher {
 }
 
 public protocol EventPublisher {
-    func observe() -> CurrentValueSubject<ProviderEvent, Never>
+    func observe() -> AnyPublisher<ProviderEvent, Never>
 }
 
 public protocol EventSender {

@@ -67,7 +67,7 @@ class NoOpProvider: FeatureProvider {
             value: defaultValue, variant: NoOpProvider.passedInDefault, reason: Reason.defaultReason.rawValue)
     }
 
-    func observe() -> CurrentValueSubject<ProviderEvent, Never> {
+    func observe() -> AnyPublisher<ProviderEvent, Never> {
         return eventHandler.observe()
     }
 }

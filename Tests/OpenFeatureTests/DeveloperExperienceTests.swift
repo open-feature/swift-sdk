@@ -39,11 +39,13 @@ final class DeveloperExperienceTests: XCTestCase {
         OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
 
+        OpenFeatureAPI.shared.clearProvider()
+
         // Clearing the Provider shouldn't send further global events from it
         eventState = OpenFeatureAPI.shared.observe().sink { _ in
             XCTFail("Unexpected event")
         }
-        OpenFeatureAPI.shared.clearProvider()
+
         provider.initialize(initialContext: MutableContext(attributes: ["Test": Value.string("Test")]))
 
         XCTAssertNotNil(eventState)

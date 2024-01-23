@@ -46,7 +46,7 @@ class AlwaysBrokenProvider: FeatureProvider {
         throw OpenFeatureError.flagNotFoundError(key: key)
     }
 
-    func observe() -> CurrentValueSubject<ProviderEvent, Never> {
+    func observe() -> AnyPublisher<ProviderEvent, Never> {
         eventHandler.observe()
     }
 }

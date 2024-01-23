@@ -73,11 +73,19 @@ public class OpenFeatureAPI {
         self.hooks.removeAll()
     }
 
-    public func observe() -> any Publisher<ProviderEvent, Never> {
+    public func observe() -> AnyPublisher<ProviderEvent, Never> {
         return providerSubject
-            .compactMap{ $0 }
-            .map({ provider in provider.observe()})
+            .map({ provider in
+                if let provider = provider {
+                    return provider.observe()
+                } else {
+                    return Empty<ProviderEvent, Never>()
+                        .eraseToAnyPublisher()
+                }
+            })
             .switchToLatest()
+            .eraseToAnyPublisher()
+
     }
 
     struct Handler {

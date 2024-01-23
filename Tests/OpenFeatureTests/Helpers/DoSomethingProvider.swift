@@ -58,7 +58,7 @@ class DoSomethingProvider: FeatureProvider {
         return ProviderEvaluation(value: .null)
     }
 
-    func observe() -> CurrentValueSubject<ProviderEvent, Never> {
+    func observe() -> AnyPublisher<ProviderEvent, Never> {
         eventHandler.observe()
     }
 
