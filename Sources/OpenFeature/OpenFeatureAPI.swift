@@ -15,8 +15,6 @@ public class OpenFeatureAPI {
     }
     private var _context: EvaluationContext?
     private(set) var hooks: [any Hook] = []
-    private var providerObserver: AnyCancellable?
-    private var globalEventState = PassthroughSubject<ProviderEvent, Never>()
     private var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
 
     /// The ``OpenFeatureAPI`` singleton
@@ -31,9 +29,6 @@ public class OpenFeatureAPI {
 
     public func setProvider(provider: FeatureProvider, initialContext: EvaluationContext?) {
         self._provider = provider
-        self.providerObserver = provider.observe().sink { event in
-            self.globalEventState.send(event)
-        }
         if let context = initialContext {
             self._context = context
         }
@@ -46,7 +41,6 @@ public class OpenFeatureAPI {
 
     public func clearProvider() {
         self._provider = nil
-        self.providerObserver = nil
     }
 
     public func setEvaluationContext(evaluationContext: EvaluationContext) {
@@ -82,7 +76,8 @@ public class OpenFeatureAPI {
     public func observe() -> any Publisher<ProviderEvent, Never> {
         return providerSubject
             .filter({provider in provider != nil})
-            .flatMap({ provider in provider!.observe()})
+            .map({ provider in provider!.observe()})
+            .switchToLatest()
     }
 
     struct Handler {

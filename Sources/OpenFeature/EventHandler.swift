@@ -23,10 +23,6 @@ public protocol EventPublisher {
     func observe() -> CurrentValueSubject<ProviderEvent, Never>
 }
 
-public protocol GlobalEventPublisher {
-    func observe() -> PassthroughSubject<ProviderEvent, Never>
-}
-
 public protocol EventSender {
     func send(_ event: ProviderEvent)
 }
