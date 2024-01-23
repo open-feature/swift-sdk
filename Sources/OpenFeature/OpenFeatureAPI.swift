@@ -75,8 +75,8 @@ public class OpenFeatureAPI {
 
     public func observe() -> any Publisher<ProviderEvent, Never> {
         return providerSubject
-            .filter({provider in provider != nil})
-            .map({ provider in provider!.observe()})
+            .compactMap{ $0 }
+            .map({ provider in provider.observe()})
             .switchToLatest()
     }
 
