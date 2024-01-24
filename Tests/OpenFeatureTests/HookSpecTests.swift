@@ -6,18 +6,26 @@ import XCTest
 final class HookSpecTests: XCTestCase {
     override func setUp() {
         super.setUp()
-
-        OpenFeatureAPI.shared.addHandler(
-            observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
-        )
-
-        OpenFeatureAPI.shared.addHandler(
-            observer: self, selector: #selector(errorEventEmitted(notification:)), event: .error
-        )
     }
 
     func testNoErrorHookCalled() {
-        OpenFeatureAPI.shared.setProvider(provider: NoOpProvider())
+        let provider = NoOpProvider()
+        let readyExpectation = XCTestExpectation(description: "Ready")
+        let errorExpectation = XCTestExpectation(description: "Error")
+        let staleExpectation = XCTestExpectation(description: "Stale")
+        let eventState = provider.observe().sink { event in
+            switch event {
+            case ProviderEvent.ready:
+                readyExpectation.fulfill()
+            case ProviderEvent.error:
+                errorExpectation.fulfill()
+            case ProviderEvent.stale:
+                staleExpectation.fulfill()
+            default:
+                XCTFail("Unexpected event")
+            }
+        }
+        OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
 
         let client = OpenFeatureAPI.shared.getClient()
@@ -33,10 +41,27 @@ final class HookSpecTests: XCTestCase {
         XCTAssertEqual(hook.afterCalled, 1)
         XCTAssertEqual(hook.errorCalled, 0)
         XCTAssertEqual(hook.finallyAfterCalled, 1)
+        XCTAssertNotNil(eventState)
     }
 
     func testErrorHookButNoAfterCalled() {
-        OpenFeatureAPI.shared.setProvider(provider: AlwaysBrokenProvider())
+        let provider = AlwaysBrokenProvider()
+        let readyExpectation = XCTestExpectation(description: "Ready")
+        let errorExpectation = XCTestExpectation(description: "Error")
+        let staleExpectation = XCTestExpectation(description: "Stale")
+        let eventState = provider.observe().sink { event in
+            switch event {
+            case ProviderEvent.ready:
+                readyExpectation.fulfill()
+            case ProviderEvent.error:
+                errorExpectation.fulfill()
+            case ProviderEvent.stale:
+                staleExpectation.fulfill()
+            default:
+                XCTFail("Unexpected event")
+            }
+        }
+        OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [errorExpectation], timeout: 5)
 
         let client = OpenFeatureAPI.shared.getClient()
@@ -51,6 +76,7 @@ final class HookSpecTests: XCTestCase {
         XCTAssertEqual(hook.afterCalled, 0)
         XCTAssertEqual(hook.errorCalled, 1)
         XCTAssertEqual(hook.finallyAfterCalled, 1)
+        XCTAssertNotNil(eventState)
     }
 
     func testHookEvaluationOrder() {
@@ -62,6 +88,21 @@ final class HookSpecTests: XCTestCase {
         let providerMock = NoOpProviderMock(hooks: [
             BooleanHookMock(prefix: "provider", addEval: addEval)
         ])
+        let readyExpectation = XCTestExpectation(description: "Ready")
+        let errorExpectation = XCTestExpectation(description: "Error")
+        let staleExpectation = XCTestExpectation(description: "Stale")
+        let eventState = providerMock.observe().sink { event in
+            switch event {
+            case ProviderEvent.ready:
+                readyExpectation.fulfill()
+            case ProviderEvent.error:
+                errorExpectation.fulfill()
+            case ProviderEvent.stale:
+                staleExpectation.fulfill()
+            default:
+                XCTFail("Unexpected event")
+            }
+        }
         OpenFeatureAPI.shared.setProvider(provider: providerMock)
         wait(for: [readyExpectation], timeout: 5)
 
@@ -90,19 +131,7 @@ final class HookSpecTests: XCTestCase {
                 "client finallyAfter",
                 "api finallyAfter",
             ])
-    }
-
-    // MARK: Event Handlers
-    let readyExpectation = XCTestExpectation(description: "Ready")
-
-    func readyEventEmitted(notification: NSNotification) {
-        readyExpectation.fulfill()
-    }
-
-    let errorExpectation = XCTestExpectation(description: "Error")
-
-    func errorEventEmitted(notification: NSNotification) {
-        errorExpectation.fulfill()
+        XCTAssertNotNil(eventState)
     }
 }
 

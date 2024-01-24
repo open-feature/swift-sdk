@@ -14,15 +14,11 @@ public class OpenFeatureClient: Client {
     private var hookSupport = HookSupport()
     private var logger = Logger()
 
-    private let providerNotificationCentre = NotificationCenter()
-
     public init(openFeatureApi: OpenFeatureAPI, name: String?, version: String?) {
         self.openFeatureApi = openFeatureApi
         self.name = name
         self.version = version
         self.metadata = Metadata(name: name)
-
-        subscribeToAllProviderEvents()
     }
 
     public func addHooks(_ hooks: any Hook...) {
@@ -198,44 +194,5 @@ extension OpenFeatureClient {
         }
 
         throw OpenFeatureError.generalError(message: "Unable to match default value type with flag value type")
-    }
-}
-
-// MARK: Events
-
-extension OpenFeatureClient {
-    public func subscribeToAllProviderEvents() {
-        ProviderEvent.allCases.forEach { event in
-            OpenFeatureAPI.shared.addHandler(
-                observer: self,
-                selector: #selector(handleProviderEvent(notification:)),
-                event: event)
-        }
-    }
-
-    public func unsubscribeFromAllProviderEvents() {
-        ProviderEvent.allCases.forEach { event in
-            OpenFeatureAPI.shared.removeHandler(observer: self, event: event)
-        }
-    }
-
-    @objc public func handleProviderEvent(notification: Notification) {
-        var userInfo: [AnyHashable: Any] = notification.userInfo ?? [:]
-        userInfo[providerEventDetailsKeyClient] = self
-
-        providerNotificationCentre.post(name: notification.name, object: nil, userInfo: userInfo)
-    }
-
-    public func addHandler(observer: Any, selector: Selector, event: ProviderEvent) {
-        providerNotificationCentre.addObserver(
-            observer,
-            selector: selector,
-            name: event.notification,
-            object: nil
-        )
-    }
-
-    public func removeHandler(observer: Any, event: ProviderEvent) {
-        providerNotificationCentre.removeObserver(observer, name: event.notification, object: nil)
     }
 }

@@ -1,15 +1,18 @@
 import Foundation
 import OpenFeature
+import Combine
 
 class DoSomethingProvider: FeatureProvider {
     public static let name = "Something"
+    private let eventHandler = EventHandler(.ready)
+    private var holdit: AnyCancellable?
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
-        OpenFeatureAPI.shared.emitEvent(.configurationChanged, provider: self)
+        eventHandler.send(.ready)
     }
 
     func initialize(initialContext: OpenFeature.EvaluationContext?) {
-        OpenFeatureAPI.shared.emitEvent(.ready, provider: self)
+        eventHandler.send(.ready)
     }
 
     var hooks: [any OpenFeature.Hook] = []
@@ -53,6 +56,10 @@ class DoSomethingProvider: FeatureProvider {
         >
     {
         return ProviderEvaluation(value: .null)
+    }
+
+    func observe() -> AnyPublisher<ProviderEvent, Never> {
+        eventHandler.observe()
     }
 
     public struct DoMetadata: ProviderMetadata {

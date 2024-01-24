@@ -91,7 +91,7 @@ let client = OpenFeatureAPI.shared.getClient()
 let flagValue = client.getBooleanValue(key: "boolFlag", defaultValue: false)
 ```
 
-Setting a new provider or setting a new evaluation context might trigger asynchronous operations (e.g. fetching flag evaluations from the backend and store them in a local cache). It's advised to not interact with the OpenFeature client until the `ProviderReady` event has been emitted (see [Eventing](#eventing) below).
+Setting a new provider or setting a new evaluation context might trigger asynchronous operations (e.g. fetching flag evaluations from the backend and store them in a local cache). It's advised to not interact with the OpenFeature client until the `ProviderReady` event has been sent (see [Eventing](#eventing) below).
 
 ## 🌟 Features
 
@@ -174,12 +174,13 @@ Some providers support additional events, such as `PROVIDER_CONFIGURATION_CHANGE
 Please refer to the documentation of the provider you're using to see what events are supported.
 
 ```swift
-OpenFeatureAPI.shared.addHandler(
-    observer: self, selector: #selector(readyEventEmitted(notification:)), event: .ready
-)
-
-func readyEventEmitted(notification: NSNotification) {
-    // to something now that the provider is ready
+let cancellable = OpenFeatureAPI.shared.observe().sink { event in
+    switch event {
+    case ProviderEvent.ready:
+        // ...
+    default:
+        // ...
+    }
 }
 ```
 

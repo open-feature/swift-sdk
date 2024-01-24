@@ -1,7 +1,7 @@
 import Foundation
 
 /// The interface implemented by upstream flag providers to resolve flags for their service.
-public protocol FeatureProvider {
+public protocol FeatureProvider: EventPublisher {
     var hooks: [any Hook] { get }
     var metadata: ProviderMetadata { get }
 

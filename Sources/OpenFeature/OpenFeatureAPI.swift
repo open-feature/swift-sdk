@@ -1,13 +1,20 @@
 import Foundation
+import Combine
 
 /// A global singleton which holds base configuration for the OpenFeature library.
 /// Configuration here will be shared across all ``Client``s.
 public class OpenFeatureAPI {
-    private var _provider: FeatureProvider?
+    private var _provider: FeatureProvider? {
+        get {
+            providerSubject.value
+        }
+        set {
+            providerSubject.send(newValue)
+        }
+    }
     private var _context: EvaluationContext?
     private(set) var hooks: [any Hook] = []
-
-    private let providerNotificationCentre = NotificationCenter()
+    private var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
 
     /// The ``OpenFeatureAPI`` singleton
     static public let shared = OpenFeatureAPI()
@@ -24,7 +31,6 @@ public class OpenFeatureAPI {
         if let context = initialContext {
             self._context = context
         }
-
         provider.initialize(initialContext: self._context)
     }
 
@@ -65,41 +71,17 @@ public class OpenFeatureAPI {
     public func clearHooks() {
         self.hooks.removeAll()
     }
-}
 
-// MARK: Provider Events
-
-extension OpenFeatureAPI {
-    public func addHandler(observer: Any, selector: Selector, event: ProviderEvent) {
-        providerNotificationCentre.addObserver(
-            observer,
-            selector: selector,
-            name: event.notification,
-            object: nil
-        )
-    }
-
-    public func removeHandler(observer: Any, event: ProviderEvent) {
-        providerNotificationCentre.removeObserver(observer, name: event.notification, object: nil)
-    }
-
-    public func emitEvent(
-        _ event: ProviderEvent,
-        provider: FeatureProvider,
-        error: Error? = nil,
-        details: [AnyHashable: Any]? = nil
-    ) {
-        var userInfo: [AnyHashable: Any] = [:]
-        userInfo[providerEventDetailsKeyProvider] = provider
-
-        if let error {
-            userInfo[providerEventDetailsKeyError] = error
+    public func observe() -> AnyPublisher<ProviderEvent, Never> {
+        return providerSubject.map { provider in
+            if let provider = provider {
+                return provider.observe()
+            } else {
+                return Empty<ProviderEvent, Never>()
+                    .eraseToAnyPublisher()
+            }
         }
-
-        if let details {
-            userInfo.merge(details) { $1 } // Merge, keeping value from `details` if any conflicts
-        }
-
-        providerNotificationCentre.post(name: event.notification, object: nil, userInfo: userInfo)
+        .switchToLatest()
+        .eraseToAnyPublisher()
     }
 }
