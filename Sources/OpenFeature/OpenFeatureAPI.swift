@@ -5,12 +5,11 @@ import Combine
 /// Configuration here will be shared across all ``Client``s.
 public class OpenFeatureAPI {
     private var _provider: FeatureProvider? {
-        set {
-            providerSubject.send(newValue)
-        }
-
         get {
             providerSubject.value
+        }
+        set {
+            providerSubject.send(newValue)
         }
     }
     private var _context: EvaluationContext?
@@ -74,18 +73,16 @@ public class OpenFeatureAPI {
     }
 
     public func observe() -> AnyPublisher<ProviderEvent, Never> {
-        return providerSubject
-            .map({ provider in
-                if let provider = provider {
-                    return provider.observe()
-                } else {
-                    return Empty<ProviderEvent, Never>()
-                        .eraseToAnyPublisher()
-                }
-            })
-            .switchToLatest()
-            .eraseToAnyPublisher()
-
+        return providerSubject.map { provider in
+            if let provider = provider {
+                return provider.observe()
+            } else {
+                return Empty<ProviderEvent, Never>()
+                    .eraseToAnyPublisher()
+            }
+        }
+        .switchToLatest()
+        .eraseToAnyPublisher()
     }
 
     struct Handler {
