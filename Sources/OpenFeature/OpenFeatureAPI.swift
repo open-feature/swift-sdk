@@ -84,10 +84,4 @@ public class OpenFeatureAPI {
         .switchToLatest()
         .eraseToAnyPublisher()
     }
-
-    struct Handler {
-        let observer: Any
-        let selector: Selector
-        let event: ProviderEvent
-    }
 }
