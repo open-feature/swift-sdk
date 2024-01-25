@@ -76,22 +76,16 @@ and in the target dependencies section add:
 ```swift
 import OpenFeature
 
-// Configure your custom `FeatureProvider` and pass it to OpenFeatureAPI
-let customProvider = MyCustomProvider()
-OpenFeatureAPI.shared.setProvider(provider: customProvider)
+Task {
+    let provider = CustomProvider()
+    // configure a provider, wait for it to complete its initialization tasks
+    await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
 
-// Configure your evaluation context and pass it to OpenFeatureAPI
-let ctx = MutableContext(
-    targetingKey: userId,
-    structure: MutableStructure(attributes: ["product": Value.string(productId)]))
-OpenFeatureAPI.shared.setEvaluationContext(evaluationContext: ctx)
-
-// Get client from OpenFeatureAPI and evaluate your flags
-let client = OpenFeatureAPI.shared.getClient()
-let flagValue = client.getBooleanValue(key: "boolFlag", defaultValue: false)
+    // get a bool flag value
+    let client = OpenFeatureAPI.shared.getClient()
+    let flagValue = client.getBooleanValue(key: "boolFlag", defaultValue: false)
+}
 ```
-
-Setting a new provider or setting a new evaluation context might trigger asynchronous operations (e.g. fetching flag evaluations from the backend and store them in a local cache). It's advised to not interact with the OpenFeature client until the `ProviderReady` event has been sent (see [Eventing](#eventing) below).
 
 ## 🌟 Features
 
@@ -118,8 +112,10 @@ If the provider you're looking for hasn't been created yet, see the [develop a p
 Once you've added a provider as a dependency, it can be registered with OpenFeature like this:
 
 ```swift
-OpenFeatureAPI.shared.setEvaluationContext(evaluationContext: ctx)
+await OpenFeatureAPI.shared.setProviderAndWait(provider: MyProvider())
 ```
+
+> Asynchronous API that doesn't wait is also available
 
 ### Targeting
 
