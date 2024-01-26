@@ -37,7 +37,7 @@ final class HookSpecTests: XCTestCase {
         XCTAssertEqual(hook.afterCalled, 1)
         XCTAssertEqual(hook.errorCalled, 0)
         XCTAssertEqual(hook.finallyAfterCalled, 1)
-        XCTAssertNotNil(eventState)
+        withExtendedLifetime(eventState) {}
     }
 
     func testErrorHookButNoAfterCalled() {
@@ -72,7 +72,7 @@ final class HookSpecTests: XCTestCase {
         XCTAssertEqual(hook.afterCalled, 0)
         XCTAssertEqual(hook.errorCalled, 1)
         XCTAssertEqual(hook.finallyAfterCalled, 1)
-        XCTAssertNotNil(eventState)
+        withExtendedLifetime(eventState) {}
     }
 
     func testHookEvaluationOrder() {
@@ -127,7 +127,7 @@ final class HookSpecTests: XCTestCase {
                 "client finallyAfter",
                 "api finallyAfter",
             ])
-        XCTAssertNotNil(eventState)
+        withExtendedLifetime(eventState) {}
     }
 }
 

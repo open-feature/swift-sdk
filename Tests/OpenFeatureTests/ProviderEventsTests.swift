@@ -17,6 +17,6 @@ final class ProviderEventsTests: XCTestCase {
             }
         OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
-        XCTAssertNotNil(eventState)
+        withExtendedLifetime(eventState) {}
     }
 }

@@ -46,7 +46,7 @@ final class DeveloperExperienceTests: XCTestCase {
         }
         OpenFeatureAPI.shared.clearProvider()
         provider.initialize(initialContext: MutableContext(attributes: ["Test": Value.string("Test")]))
-        XCTAssertNotNil(eventState)
+        withExtendedLifetime(eventState) {}
     }
 
     func testClientHooks() {

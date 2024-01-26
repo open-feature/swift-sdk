@@ -104,7 +104,7 @@ final class FlagEvaluationTests: XCTestCase {
         XCTAssertEqual(value, .null)
         value = client.getValue(key: key, defaultValue: .structure([:]), options: FlagEvaluationOptions())
         XCTAssertEqual(value, .null)
-        XCTAssertNotNil(eventState)
+        withExtendedLifetime(eventState) {}
     }
 
     func testDetailedFlagEvaluation() async {
@@ -165,7 +165,7 @@ final class FlagEvaluationTests: XCTestCase {
             client.getDetails(
                 key: key, defaultValue: .structure([:]), options: FlagEvaluationOptions()),
             objectDetails)
-        XCTAssertNotNil(eventState)
+        withExtendedLifetime(eventState) {}
     }
 
     func testHooksAreFired() async {
@@ -202,7 +202,7 @@ final class FlagEvaluationTests: XCTestCase {
 
         XCTAssertEqual(clientHook.beforeCalled, 1)
         XCTAssertEqual(invocationHook.beforeCalled, 1)
-        XCTAssertNotNil(eventState)
+        withExtendedLifetime(eventState) {}
     }
 
     func testBrokenProvider() {
@@ -233,7 +233,7 @@ final class FlagEvaluationTests: XCTestCase {
         XCTAssertEqual(details.errorCode, .flagNotFound)
         XCTAssertEqual(details.reason, Reason.error.rawValue)
         XCTAssertEqual(details.errorMessage, "Could not find flag for key: testkey")
-        XCTAssertNotNil(eventState)
+        withExtendedLifetime(eventState) {}
     }
 
     func testClientMetadata() {
