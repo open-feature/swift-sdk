@@ -97,6 +97,7 @@ extension OpenFeatureAPI {
             let stateObserver = provider.observe().sink {
                 if $0 == .ready {
                     continuation.resume()
+                    holder.removeAll()
                 }
             }
             stateObserver.store(in: &holder)
