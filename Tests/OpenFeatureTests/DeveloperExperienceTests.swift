@@ -53,7 +53,8 @@ final class DeveloperExperienceTests: XCTestCase {
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         let staleExpectation = XCTestExpectation(description: "Stale")
-        let eventState = OpenFeatureAPI.shared.observe().sink { event in
+        withExtendedLifetime(
+            OpenFeatureAPI.shared.observe().sink { event in
             switch event {
             case ProviderEvent.ready:
                 readyExpectation.fulfill()
@@ -64,21 +65,21 @@ final class DeveloperExperienceTests: XCTestCase {
             default:
                 XCTFail("Unexpected event")
             }
-        }
+            })
+        {
+            let initCompleteExpectation = XCTestExpectation()
 
-        let initCompleteExpectation = XCTestExpectation()
-
-        let eventHandler = EventHandler(.stale)
-        let provider = InjectableEventHandlerProvider(eventHandler: eventHandler)
-        Task {
-            await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
-            wait(for: [readyExpectation], timeout: 0)
-            initCompleteExpectation.fulfill()
+            let eventHandler = EventHandler(.stale)
+            let provider = InjectableEventHandlerProvider(eventHandler: eventHandler)
+            Task {
+                await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
+                wait(for: [readyExpectation], timeout: 0)
+                initCompleteExpectation.fulfill()
+            }
+            wait(for: [staleExpectation], timeout: 1)
+            eventHandler.send(.ready)
+            wait(for: [initCompleteExpectation], timeout: 2)
         }
-        wait(for: [staleExpectation], timeout: 1)
-        eventHandler.send(.ready)
-        wait(for: [initCompleteExpectation], timeout: 2)
-        XCTAssertNotNil(eventState)
     }
 
     func testClientHooks() {
