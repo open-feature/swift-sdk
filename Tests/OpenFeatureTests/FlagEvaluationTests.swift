@@ -5,10 +5,6 @@ import Combine
 @testable import OpenFeature
 
 final class FlagEvaluationTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
-    }
-
     func testSingletonPersists() {
         XCTAssertTrue(OpenFeatureAPI.shared === OpenFeatureAPI.shared)
     }
