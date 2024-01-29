@@ -85,3 +85,30 @@ public class OpenFeatureAPI {
         .eraseToAnyPublisher()
     }
 }
+
+extension OpenFeatureAPI {
+    public func setProviderAndWait(provider: FeatureProvider) async {
+        await setProviderAndWait(provider: provider, initialContext: nil)
+    }
+
+    public func setProviderAndWait(provider: FeatureProvider, initialContext: EvaluationContext?) async {
+        let task = Task {
+            var holder: [AnyCancellable] = []
+            await withCheckedContinuation { continuation in
+                let stateObserver = provider.observe().sink {
+                    if $0 == .ready {
+                        continuation.resume()
+                        holder.removeAll()
+                    }
+                }
+                stateObserver.store(in: &holder)
+                setProvider(provider: provider, initialContext: initialContext)
+            }
+        }
+        await withTaskCancellationHandler {
+            await task.value
+        } onCancel: {
+            task.cancel()
+        }
+    }
+}
