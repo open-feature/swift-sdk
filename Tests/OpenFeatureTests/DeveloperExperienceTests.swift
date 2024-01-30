@@ -20,17 +20,14 @@ final class DeveloperExperienceTests: XCTestCase {
     }
 
     func testObserveGlobalEvents() {
+        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let errorExpectation = XCTestExpectation(description: "Error")
-        let staleExpectation = XCTestExpectation(description: "Stale")
         var eventState = OpenFeatureAPI.shared.observe().sink { event in
             switch event {
-            case ProviderEvent.ready:
+            case .notReady:
+                notReadyExpectation.fulfill()
+            case .ready:
                 readyExpectation.fulfill()
-            case ProviderEvent.error:
-                errorExpectation.fulfill()
-            case ProviderEvent.stale:
-                staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")
             }
@@ -50,18 +47,18 @@ final class DeveloperExperienceTests: XCTestCase {
     }
 
     func testSetProviderAndWait() async {
+        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
-        let staleExpectation = XCTestExpectation(description: "Stale")
         withExtendedLifetime(
             OpenFeatureAPI.shared.observe().sink { event in
             switch event {
-            case ProviderEvent.ready:
+            case .notReady:
+                notReadyExpectation.fulfill()
+            case .ready:
                 readyExpectation.fulfill()
-            case ProviderEvent.error:
+            case .error:
                 errorExpectation.fulfill()
-            case ProviderEvent.stale:
-                staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")
             }
@@ -69,15 +66,14 @@ final class DeveloperExperienceTests: XCTestCase {
         {
             let initCompleteExpectation = XCTestExpectation()
 
-            let eventHandler = EventHandler(.stale)
+            let eventHandler = EventHandler()
             let provider = InjectableEventHandlerProvider(eventHandler: eventHandler)
             Task {
                 await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
                 wait(for: [readyExpectation], timeout: 1)
                 initCompleteExpectation.fulfill()
             }
-
-            wait(for: [staleExpectation], timeout: 1)
+            wait(for: [notReadyExpectation], timeout: 1)
             eventHandler.send(.ready)
             wait(for: [initCompleteExpectation], timeout: 1)
 

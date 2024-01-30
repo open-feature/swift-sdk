@@ -11,13 +11,11 @@ class InjectableEventHandlerProvider: FeatureProvider {
     }
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
-        // Emit stale, then let the parent test control events via eventHandler
-        eventHandler.send(.stale)
+        // Let the parent test control events via eventHandler
     }
 
     func initialize(initialContext: OpenFeature.EvaluationContext?) {
-        // Emit stale, then let the parent test control events via eventHandler
-        eventHandler.send(.stale)
+        // Let the parent test control events via eventHandler
     }
 
     var hooks: [any OpenFeature.Hook] = []

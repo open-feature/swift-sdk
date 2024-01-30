@@ -4,8 +4,12 @@ import Combine
 public class EventHandler: EventSender, EventPublisher {
     private let eventState: CurrentValueSubject<ProviderEvent, Never>
 
+    convenience init() {
+        self.init(.notReady)
+    }
+
     public init(_ state: ProviderEvent) {
-        eventState = CurrentValueSubject<ProviderEvent, Never>(ProviderEvent.stale)
+        eventState = CurrentValueSubject<ProviderEvent, Never>(state)
     }
 
     public func observe() -> AnyPublisher<ProviderEvent, Never> {

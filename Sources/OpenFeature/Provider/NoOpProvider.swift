@@ -4,7 +4,7 @@ import Combine
 /// A ``FeatureProvider`` that simply returns the default values passed to it.
 class NoOpProvider: FeatureProvider {
     public static let passedInDefault = "Passed in default"
-    private let eventHandler = EventHandler(.ready)
+    private let eventHandler = EventHandler()
 
     public enum Mode {
         case normal

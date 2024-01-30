@@ -6,17 +6,14 @@ import XCTest
 final class HookSpecTests: XCTestCase {
     func testNoErrorHookCalled() {
         let provider = NoOpProvider()
+        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let errorExpectation = XCTestExpectation(description: "Error")
-        let staleExpectation = XCTestExpectation(description: "Stale")
         let eventState = provider.observe().sink { event in
             switch event {
-            case ProviderEvent.ready:
+            case .notReady:
+                notReadyExpectation.fulfill()
+            case .ready:
                 readyExpectation.fulfill()
-            case ProviderEvent.error:
-                errorExpectation.fulfill()
-            case ProviderEvent.stale:
-                staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")
             }
@@ -42,17 +39,17 @@ final class HookSpecTests: XCTestCase {
 
     func testErrorHookButNoAfterCalled() {
         let provider = AlwaysBrokenProvider()
+        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
-        let staleExpectation = XCTestExpectation(description: "Stale")
         let eventState = provider.observe().sink { event in
             switch event {
-            case ProviderEvent.ready:
+            case .notReady:
+                notReadyExpectation.fulfill()
+            case .ready:
                 readyExpectation.fulfill()
-            case ProviderEvent.error:
+            case .error:
                 errorExpectation.fulfill()
-            case ProviderEvent.stale:
-                staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")
             }
@@ -84,17 +81,14 @@ final class HookSpecTests: XCTestCase {
         let providerMock = NoOpProviderMock(hooks: [
             BooleanHookMock(prefix: "provider", addEval: addEval)
         ])
+        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let errorExpectation = XCTestExpectation(description: "Error")
-        let staleExpectation = XCTestExpectation(description: "Stale")
         let eventState = providerMock.observe().sink { event in
             switch event {
-            case ProviderEvent.ready:
+            case .notReady:
+                notReadyExpectation.fulfill()
+            case .ready:
                 readyExpectation.fulfill()
-            case ProviderEvent.error:
-                errorExpectation.fulfill()
-            case ProviderEvent.stale:
-                staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")
             }

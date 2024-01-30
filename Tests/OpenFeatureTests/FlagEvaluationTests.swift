@@ -53,23 +53,26 @@ final class FlagEvaluationTests: XCTestCase {
 
     func testSimpleFlagEvaluation() {
         let provider = DoSomethingProvider()
+        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         let staleExpectation = XCTestExpectation(description: "Stale")
         let eventState = provider.observe().sink { event in
             switch event {
-            case ProviderEvent.ready:
+            case .notReady:
+                notReadyExpectation.fulfill()
+            case .ready:
                 readyExpectation.fulfill()
-            case ProviderEvent.error:
+            case .error:
                 errorExpectation.fulfill()
-            case ProviderEvent.stale:
+            case .stale:
                 staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")
             }
         }
 
-        wait(for: [staleExpectation], timeout: 5)
+        wait(for: [notReadyExpectation], timeout: 5)
         OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
         let client = OpenFeatureAPI.shared.getClient()
@@ -109,17 +112,14 @@ final class FlagEvaluationTests: XCTestCase {
 
     func testDetailedFlagEvaluation() async {
         let provider = DoSomethingProvider()
+        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let errorExpectation = XCTestExpectation(description: "Error")
-        let staleExpectation = XCTestExpectation(description: "Stale")
         let eventState = provider.observe().sink { event in
             switch event {
-            case ProviderEvent.ready:
+            case .notReady:
+                notReadyExpectation.fulfill()
+            case .ready:
                 readyExpectation.fulfill()
-            case ProviderEvent.error:
-                errorExpectation.fulfill()
-            case ProviderEvent.stale:
-                staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")
             }
@@ -170,17 +170,14 @@ final class FlagEvaluationTests: XCTestCase {
 
     func testHooksAreFired() async {
         let provider = NoOpProvider()
+        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let errorExpectation = XCTestExpectation(description: "Error")
-        let staleExpectation = XCTestExpectation(description: "Stale")
         let eventState = provider.observe().sink { event in
             switch event {
-            case ProviderEvent.ready:
+            case .notReady:
+                notReadyExpectation.fulfill()
+            case .ready:
                 readyExpectation.fulfill()
-            case ProviderEvent.error:
-                errorExpectation.fulfill()
-            case ProviderEvent.stale:
-                staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")
             }
@@ -207,16 +204,19 @@ final class FlagEvaluationTests: XCTestCase {
 
     func testBrokenProvider() {
         let provider = AlwaysBrokenProvider()
+        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         let staleExpectation = XCTestExpectation(description: "Stale")
         let eventState = provider.observe().sink { event in
             switch event {
-            case ProviderEvent.ready:
+            case .notReady:
+                notReadyExpectation.fulfill()
+            case .ready:
                 readyExpectation.fulfill()
-            case ProviderEvent.error:
+            case .error:
                 errorExpectation.fulfill()
-            case ProviderEvent.stale:
+            case .stale:
                 staleExpectation.fulfill()
             default:
                 XCTFail("Unexpected event")

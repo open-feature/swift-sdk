@@ -4,7 +4,7 @@ import Combine
 
 class DoSomethingProvider: FeatureProvider {
     public static let name = "Something"
-    private let eventHandler = EventHandler(.ready)
+    private let eventHandler = EventHandler(.notReady)
     private var holdit: AnyCancellable?
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
