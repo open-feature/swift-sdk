@@ -96,7 +96,7 @@ extension OpenFeatureAPI {
             var holder: [AnyCancellable] = []
             await withCheckedContinuation { continuation in
                 let stateObserver = provider.observe().sink {
-                    if $0 == .ready {
+                    if $0 == .ready || $0 == .error {
                         continuation.resume()
                         holder.removeAll()
                     }
