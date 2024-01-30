@@ -73,12 +73,24 @@ final class DeveloperExperienceTests: XCTestCase {
             let provider = InjectableEventHandlerProvider(eventHandler: eventHandler)
             Task {
                 await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
-                wait(for: [readyExpectation], timeout: 0)
+                wait(for: [readyExpectation], timeout: 1)
                 initCompleteExpectation.fulfill()
             }
+
             wait(for: [staleExpectation], timeout: 1)
             eventHandler.send(.ready)
-            wait(for: [initCompleteExpectation], timeout: 2)
+            wait(for: [initCompleteExpectation], timeout: 1)
+
+            let errorProviderExpectation = XCTestExpectation()
+            let brokenProvider = AlwaysBrokenProvider()
+            Task {
+                await OpenFeatureAPI.shared.setProviderAndWait(provider: brokenProvider)
+                wait(for: [errorExpectation], timeout: 2)
+                errorProviderExpectation.fulfill()
+            }
+
+            eventHandler.send(.error)
+            wait(for: [errorProviderExpectation], timeout: 2)
         }
     }
 
