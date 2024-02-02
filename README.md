@@ -19,8 +19,8 @@
   </a>
   <!-- x-release-please-start-version -->
 
-  <a href="https://github.com/open-feature/swift-sdk/releases/tag/0.0.2">
-    <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.0.2&color=blue&style=for-the-badge" />
+  <a href="https://github.com/open-feature/swift-sdk/releases/tag/0.1.0">
+    <img alt="Release" src="https://img.shields.io/static/v1?label=release&message=v0.1.0&color=blue&style=for-the-badge" />
   </a>
 
   <!-- x-release-please-end -->
@@ -62,7 +62,7 @@ If you manage dependencies through SPM, in the dependencies section of Package.s
 
 <!---x-release-please-start-version-->
 ```swift
-.package(url: "git@github.com:open-feature/swift-sdk.git", from: "0.0.2")
+.package(url: "git@github.com:open-feature/swift-sdk.git", from: "0.1.0")
 ```
 <!---x-release-please-end-->
 

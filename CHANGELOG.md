@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.1.0](https://github.com/open-feature/swift-sdk/compare/0.0.2...0.1.0) (2024-02-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* Add EventHandler + Combine ([#29](https://github.com/open-feature/swift-sdk/issues/29))
+
+### 🐛 Bug Fixes
+
+* setProviderAndWait does not hang on ProviderError ([#35](https://github.com/open-feature/swift-sdk/issues/35)) ([5661080](https://github.com/open-feature/swift-sdk/commit/566108007c57a250eac69828f6bdc58d4c1e7c1d))
+
+
+### ✨ New Features
+
+* Add ProviderNotReady event ([#36](https://github.com/open-feature/swift-sdk/issues/36)) ([389f117](https://github.com/open-feature/swift-sdk/commit/389f117ed4c8612d557f5e854606504cc0fdf3c9))
+* Add setProviderAndWait ([#30](https://github.com/open-feature/swift-sdk/issues/30)) ([3ce6b8d](https://github.com/open-feature/swift-sdk/commit/3ce6b8d7f14150c77b363df0af3ce41c0e80138d))
+
+
+### 🧹 Chore
+
+* **deps:** update actions/checkout action to v4 ([#18](https://github.com/open-feature/swift-sdk/issues/18)) ([eb0cd56](https://github.com/open-feature/swift-sdk/commit/eb0cd56d1b7c7bb24faf905e67361738731bbeb4))
+* **deps:** update dependency apple/swift-format to v509 ([#21](https://github.com/open-feature/swift-sdk/issues/21)) ([5f12304](https://github.com/open-feature/swift-sdk/commit/5f12304fde5531b957d999a41a24e2122c0038c2))
+* Smaller cleanup in tests ([#33](https://github.com/open-feature/swift-sdk/issues/33)) ([053dabc](https://github.com/open-feature/swift-sdk/commit/053dabcc8132ba8c48da0b5b313f13a2e9c21e06))
+
+
+### 📚 Documentation
+
+* add sections for logging, named providers, and shutdown ([#31](https://github.com/open-feature/swift-sdk/issues/31)) ([dc5876c](https://github.com/open-feature/swift-sdk/commit/dc5876cbf7d3f61f1db65572943f817a55fdaab9))
+* Fix Installation documentation ([#27](https://github.com/open-feature/swift-sdk/issues/27)) ([5ddf45d](https://github.com/open-feature/swift-sdk/commit/5ddf45d367df20209c5f760c9a4330aeef1b2ee5)), closes [#25](https://github.com/open-feature/swift-sdk/issues/25)
+* Update README to latest template ([#28](https://github.com/open-feature/swift-sdk/issues/28)) ([dbdd502](https://github.com/open-feature/swift-sdk/commit/dbdd5026e82c899f3858e14e1dd1547cd5f3f731))
+* Update README.md ([#19](https://github.com/open-feature/swift-sdk/issues/19)) ([ec599ff](https://github.com/open-feature/swift-sdk/commit/ec599ff7228019286fdad66f4c38f78caf354025))
+
+
+### 🔄 Refactoring
+
+* Add EventHandler + Combine ([#29](https://github.com/open-feature/swift-sdk/issues/29)) ([dd122f7](https://github.com/open-feature/swift-sdk/commit/dd122f773ba23a1bc873c18cfbe6bf42f0665b02))
+
 ## [0.0.2](https://github.com/open-feature/swift-sdk/compare/v0.0.1...0.0.2) (2023-08-25)
 
 
