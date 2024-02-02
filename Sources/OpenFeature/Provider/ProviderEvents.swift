@@ -9,4 +9,5 @@ public enum ProviderEvent: String, CaseIterable {
     case error = "PROVIDER_ERROR"
     case configurationChanged = "PROVIDER_CONFIGURATION_CHANGED"
     case stale = "PROVIDER_STALE"
+    case notReady = "PROVIDER_NOT_READY"
 }

@@ -6,7 +6,7 @@ import Combine
 class AlwaysBrokenProvider: FeatureProvider {
     var metadata: ProviderMetadata = AlwaysBrokenMetadata()
     var hooks: [any Hook] = []
-    private let eventHandler = EventHandler(.stale)
+    private let eventHandler = EventHandler()
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
         eventHandler.send(.error)
