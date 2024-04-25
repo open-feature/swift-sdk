@@ -94,11 +94,17 @@ extension OpenFeatureAPI {
     public func setProviderAndWait(provider: FeatureProvider, initialContext: EvaluationContext?) async {
         let task = Task {
             var holder: [AnyCancellable] = []
+            let ctxHash = initialContext?.asObjectMap().hashValue
             await withCheckedContinuation { continuation in
-                let stateObserver = provider.observe().sink {
-                    if $0 == .ready || $0 == .error {
-                        continuation.resume()
-                        holder.removeAll()
+                let stateObserver = provider.observe().sink { event in
+                    switch event {
+                    case .ready(let data), .error(let data):
+                        if initialContext == nil || data.ctxHash == ctxHash {
+                            continuation.resume()
+                            holder.removeAll()
+                        }
+                    default:
+                        break
                     }
                 }
                 stateObserver.store(in: &holder)

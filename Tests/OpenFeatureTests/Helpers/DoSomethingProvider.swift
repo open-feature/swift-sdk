@@ -8,11 +8,11 @@ class DoSomethingProvider: FeatureProvider {
     private var holdit: AnyCancellable?
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
-        eventHandler.send(.ready)
+        eventHandler.send(.ready(ProviderEventData(ctxHash: 0)))
     }
 
     func initialize(initialContext: OpenFeature.EvaluationContext?) {
-        eventHandler.send(.ready)
+        eventHandler.send(.ready(ProviderEventData(ctxHash: 0)))
     }
 
     var hooks: [any OpenFeature.Hook] = []

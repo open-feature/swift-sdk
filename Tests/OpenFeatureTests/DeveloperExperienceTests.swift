@@ -74,7 +74,7 @@ final class DeveloperExperienceTests: XCTestCase {
                 initCompleteExpectation.fulfill()
             }
             wait(for: [notReadyExpectation], timeout: 1)
-            eventHandler.send(.ready)
+            eventHandler.send(.ready(ProviderEventData(ctxHash: 0)))
             wait(for: [initCompleteExpectation], timeout: 1)
 
             let errorProviderExpectation = XCTestExpectation()
@@ -85,7 +85,52 @@ final class DeveloperExperienceTests: XCTestCase {
                 errorProviderExpectation.fulfill()
             }
 
-            eventHandler.send(.error)
+            eventHandler.send(.error(ProviderEventData(ctxHash: 0)))
+            wait(for: [errorProviderExpectation], timeout: 2)
+        }
+    }
+
+    func testSetProviderAndWaitWithNonEmptyProvider() async {
+        let notReadyExpectation = XCTestExpectation(description: "NotReady")
+        let readyExpectation = XCTestExpectation(description: "Ready")
+        let errorExpectation = XCTestExpectation(description: "Error")
+        withExtendedLifetime(
+            OpenFeatureAPI.shared.observe().sink { event in
+            switch event {
+            case .notReady:
+                notReadyExpectation.fulfill()
+            case .ready:
+                readyExpectation.fulfill()
+            case .error:
+                errorExpectation.fulfill()
+            default:
+                XCTFail("Unexpected event")
+            }
+            })
+        {
+            let initCompleteExpectation = XCTestExpectation()
+
+            let eventHandler = EventHandler()
+            let provider = InjectableEventHandlerProvider(eventHandler: eventHandler)
+            let ctx = MutableContext(attributes: ["test": Value.boolean(true)])
+            Task {
+                await OpenFeatureAPI.shared.setProviderAndWait(provider: provider, initialContext: ctx)
+                wait(for: [readyExpectation], timeout: 1)
+                initCompleteExpectation.fulfill()
+            }
+            wait(for: [notReadyExpectation], timeout: 1)
+            eventHandler.send(.ready(ProviderEventData(ctxHash: ctx.asObjectMap().hashValue)))
+            wait(for: [initCompleteExpectation], timeout: 1)
+
+            let errorProviderExpectation = XCTestExpectation()
+            let brokenProvider = AlwaysBrokenProvider()
+            Task {
+                await OpenFeatureAPI.shared.setProviderAndWait(provider: brokenProvider)
+                wait(for: [errorExpectation], timeout: 2)
+                errorProviderExpectation.fulfill()
+            }
+
+            eventHandler.send(.error(ProviderEventData(ctxHash: 0)))
             wait(for: [errorProviderExpectation], timeout: 2)
         }
     }
