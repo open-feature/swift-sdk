@@ -2,10 +2,10 @@ import Foundation
 
 /// A data struct to hold immutable context that ``Hook`` instances use.
 public struct HookContext<T> {
-    var flagKey: String
-    var type: FlagValueType
-    var defaultValue: T
-    var ctx: EvaluationContext?
-    var clientMetadata: ClientMetadata?
-    var providerMetadata: ProviderMetadata?
+    public var flagKey: String
+    public var type: FlagValueType
+    public var defaultValue: T
+    public var ctx: EvaluationContext?
+    public var clientMetadata: ClientMetadata?
+    public var providerMetadata: ProviderMetadata?
 }
