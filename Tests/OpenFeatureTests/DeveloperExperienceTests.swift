@@ -52,18 +52,18 @@ final class DeveloperExperienceTests: XCTestCase {
         let errorExpectation = XCTestExpectation(description: "Error")
         withExtendedLifetime(
             OpenFeatureAPI.shared.observe().sink { event in
-            switch event {
-            case .notReady:
-                notReadyExpectation.fulfill()
-            case .ready:
-                readyExpectation.fulfill()
-            case .error:
-                errorExpectation.fulfill()
-            default:
-                XCTFail("Unexpected event")
+                switch event {
+                case .notReady:
+                    notReadyExpectation.fulfill()
+                case .ready:
+                    readyExpectation.fulfill()
+                case .error:
+                    errorExpectation.fulfill()
+                default:
+                    XCTFail("Unexpected event")
+                }
             }
-            })
-        {
+        ) {
             let initCompleteExpectation = XCTestExpectation()
 
             let eventHandler = EventHandler()

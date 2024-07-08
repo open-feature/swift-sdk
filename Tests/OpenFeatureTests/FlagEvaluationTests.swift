@@ -1,6 +1,6 @@
+import Combine
 import Foundation
 import XCTest
-import Combine
 
 @testable import OpenFeature
 
@@ -129,35 +129,40 @@ final class FlagEvaluationTests: XCTestCase {
         wait(for: [readyExpectation], timeout: 5)
         let client = OpenFeatureAPI.shared.getClient()
         let key = "key"
-        let booleanDetails = FlagEvaluationDetails(flagKey: key, value: true, variant: nil)
+        let booleanDetails = FlagEvaluationDetails(
+            flagKey: key, value: true, flagMetadata: DoSomethingProvider.flagMetadataMap, variant: nil)
         XCTAssertEqual(client.getDetails(key: key, defaultValue: false), booleanDetails)
         XCTAssertEqual(client.getDetails(key: key, defaultValue: false), booleanDetails)
         XCTAssertEqual(
             client.getDetails(
                 key: key, defaultValue: false, options: FlagEvaluationOptions()), booleanDetails)
 
-        let stringDetails = FlagEvaluationDetails(flagKey: key, value: "tset", variant: nil)
+        let stringDetails = FlagEvaluationDetails(
+            flagKey: key, value: "tset", flagMetadata: DoSomethingProvider.flagMetadataMap, variant: nil)
         XCTAssertEqual(client.getDetails(key: key, defaultValue: "test"), stringDetails)
         XCTAssertEqual(client.getDetails(key: key, defaultValue: "test"), stringDetails)
         XCTAssertEqual(
             client.getDetails(
                 key: key, defaultValue: "test", options: FlagEvaluationOptions()), stringDetails)
 
-        let integerDetails = FlagEvaluationDetails(flagKey: key, value: Int64(400), variant: nil)
+        let integerDetails = FlagEvaluationDetails(
+            flagKey: key, value: Int64(400), flagMetadata: DoSomethingProvider.flagMetadataMap, variant: nil)
         XCTAssertEqual(client.getDetails(key: key, defaultValue: 4), integerDetails)
         XCTAssertEqual(client.getDetails(key: key, defaultValue: 4), integerDetails)
         XCTAssertEqual(
             client.getDetails(
                 key: key, defaultValue: 4, options: FlagEvaluationOptions()), integerDetails)
 
-        let doubleDetails = FlagEvaluationDetails(flagKey: key, value: 40.0, variant: nil)
+        let doubleDetails = FlagEvaluationDetails(
+            flagKey: key, value: 40.0, flagMetadata: DoSomethingProvider.flagMetadataMap, variant: nil)
         XCTAssertEqual(client.getDetails(key: key, defaultValue: 0.4), doubleDetails)
         XCTAssertEqual(client.getDetails(key: key, defaultValue: 0.4), doubleDetails)
         XCTAssertEqual(
             client.getDetails(
                 key: key, defaultValue: 0.4, options: FlagEvaluationOptions()), doubleDetails)
 
-        let objectDetails = FlagEvaluationDetails(flagKey: key, value: Value.null, variant: nil)
+        let objectDetails = FlagEvaluationDetails(
+            flagKey: key, value: Value.null, flagMetadata: DoSomethingProvider.flagMetadataMap, variant: nil)
         XCTAssertEqual(client.getDetails(key: key, defaultValue: .structure([:])), objectDetails)
         XCTAssertEqual(
             client.getDetails(key: key, defaultValue: .structure([:])), objectDetails)
@@ -242,5 +247,23 @@ final class FlagEvaluationTests: XCTestCase {
 
         let client = OpenFeatureAPI.shared.getClient(name: "test", version: nil)
         XCTAssertEqual(client.metadata.name, "test")
+    }
+
+    func testFlagMetadata() {
+        OpenFeatureAPI.shared.setProvider(provider: DoSomethingProvider())
+        let client = OpenFeatureAPI.shared.getClient()
+        let details = client.getDetails(key: "testkey", defaultValue: false)
+
+        // These test values are hard coded for all evaluations from the DoSomethingProvider
+        XCTAssertEqual(details.flagMetadata["int-metadata"]?.asInteger(), 99)
+        XCTAssertEqual(details.flagMetadata["double-metadata"]?.asDouble(), 98.4)
+        XCTAssertEqual(details.flagMetadata["string-metadata"]?.asString(), "hello-world")
+        XCTAssertEqual(details.flagMetadata["boolean-metadata"]?.asBoolean(), true)
+
+        // Non existent key
+        XCTAssertNil(details.flagMetadata["non-existent-key"])
+
+        // Invalid mapping an int to string returns nil
+        XCTAssertNil(details.flagMetadata["int-metadata"]?.asString())
     }
 }

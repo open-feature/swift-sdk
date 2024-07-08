@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 
 public class EventHandler: EventSender, EventPublisher {
     private let eventState: CurrentValueSubject<ProviderEvent, Never>

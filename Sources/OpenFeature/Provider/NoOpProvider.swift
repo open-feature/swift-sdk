@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 
 /// A ``FeatureProvider`` that simply returns the default values passed to it.
 class NoOpProvider: FeatureProvider {
