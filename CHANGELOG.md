@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.2.0](https://github.com/open-feature/swift-sdk/compare/0.1.0...0.2.0) (2024-07-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* Add support for Flag Metadata ([#43](https://github.com/open-feature/swift-sdk/issues/43))
+
+### 🐛 Bug Fixes
+
+* Make HookContext properties public ([#45](https://github.com/open-feature/swift-sdk/issues/45)) ([003bbb6](https://github.com/open-feature/swift-sdk/commit/003bbb66ec493664f5810334f32411014a2195a8))
+
+
+### ✨ New Features
+
+* Add support for Flag Metadata ([#43](https://github.com/open-feature/swift-sdk/issues/43)) ([7256a3c](https://github.com/open-feature/swift-sdk/commit/7256a3cf7fb62e1ab3c2671ca471d8e30f3c522f))
+* add support for provider fatal error ([#44](https://github.com/open-feature/swift-sdk/issues/44)) ([09d2871](https://github.com/open-feature/swift-sdk/commit/09d28719037b00f8bc48885270c88c93f9342644))
+
+
+### 🧹 Chore
+
+* **deps:** update dependency apple/swift-format to v510 ([#37](https://github.com/open-feature/swift-sdk/issues/37)) ([84e6f11](https://github.com/open-feature/swift-sdk/commit/84e6f11fe766bc472a9c0a086bb9befb3a4dbec8))
+
 ## [0.1.0](https://github.com/open-feature/swift-sdk/compare/0.0.2...0.1.0) (2024-02-02)
 
 
