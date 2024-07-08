@@ -9,6 +9,7 @@ public enum OpenFeatureError: Error, Equatable {
     case typeMismatchError
     case valueNotConvertableError
     case providerNotReadyError
+    case providerFatarError(message: String)
 
     public func errorCode() -> ErrorCode {
         switch self {
@@ -28,6 +29,8 @@ public enum OpenFeatureError: Error, Equatable {
             return .general
         case .providerNotReadyError:
             return .providerNotReady
+        case .providerFatarError:
+            return .providerFatal
         }
     }
 }
@@ -51,6 +54,8 @@ extension OpenFeatureError: CustomStringConvertible {
             return "Could not convert value"
         case .providerNotReadyError:
             return "The value was resolved before the provider was ready"
+        case .providerFatarError(let message):
+            return "A fatal error occurred in the provider: \(message)"
         }
     }
 }

@@ -241,6 +241,35 @@ final class FlagEvaluationTests: XCTestCase {
         XCTAssertNotNil(eventState)
     }
 
+    func testBrokenProviderThrowsFatal() {
+        let provider = AlwaysBrokenProvider()
+        provider.throwFatal = true
+        let fatalExpectation = XCTestExpectation(description: "NotReady")
+
+        let eventState = provider.observe().sink { event in
+            switch event {
+            case .notReady:
+                // The provider starts in this state.
+                return
+            case .error:
+                fatalExpectation.fulfill()
+            default:
+                XCTFail("Unexpected event")
+            }
+        }
+        OpenFeatureAPI.shared.setProvider(provider: provider)
+        wait(for: [fatalExpectation], timeout: 5)
+
+        let client = OpenFeatureAPI.shared.getClient()
+
+        XCTAssertFalse(client.getValue(key: "testkey", defaultValue: false))
+        let details = client.getDetails(key: "testkey", defaultValue: false)
+
+        XCTAssertEqual(details.errorCode, .providerFatal)
+        XCTAssertEqual(details.reason, Reason.error.rawValue)
+        XCTAssertEqual(details.errorMessage, "A fatal error occurred in the provider: Always broken")
+    }
+
     func testClientMetadata() {
         let client1 = OpenFeatureAPI.shared.getClient()
         XCTAssertNil(client1.metadata.name)
