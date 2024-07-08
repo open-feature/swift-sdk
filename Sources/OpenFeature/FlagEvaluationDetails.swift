@@ -6,12 +6,14 @@ public struct FlagEvaluationDetails<T: Equatable>: BaseEvaluation, Equatable {
     public var value: T
     public var variant: String?
     public var reason: String?
+    public var flagMetadata: [String: FlagMetadataValue]
     public var errorCode: ErrorCode?
     public var errorMessage: String?
 
     public init(
         flagKey: String,
         value: T,
+        flagMetadata: [String: FlagMetadataValue] = [:],
         variant: String? = nil,
         reason: String? = nil,
         errorCode: ErrorCode? = nil,
@@ -21,6 +23,7 @@ public struct FlagEvaluationDetails<T: Equatable>: BaseEvaluation, Equatable {
         self.value = value
         self.variant = variant
         self.reason = reason
+        self.flagMetadata = flagMetadata
         self.errorCode = errorCode
         self.errorMessage = errorMessage
     }
@@ -29,6 +32,7 @@ public struct FlagEvaluationDetails<T: Equatable>: BaseEvaluation, Equatable {
         return FlagEvaluationDetails(
             flagKey: flagKey,
             value: providerEval.value,
+            flagMetadata: providerEval.flagMetadata,
             variant: providerEval.variant,
             reason: providerEval.reason,
             errorCode: providerEval.errorCode,

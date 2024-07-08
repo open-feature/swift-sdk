@@ -1,6 +1,6 @@
+import Combine
 import Foundation
 import OpenFeature
-import Combine
 
 class InjectableEventHandlerProvider: FeatureProvider {
     public static let name = "InjectableEventHandler"
