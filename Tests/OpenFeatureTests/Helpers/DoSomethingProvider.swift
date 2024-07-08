@@ -1,6 +1,6 @@
+import Combine
 import Foundation
 import OpenFeature
-import Combine
 
 class DoSomethingProvider: FeatureProvider {
     public static let name = "Something"
@@ -23,7 +23,7 @@ class DoSomethingProvider: FeatureProvider {
             Bool
         >
     {
-        return ProviderEvaluation(value: !defaultValue)
+        return ProviderEvaluation(value: !defaultValue, flagMetadata: DoSomethingProvider.flagMetadataMap)
     }
 
     func getStringEvaluation(key: String, defaultValue: String, context: EvaluationContext?) throws
@@ -31,7 +31,8 @@ class DoSomethingProvider: FeatureProvider {
             String
         >
     {
-        return ProviderEvaluation(value: String(defaultValue.reversed()))
+        return ProviderEvaluation(
+            value: String(defaultValue.reversed()), flagMetadata: DoSomethingProvider.flagMetadataMap)
     }
 
     func getIntegerEvaluation(key: String, defaultValue: Int64, context: EvaluationContext?) throws
@@ -39,7 +40,7 @@ class DoSomethingProvider: FeatureProvider {
             Int64
         >
     {
-        return ProviderEvaluation(value: defaultValue * 100)
+        return ProviderEvaluation(value: defaultValue * 100, flagMetadata: DoSomethingProvider.flagMetadataMap)
     }
 
     func getDoubleEvaluation(key: String, defaultValue: Double, context: EvaluationContext?) throws
@@ -47,7 +48,7 @@ class DoSomethingProvider: FeatureProvider {
             Double
         >
     {
-        return ProviderEvaluation(value: defaultValue * 100)
+        return ProviderEvaluation(value: defaultValue * 100, flagMetadata: DoSomethingProvider.flagMetadataMap)
     }
 
     func getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?) throws
@@ -55,7 +56,7 @@ class DoSomethingProvider: FeatureProvider {
             Value
         >
     {
-        return ProviderEvaluation(value: .null)
+        return ProviderEvaluation(value: .null, flagMetadata: DoSomethingProvider.flagMetadataMap)
     }
 
     func observe() -> AnyPublisher<ProviderEvent, Never> {
@@ -65,4 +66,11 @@ class DoSomethingProvider: FeatureProvider {
     public struct DoMetadata: ProviderMetadata {
         public var name: String? = DoSomethingProvider.name
     }
+
+    public static let flagMetadataMap = [
+        "int-metadata": FlagMetadataValue.integer(99),
+        "double-metadata": FlagMetadataValue.double(98.4),
+        "string-metadata": FlagMetadataValue.string("hello-world"),
+        "boolean-metadata": FlagMetadataValue.boolean(true),
+    ]
 }

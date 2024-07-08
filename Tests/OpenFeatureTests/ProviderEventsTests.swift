@@ -7,7 +7,8 @@ final class ProviderEventsTests: XCTestCase {
 
     func testReadyEventSent() {
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let eventState = provider
+        let eventState =
+            provider
             .observe()
             .filter { event in
                 event == ProviderEvent.ready

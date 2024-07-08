@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 
 /// A global singleton which holds base configuration for the OpenFeature library.
 /// Configuration here will be shared across all ``Client``s.
