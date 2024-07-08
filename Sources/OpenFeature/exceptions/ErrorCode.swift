@@ -8,4 +8,5 @@ public enum ErrorCode: Int {
     case targetingKeyMissing
     case invalidContext
     case general
+    case providerFatal
 }
