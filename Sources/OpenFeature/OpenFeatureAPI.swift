@@ -39,8 +39,10 @@ public class OpenFeatureAPI {
             switch error {
             case OpenFeatureError.providerFatalError:
                 providerStatus = .fatal
+                // TODO Emit PROVIDER_ERROR
             default:
                 providerStatus = .error
+                // TODO Emit PROVIDER_ERROR
             }
         }
     }
