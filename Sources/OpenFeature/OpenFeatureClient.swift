@@ -68,12 +68,48 @@ extension OpenFeatureClient {
         defaultValue: T,
         options: FlagEvaluationOptions?
     ) -> FlagEvaluationDetails<T> {
+        let openFeatureApiState = openFeatureApi.getState()
+        var details = FlagEvaluationDetails(flagKey: key, value: defaultValue)
+        switch openFeatureApiState.providerStatus {
+        case .fatal:
+            details.errorCode = .providerFatal
+            details.errorMessage = OpenFeatureError
+                .providerFatalError(message: "unknown")
+                .description  // TODO Improve this message with error details
+            details.reason = Reason.error.rawValue
+            return details
+        case .notReady:
+            details.errorCode = .providerNotReady
+            details.errorMessage = OpenFeatureError.providerNotReadyError.description
+            details.reason = Reason.error.rawValue
+            return details
+        case .reconciling, .stale:
+            details.reason = Reason.stale.rawValue
+            return details
+        case .error:
+            details.errorCode = .general
+            details.errorMessage = OpenFeatureError
+                .generalError(message: "unknown")
+                .description  // TODO Improve this message with error details
+            details.reason = Reason.error.rawValue
+            return details
+        case .ready:
+            return evaluateFlagReady(
+                key: key, defaultValue: defaultValue, options: options, openFeatureApiState: openFeatureApiState)
+        }
+    }
+
+    private func evaluateFlagReady<T: AllowedFlagValueType>(
+        key: String,
+        defaultValue: T,
+        options: FlagEvaluationOptions?,
+        openFeatureApiState: OpenFeatureAPI.OpenFeatureState
+    ) -> FlagEvaluationDetails<T> {
+        var details = FlagEvaluationDetails(flagKey: key, value: defaultValue)
         let options = options ?? FlagEvaluationOptions(hooks: [], hookHints: [:])
         let hints = options.hookHints
-        let context = openFeatureApi.getEvaluationContext()
-
-        var details = FlagEvaluationDetails(flagKey: key, value: defaultValue)
-        let provider = openFeatureApi.getProvider() ?? NoOpProvider()
+        let context = openFeatureApiState.evaluationContext
+        let provider = openFeatureApiState.provider ?? NoOpProvider()
         let hookCtx = HookContext(
             flagKey: key,
             type: T.flagValueType,
@@ -81,45 +117,34 @@ extension OpenFeatureClient {
             ctx: context,
             clientMetadata: self.metadata,
             providerMetadata: provider.metadata)
-
         hookLock.lock()
         let mergedHooks = provider.hooks + options.hooks + hooks + openFeatureApi.hooks
         hookLock.unlock()
-
         do {
             hookSupport.beforeHooks(flagValueType: T.flagValueType, hookCtx: hookCtx, hooks: mergedHooks, hints: hints)
-
             let providerEval = try createProviderEvaluation(
                 key: key,
                 context: context,
                 defaultValue: defaultValue,
                 provider: provider)
-
-            let evalDetails = FlagEvaluationDetails<T>.from(providerEval: providerEval, flagKey: key)
-            details = evalDetails
-
+            details = FlagEvaluationDetails<T>.from(providerEval: providerEval, flagKey: key)
             try hookSupport.afterHooks(
-                flagValueType: T.flagValueType, hookCtx: hookCtx, details: evalDetails, hooks: mergedHooks, hints: hints
+                flagValueType: T.flagValueType, hookCtx: hookCtx, details: details, hooks: mergedHooks, hints: hints
             )
         } catch {
             logger.error("Unable to correctly evaluate flag with key \(key) due to exception \(error)")
-
             if let error = error as? OpenFeatureError {
                 details.errorCode = error.errorCode()
             } else {
                 details.errorCode = .general
             }
-
             details.errorMessage = "\(error)"
             details.reason = Reason.error.rawValue
-
             hookSupport.errorHooks(
                 flagValueType: T.flagValueType, hookCtx: hookCtx, error: error, hooks: mergedHooks, hints: hints)
         }
-
         hookSupport.afterAllHooks(
             flagValueType: T.flagValueType, hookCtx: hookCtx, hooks: mergedHooks, hints: hints)
-
         return details
     }
 

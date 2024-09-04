@@ -9,15 +9,14 @@ final class FlagEvaluationTests: XCTestCase {
         XCTAssertTrue(OpenFeatureAPI.shared === OpenFeatureAPI.shared)
     }
 
-    func testApiSetsProvider() {
+    func testApiSetsProvider() async {
         let provider = NoOpProvider()
-        OpenFeatureAPI.shared.setProvider(provider: provider)
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
         XCTAssertTrue((OpenFeatureAPI.shared.getProvider() as? NoOpProvider) === provider)
     }
 
-    func testProviderMetadata() {
-        OpenFeatureAPI.shared.setProvider(provider: DoSomethingProvider())
-
+    func testProviderMetadata() async {
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: DoSomethingProvider())
         XCTAssertEqual(OpenFeatureAPI.shared.getProviderMetadata()?.name, DoSomethingProvider.name)
     }
 
@@ -53,14 +52,11 @@ final class FlagEvaluationTests: XCTestCase {
 
     func testSimpleFlagEvaluation() {
         let provider = DoSomethingProvider()
-        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         let staleExpectation = XCTestExpectation(description: "Stale")
-        let eventState = provider.observe().sink { event in
+        let eventState = OpenFeatureAPI.shared.observe().sink { event in
             switch event {
-            case .notReady:
-                notReadyExpectation.fulfill()
             case .ready:
                 readyExpectation.fulfill()
             case .error:
@@ -72,7 +68,6 @@ final class FlagEvaluationTests: XCTestCase {
             }
         }
 
-        wait(for: [notReadyExpectation], timeout: 5)
         OpenFeatureAPI.shared.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
         let client = OpenFeatureAPI.shared.getClient()
@@ -112,12 +107,9 @@ final class FlagEvaluationTests: XCTestCase {
 
     func testDetailedFlagEvaluation() async {
         let provider = DoSomethingProvider()
-        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let eventState = provider.observe().sink { event in
+        let eventState = OpenFeatureAPI.shared.observe().sink { event in
             switch event {
-            case .notReady:
-                notReadyExpectation.fulfill()
             case .ready:
                 readyExpectation.fulfill()
             default:
@@ -175,12 +167,9 @@ final class FlagEvaluationTests: XCTestCase {
 
     func testHooksAreFired() async {
         let provider = NoOpProvider()
-        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let eventState = provider.observe().sink { event in
+        let eventState = OpenFeatureAPI.shared.observe().sink { event in
             switch event {
-            case .notReady:
-                notReadyExpectation.fulfill()
             case .ready:
                 readyExpectation.fulfill()
             default:
@@ -209,14 +198,11 @@ final class FlagEvaluationTests: XCTestCase {
 
     func testBrokenProvider() {
         let provider = AlwaysBrokenProvider()
-        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         let staleExpectation = XCTestExpectation(description: "Stale")
         let eventState = provider.observe().sink { event in
             switch event {
-            case .notReady:
-                notReadyExpectation.fulfill()
             case .ready:
                 readyExpectation.fulfill()
             case .error:
@@ -248,9 +234,6 @@ final class FlagEvaluationTests: XCTestCase {
 
         let eventState = provider.observe().sink { event in
             switch event {
-            case .notReady:
-                // The provider starts in this state.
-                return
             case .error:
                 fatalExpectation.fulfill()
             default:

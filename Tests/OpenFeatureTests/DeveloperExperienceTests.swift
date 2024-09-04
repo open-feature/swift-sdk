@@ -11,8 +11,8 @@ final class DeveloperExperienceTests: XCTestCase {
         XCTAssertEqual(flagValue, "no-op")
     }
 
-    func testSimpleBooleanFlag() {
-        OpenFeatureAPI.shared.setProvider(provider: NoOpProvider())
+    func testSimpleBooleanFlag() async {
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
         let client = OpenFeatureAPI.shared.getClient()
 
         let flagValue = client.getValue(key: "test", defaultValue: false)
@@ -20,12 +20,9 @@ final class DeveloperExperienceTests: XCTestCase {
     }
 
     func testObserveGlobalEvents() {
-        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
         var eventState = OpenFeatureAPI.shared.observe().sink { event in
             switch event {
-            case .notReady:
-                notReadyExpectation.fulfill()
             case .ready:
                 readyExpectation.fulfill()
             default:
@@ -46,15 +43,38 @@ final class DeveloperExperienceTests: XCTestCase {
         XCTAssertNotNil(eventState)
     }
 
+    func testSetEvaluationContext() async {
+        let contextChangedExpectation = XCTestExpectation(description: "Context Changed")
+        let reconcilingExpectation = XCTestExpectation(description: "Reconciling")
+        let observer = OpenFeatureAPI.shared.observe().sink { event in
+            switch event {
+            case .reconciling:
+                reconcilingExpectation.fulfill()
+            case .ready:
+                break
+            case .contextChanged:
+                contextChangedExpectation.fulfill()
+            default:
+                XCTFail("Unexpected event")
+            }
+        }
+        let semaphore = DispatchSemaphore(value: 0)
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: StaggeredProvider(onContextSetSemaphore: semaphore))
+        Task {
+            OpenFeatureAPI.shared.setEvaluationContext(evaluationContext: MutableContext(attributes: [:]))
+        }
+        await fulfillment(of: [reconcilingExpectation], timeout: 2)
+        semaphore.signal()
+        await fulfillment(of: [contextChangedExpectation], timeout: 2)
+        XCTAssertNotNil(observer)
+    }
+
     func testSetProviderAndWait() async {
-        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         withExtendedLifetime(
             OpenFeatureAPI.shared.observe().sink { event in
                 switch event {
-                case .notReady:
-                    notReadyExpectation.fulfill()
                 case .ready:
                     readyExpectation.fulfill()
                 case .error:
@@ -66,15 +86,12 @@ final class DeveloperExperienceTests: XCTestCase {
         ) {
             let initCompleteExpectation = XCTestExpectation()
 
-            let eventHandler = EventHandler()
-            let provider = InjectableEventHandlerProvider(eventHandler: eventHandler)
+            let provider = DoSomethingProvider()
             Task {
                 await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
                 await fulfillment(of: [readyExpectation], timeout: 1)
                 initCompleteExpectation.fulfill()
             }
-            wait(for: [notReadyExpectation], timeout: 1)
-            eventHandler.send(.ready)
             wait(for: [initCompleteExpectation], timeout: 1)
 
             let errorProviderExpectation = XCTestExpectation()
@@ -84,14 +101,12 @@ final class DeveloperExperienceTests: XCTestCase {
                 await fulfillment(of: [errorExpectation], timeout: 2)
                 errorProviderExpectation.fulfill()
             }
-
-            eventHandler.send(.error)
             wait(for: [errorProviderExpectation], timeout: 2)
         }
     }
 
-    func testClientHooks() {
-        OpenFeatureAPI.shared.setProvider(provider: NoOpProvider())
+    func testClientHooks() async {
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
         let client = OpenFeatureAPI.shared.getClient()
 
         let booleanHook = BooleanHookMock()
@@ -111,8 +126,8 @@ final class DeveloperExperienceTests: XCTestCase {
         XCTAssertEqual(intHook.finallyAfterCalled, 1)
     }
 
-    func testEvalHooks() {
-        OpenFeatureAPI.shared.setProvider(provider: NoOpProvider())
+    func testEvalHooks() async {
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
         let client = OpenFeatureAPI.shared.getClient()
 
         let booleanHook = BooleanHookMock()
@@ -132,14 +147,25 @@ final class DeveloperExperienceTests: XCTestCase {
         XCTAssertEqual(intHook.finallyAfterCalled, 1)
     }
 
-    func testBrokenProvider() {
-        OpenFeatureAPI.shared.setProvider(provider: AlwaysBrokenProvider())
+    func testBrokenProvider() async {
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: AlwaysBrokenProvider())
         let client = OpenFeatureAPI.shared.getClient()
 
         let details = client.getDetails(key: "test", defaultValue: false)
 
         XCTAssertEqual(details.errorCode, .flagNotFound)
         XCTAssertEqual(details.errorMessage, "Could not find flag for key: test")
+        XCTAssertEqual(details.reason, Reason.error.rawValue)
+    }
+
+    func testThrowingProvider() async {
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: ThrowingProvider())
+        let client = OpenFeatureAPI.shared.getClient()
+
+        let details = client.getDetails(key: "test", defaultValue: false)
+
+        XCTAssertEqual(details.errorCode, .providerFatal)
+        XCTAssertEqual(details.errorMessage, "A fatal error occurred in the provider: unknown")
         XCTAssertEqual(details.reason, Reason.error.rawValue)
     }
 }

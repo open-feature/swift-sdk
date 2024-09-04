@@ -15,11 +15,9 @@ class NoOpProvider: FeatureProvider {
     var hooks: [any Hook] = []
 
     func onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
-        eventHandler.send(.ready)
     }
 
     func initialize(initialContext: EvaluationContext?) {
-        eventHandler.send(.ready)
     }
 
     func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?) throws
@@ -67,7 +65,7 @@ class NoOpProvider: FeatureProvider {
             value: defaultValue, variant: NoOpProvider.passedInDefault, reason: Reason.defaultReason.rawValue)
     }
 
-    func observe() -> AnyPublisher<ProviderEvent, Never> {
+    func observe() -> AnyPublisher<ProviderEvent?, Never> {
         return eventHandler.observe()
     }
 }
