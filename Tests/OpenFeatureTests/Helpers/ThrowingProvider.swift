@@ -9,11 +9,11 @@ class ThrowingProvider: FeatureProvider {
     private let eventHandler = EventHandler()
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) throws {
-        throw OpenFeatureError.providerFatarError(message: "Wrong credentials")
+        throw OpenFeatureError.providerFatalError(message: "Wrong credentials")
     }
 
     func initialize(initialContext: OpenFeature.EvaluationContext?) throws {
-        throw OpenFeatureError.providerFatarError(message: "Wrong credentials")
+        throw OpenFeatureError.providerFatalError(message: "Wrong credentials")
     }
 
     func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?) throws

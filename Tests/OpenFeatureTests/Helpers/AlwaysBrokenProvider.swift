@@ -21,7 +21,7 @@ class AlwaysBrokenProvider: FeatureProvider {
         -> OpenFeature.ProviderEvaluation<Bool>
     {
         if self.throwFatal {
-            throw OpenFeatureError.providerFatarError(message: "Always broken")
+            throw OpenFeatureError.providerFatalError(message: "Always broken")
         }
         throw OpenFeatureError.flagNotFoundError(key: key)
     }
@@ -30,7 +30,7 @@ class AlwaysBrokenProvider: FeatureProvider {
         -> OpenFeature.ProviderEvaluation<String>
     {
         if self.throwFatal {
-            throw OpenFeatureError.providerFatarError(message: "Always broken")
+            throw OpenFeatureError.providerFatalError(message: "Always broken")
         }
         throw OpenFeatureError.flagNotFoundError(key: key)
     }
@@ -39,7 +39,7 @@ class AlwaysBrokenProvider: FeatureProvider {
         -> OpenFeature.ProviderEvaluation<Int64>
     {
         if self.throwFatal {
-            throw OpenFeatureError.providerFatarError(message: "Always broken")
+            throw OpenFeatureError.providerFatalError(message: "Always broken")
         }
         throw OpenFeatureError.flagNotFoundError(key: key)
     }
@@ -48,7 +48,7 @@ class AlwaysBrokenProvider: FeatureProvider {
         -> OpenFeature.ProviderEvaluation<Double>
     {
         if self.throwFatal {
-            throw OpenFeatureError.providerFatarError(message: "Always broken")
+            throw OpenFeatureError.providerFatalError(message: "Always broken")
         }
         throw OpenFeatureError.flagNotFoundError(key: key)
     }
@@ -57,7 +57,7 @@ class AlwaysBrokenProvider: FeatureProvider {
         -> OpenFeature.ProviderEvaluation<OpenFeature.Value>
     {
         if self.throwFatal {
-            throw OpenFeatureError.providerFatarError(message: "Always broken")
+            throw OpenFeatureError.providerFatalError(message: "Always broken")
         }
         throw OpenFeatureError.flagNotFoundError(key: key)
     }

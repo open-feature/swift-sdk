@@ -37,7 +37,7 @@ public class OpenFeatureAPI {
             providerStatus = .ready
         } catch {
             switch error {
-            case OpenFeatureError.providerFatarError:
+            case OpenFeatureError.providerFatalError:
                 providerStatus = .fatal
             default:
                 providerStatus = .error
