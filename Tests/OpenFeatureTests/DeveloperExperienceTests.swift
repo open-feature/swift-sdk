@@ -142,4 +142,15 @@ final class DeveloperExperienceTests: XCTestCase {
         XCTAssertEqual(details.errorMessage, "Could not find flag for key: test")
         XCTAssertEqual(details.reason, Reason.error.rawValue)
     }
+
+    func testThrowingProvider() {
+        OpenFeatureAPI.shared.setProvider(provider: ThrowingProvider())
+        let client = OpenFeatureAPI.shared.getClient()
+
+        let details = client.getDetails(key: "test", defaultValue: false)
+
+        XCTAssertEqual(details.errorCode, .providerFatal)
+        XCTAssertEqual(details.errorMessage, "Fatal error reported by the Provider")
+        XCTAssertEqual(details.reason, Reason.error.rawValue)
+    }
 }

@@ -68,11 +68,18 @@ extension OpenFeatureClient {
         defaultValue: T,
         options: FlagEvaluationOptions?
     ) -> FlagEvaluationDetails<T> {
+        var details = FlagEvaluationDetails(flagKey: key, value: defaultValue)
+
+        if (openFeatureApi.getProviderStatus() == .fatal) {
+            details.errorCode = .providerFatal
+            details.errorMessage = "Fatal error reported by the Provider" // TODO Improve this message with error details
+            details.reason = Reason.error.rawValue
+            return details
+        }
         let options = options ?? FlagEvaluationOptions(hooks: [], hookHints: [:])
         let hints = options.hookHints
         let context = openFeatureApi.getEvaluationContext()
 
-        var details = FlagEvaluationDetails(flagKey: key, value: defaultValue)
         let provider = openFeatureApi.getProvider() ?? NoOpProvider()
         let hookCtx = HookContext(
             flagKey: key,

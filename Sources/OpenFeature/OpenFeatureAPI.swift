@@ -12,6 +12,7 @@ public class OpenFeatureAPI {
             providerSubject.send(newValue)
         }
     }
+    private var providerStatus = ProviderStatus.notReady
     private var _context: EvaluationContext?
     private(set) var hooks: [any Hook] = []
     private var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
@@ -31,7 +32,17 @@ public class OpenFeatureAPI {
         if let context = initialContext {
             self._context = context
         }
-        provider.initialize(initialContext: self._context)
+        do {
+            try provider.initialize(initialContext: self._context)
+            providerStatus = .ready
+        } catch {
+            switch error {
+            case OpenFeatureError.providerFatarError:
+                providerStatus = .fatal
+            default:
+                providerStatus = .error
+            }
+        }
     }
 
     public func getProvider() -> FeatureProvider? {
@@ -45,11 +56,19 @@ public class OpenFeatureAPI {
     public func setEvaluationContext(evaluationContext: EvaluationContext) {
         let oldContext = self._context
         self._context = evaluationContext
-        getProvider()?.onContextSet(oldContext: oldContext, newContext: evaluationContext)
+        do {
+            try getProvider()?.onContextSet(oldContext: oldContext, newContext: evaluationContext)
+        } catch {
+            // TODO Handle errors
+        }
     }
 
     public func getEvaluationContext() -> EvaluationContext? {
         return self._context
+    }
+
+    public func getProviderStatus() -> ProviderStatus {
+        return providerStatus
     }
 
     public func getProviderMetadata() -> ProviderMetadata? {
@@ -95,14 +114,9 @@ extension OpenFeatureAPI {
         let task = Task {
             var holder: [AnyCancellable] = []
             await withCheckedContinuation { continuation in
-                let stateObserver = provider.observe().sink {
-                    if $0 == .ready || $0 == .error {
-                        continuation.resume()
-                        holder.removeAll()
-                    }
-                }
-                stateObserver.store(in: &holder)
                 setProvider(provider: provider, initialContext: initialContext)
+                continuation.resume()
+                holder.removeAll()
             }
         }
         await withTaskCancellationHandler {

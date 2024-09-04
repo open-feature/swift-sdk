@@ -6,10 +6,12 @@ public protocol FeatureProvider: EventPublisher {
     var metadata: ProviderMetadata { get }
 
     /// Called by OpenFeatureAPI whenever the new Provider is registered
-    func initialize(initialContext: EvaluationContext?)
+    /// This must throw in case of error, using OpenFeature errors whenever possible
+    /// It is expected that the implementer is slow and blocking (e.g. network), the caller must deal with wrapping this into a background Task if necessary
+    func initialize(initialContext: EvaluationContext?) throws
 
     /// Called by OpenFeatureAPI whenever a new EvaluationContext is set by the application
-    func onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext)
+    func onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) throws
 
     func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?) throws
         -> ProviderEvaluation<
