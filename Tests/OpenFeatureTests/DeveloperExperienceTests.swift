@@ -85,7 +85,7 @@ final class DeveloperExperienceTests: XCTestCase {
                 errorProviderExpectation.fulfill()
             }
 
-            eventHandler.send(.error)
+            eventHandler.send(.error(errorCode: nil, message: nil))
             wait(for: [errorProviderExpectation], timeout: 2)
         }
     }

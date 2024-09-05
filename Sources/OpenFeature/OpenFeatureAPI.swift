@@ -16,6 +16,7 @@ public class OpenFeatureAPI {
     private var _context: EvaluationContext?
     private(set) var hooks: [any Hook] = []
     private var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
+    private let eventHandler = EventHandler()
 
     /// The ``OpenFeatureAPI`` singleton
     static public let shared = OpenFeatureAPI()
@@ -39,10 +40,11 @@ public class OpenFeatureAPI {
             switch error {
             case OpenFeatureError.providerFatalError:
                 providerStatus = .fatal
-                // TODO Emit PROVIDER_ERROR
+                eventHandler.send(.error(errorCode: .providerFatal))
             default:
                 providerStatus = .error
-                // TODO Emit PROVIDER_ERROR
+                eventHandler.send(.error(message: error.localizedDescription))
+
             }
         }
     }
@@ -96,7 +98,10 @@ public class OpenFeatureAPI {
     public func observe() -> AnyPublisher<ProviderEvent, Never> {
         return providerSubject.map { provider in
             if let provider = provider {
-                return provider.observe()
+                let test = provider.observe()
+                    .append(self.eventHandler.observe())
+                    .eraseToAnyPublisher()
+                return test
             } else {
                 return Empty<ProviderEvent, Never>()
                     .eraseToAnyPublisher()
