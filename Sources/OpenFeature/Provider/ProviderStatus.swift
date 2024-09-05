@@ -8,4 +8,3 @@ public enum ProviderStatus: String, CaseIterable {
     case fatal = "PROVIDER_FATAL"
     case reconciling = "PROVIDER_RECONCILING"
 }
-

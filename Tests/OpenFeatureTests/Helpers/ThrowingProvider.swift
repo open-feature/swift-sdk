@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 
 @testable import OpenFeature
 

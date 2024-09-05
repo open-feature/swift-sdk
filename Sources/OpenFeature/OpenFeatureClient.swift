@@ -70,9 +70,9 @@ extension OpenFeatureClient {
     ) -> FlagEvaluationDetails<T> {
         var details = FlagEvaluationDetails(flagKey: key, value: defaultValue)
 
-        if (openFeatureApi.getProviderStatus() == .fatal) {
+        if openFeatureApi.getProviderStatus() == .fatal {
             details.errorCode = .providerFatal
-            details.errorMessage = "Fatal error reported by the Provider" // TODO Improve this message with error details
+            details.errorMessage = "Fatal error reported by the Provider"  // TODO Improve this message with error details
             details.reason = Reason.error.rawValue
             return details
         }
