@@ -96,7 +96,7 @@ public class OpenFeatureAPI {
         self.hooks.removeAll()
     }
 
-    public func observe() -> AnyPublisher<ProviderEvent, Never> {
+    public func observe() -> AnyPublisher<ProviderEvent?, Never> {
         return providerSubject.map { provider in
             if let provider = provider {
                 let test = provider.observe()
@@ -104,7 +104,7 @@ public class OpenFeatureAPI {
                     .eraseToAnyPublisher()
                 return test
             } else {
-                return Empty<ProviderEvent, Never>()
+                return Empty<ProviderEvent?, Never>()
                     .eraseToAnyPublisher()
             }
         }

@@ -4,7 +4,7 @@ import OpenFeature
 
 class DoSomethingProvider: FeatureProvider {
     public static let name = "Something"
-    private let eventHandler = EventHandler(.notReady)
+    private let eventHandler = EventHandler()
     private var holdit: AnyCancellable?
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
@@ -59,7 +59,7 @@ class DoSomethingProvider: FeatureProvider {
         return ProviderEvaluation(value: .null, flagMetadata: DoSomethingProvider.flagMetadataMap)
     }
 
-    func observe() -> AnyPublisher<ProviderEvent, Never> {
+    func observe() -> AnyPublisher<ProviderEvent?, Never> {
         eventHandler.observe()
     }
 
