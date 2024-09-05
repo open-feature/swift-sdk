@@ -36,6 +36,7 @@ public class OpenFeatureAPI {
         do {
             try provider.initialize(initialContext: self._context)
             providerStatus = .ready
+            eventHandler.send(.ready)
         } catch {
             switch error {
             case OpenFeatureError.providerFatalError:
