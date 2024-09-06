@@ -43,6 +43,32 @@ final class DeveloperExperienceTests: XCTestCase {
         XCTAssertNotNil(eventState)
     }
 
+    func testSetEvaluationContext() {
+        let contextChangedExpectation = XCTestExpectation(description: "Context Changed")
+        let reconcilingExpectation = XCTestExpectation(description: "Reconciling")
+        let observer = OpenFeatureAPI.shared.observe().sink { event in
+            switch event {
+            case .reconciling:
+                reconcilingExpectation.fulfill()
+            case .ready:
+                break
+            case .contextChanged:
+                contextChangedExpectation.fulfill()
+            default:
+                XCTFail("Unexpected event")
+            }
+        }
+        let semaphore = DispatchSemaphore(value: 0)
+        OpenFeatureAPI.shared.setProvider(provider: StaggeredProvider(onContextSetSemaphore: semaphore))
+        Task {
+            OpenFeatureAPI.shared.setEvaluationContext(evaluationContext: MutableContext(attributes: [:]))
+        }
+        wait(for: [reconcilingExpectation], timeout: 2)
+        semaphore.signal()
+        wait(for: [contextChangedExpectation], timeout: 2)
+        XCTAssertNotNil(observer)
+    }
+
     func testSetProviderAndWait() async {
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")

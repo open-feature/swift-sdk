@@ -45,7 +45,6 @@ public class OpenFeatureAPI {
             default:
                 providerStatus = .error
                 eventHandler.send(.error(message: error.localizedDescription))
-
             }
         }
     }
@@ -59,12 +58,17 @@ public class OpenFeatureAPI {
     }
 
     public func setEvaluationContext(evaluationContext: EvaluationContext) {
-        let oldContext = self._context
-        self._context = evaluationContext
+        providerStatus = .reconciling
+        eventHandler.send(.reconciling)
         do {
+            let oldContext = self._context
+            self._context = evaluationContext
             try getProvider()?.onContextSet(oldContext: oldContext, newContext: evaluationContext)
+            providerStatus = .ready
+            eventHandler.send(.contextChanged)
         } catch {
-            // TODO Handle errors
+            providerStatus = .error
+            eventHandler.send(.error(message: error.localizedDescription))
         }
     }
 

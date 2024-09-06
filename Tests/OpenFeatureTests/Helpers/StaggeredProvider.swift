@@ -2,11 +2,17 @@ import Combine
 import Foundation
 import OpenFeature
 
-class DoSomethingProvider: FeatureProvider {
+class StaggeredProvider: FeatureProvider {
     public static let name = "Something"
     private let eventHandler = EventHandler()
+    private let onContextSetSemaphore: DispatchSemaphore?
+
+    init(onContextSetSemaphore: DispatchSemaphore?) {
+        self.onContextSetSemaphore = onContextSetSemaphore
+    }
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
+        onContextSetSemaphore?.wait()
     }
 
     func initialize(initialContext: OpenFeature.EvaluationContext?) {
