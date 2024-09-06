@@ -47,7 +47,6 @@ final class DeveloperExperienceTests: XCTestCase {
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         withExtendedLifetime(
-
             OpenFeatureAPI.shared.observe().sink { event in
                 switch event {
                 case .ready:

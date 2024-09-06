@@ -56,7 +56,7 @@ final class FlagEvaluationTests: XCTestCase {
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         let staleExpectation = XCTestExpectation(description: "Stale")
-        let eventState = provider.observe().sink { event in
+        let eventState = OpenFeatureAPI.shared.observe().sink { event in
             switch event {
             case .ready:
                 readyExpectation.fulfill()
@@ -109,7 +109,7 @@ final class FlagEvaluationTests: XCTestCase {
     func testDetailedFlagEvaluation() async {
         let provider = DoSomethingProvider()
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let eventState = provider.observe().sink { event in
+        let eventState = OpenFeatureAPI.shared.observe().sink { event in
             switch event {
             case .ready:
                 readyExpectation.fulfill()
@@ -169,7 +169,7 @@ final class FlagEvaluationTests: XCTestCase {
     func testHooksAreFired() async {
         let provider = NoOpProvider()
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let eventState = provider.observe().sink { event in
+        let eventState = OpenFeatureAPI.shared.observe().sink { event in
             switch event {
             case .ready:
                 readyExpectation.fulfill()

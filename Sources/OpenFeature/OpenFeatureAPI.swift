@@ -99,10 +99,9 @@ public class OpenFeatureAPI {
     public func observe() -> AnyPublisher<ProviderEvent?, Never> {
         return providerSubject.map { provider in
             if let provider = provider {
-                let test = provider.observe()
-                    .append(self.eventHandler.observe())
+                return provider.observe()
+                    .merge(with: self.eventHandler.observe())
                     .eraseToAnyPublisher()
-                return test
             } else {
                 return Empty<ProviderEvent?, Never>()
                     .eraseToAnyPublisher()

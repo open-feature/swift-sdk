@@ -7,7 +7,7 @@ final class HookSpecTests: XCTestCase {
     func testNoErrorHookCalled() {
         let provider = NoOpProvider()
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let eventState = provider.observe().sink { event in
+        let eventState = OpenFeatureAPI.shared.observe().sink { event in
             switch event {
             case .ready:
                 readyExpectation.fulfill()
@@ -76,7 +76,7 @@ final class HookSpecTests: XCTestCase {
             BooleanHookMock(prefix: "provider", addEval: addEval)
         ])
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let eventState = providerMock.observe().sink { event in
+        let eventState = OpenFeatureAPI.shared.observe().sink { event in
             switch event {
             case .ready:
                 readyExpectation.fulfill()
