@@ -86,6 +86,12 @@ public class OpenFeatureAPI {
         self.hooks.removeAll()
     }
 
+    public func getState() -> (
+        provider: FeatureProvider?, evaluationContext: EvaluationContext?, providerStatus: ProviderStatus
+    ) {
+        return self.stateManager.getState()
+    }
+
     public func observe() -> AnyPublisher<ProviderEvent?, Never> {
         return providerSubject.map { provider in
             if let provider = provider {
@@ -179,6 +185,15 @@ struct SafeStateManager {
             self.provider = nil
             self.providerSubject.send(nil)
             self.providerStatus = .notReady
+        }
+    }
+
+    // Method to read all values atomically
+    func getState() -> (
+        provider: FeatureProvider?, evaluationContext: EvaluationContext?, providerStatus: ProviderStatus
+    ) {
+        return queue.sync {
+            (provider: provider, evaluationContext: evaluationContext, providerStatus: providerStatus)
         }
     }
 }

@@ -166,7 +166,7 @@ final class DeveloperExperienceTests: XCTestCase {
         let details = client.getDetails(key: "test", defaultValue: false)
 
         XCTAssertEqual(details.errorCode, .providerFatal)
-        XCTAssertEqual(details.errorMessage, "Fatal error reported by the Provider")
+        XCTAssertEqual(details.errorMessage, "A fatal error occurred in the provider: unknown")
         XCTAssertEqual(details.reason, Reason.error.rawValue)
     }
 }
