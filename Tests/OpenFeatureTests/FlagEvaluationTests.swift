@@ -126,7 +126,7 @@ final class FlagEvaluationTests: XCTestCase {
         }
 
         OpenFeatureAPI.shared.setProvider(provider: provider)
-        wait(for: [readyExpectation], timeout: 5)
+        await fulfillment(of: [readyExpectation], timeout: 5)
         let client = OpenFeatureAPI.shared.getClient()
         let key = "key"
         let booleanDetails = FlagEvaluationDetails(
@@ -189,7 +189,7 @@ final class FlagEvaluationTests: XCTestCase {
         }
 
         OpenFeatureAPI.shared.setProvider(provider: provider)
-        wait(for: [readyExpectation], timeout: 5)
+        await fulfillment(of: [readyExpectation], timeout: 5)
 
         let client = OpenFeatureAPI.shared.getClient()
 
@@ -268,6 +268,7 @@ final class FlagEvaluationTests: XCTestCase {
         XCTAssertEqual(details.errorCode, .providerFatal)
         XCTAssertEqual(details.reason, Reason.error.rawValue)
         XCTAssertEqual(details.errorMessage, "A fatal error occurred in the provider: Always broken")
+        XCTAssertNotNil(eventState)
     }
 
     func testClientMetadata() {
