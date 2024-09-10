@@ -4,17 +4,9 @@ import Foundation
 /// A global singleton which holds base configuration for the OpenFeature library.
 /// Configuration here will be shared across all ``Client``s.
 public class OpenFeatureAPI {
-    private var _provider: FeatureProvider? {
-        get {
-            providerSubject.value
-        }
-        set {
-            providerSubject.send(newValue)
-        }
-    }
-    private var _context: EvaluationContext?
+    private var stateManager = SafeStateManager()
+    private let eventHandler = EventHandler()
     private(set) var hooks: [any Hook] = []
-    private var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
 
     /// The ``OpenFeatureAPI`` singleton
     static public let shared = OpenFeatureAPI()
@@ -27,11 +19,21 @@ public class OpenFeatureAPI {
     }
 
     public func setProvider(provider: FeatureProvider, initialContext: EvaluationContext?) {
-        self._provider = provider
-        if let context = initialContext {
-            self._context = context
+        stateManager.setProvider(provider: provider, initialContext: initialContext)
+        do {
+            try provider.initialize(initialContext: initialContext)
+            stateManager.update(providerStatus: .ready)
+            eventHandler.send(.ready)
+        } catch {
+            switch error {
+            case OpenFeatureError.providerFatalError:
+                stateManager.update(providerStatus: .fatal)
+                eventHandler.send(.error(errorCode: .providerFatal))
+            default:
+                stateManager.update(providerStatus: .error)
+                eventHandler.send(.error(message: error.localizedDescription))
+            }
         }
-        provider.initialize(initialContext: self._context)
     }
 
     public func getProvider() -> FeatureProvider? {
@@ -39,17 +41,29 @@ public class OpenFeatureAPI {
     }
 
     public func clearProvider() {
-        self._provider = nil
+        stateManager.clearProvider()
     }
 
     public func setEvaluationContext(evaluationContext: EvaluationContext) {
-        let oldContext = self._context
-        self._context = evaluationContext
-        getProvider()?.onContextSet(oldContext: oldContext, newContext: evaluationContext)
+        do {
+            let oldContext = self._context
+            stateManager.update(evaluationContext: evaluationContext, providerStatus: .reconciling)
+            eventHandler.send(.reconciling)
+            try getProvider()?.onContextSet(oldContext: oldContext, newContext: evaluationContext)
+            stateManager.update(providerStatus: .ready)
+            eventHandler.send(.contextChanged)
+        } catch {
+            stateManager.update(providerStatus: .error)
+            eventHandler.send(.error(message: error.localizedDescription))
+        }
     }
 
     public func getEvaluationContext() -> EvaluationContext? {
         return self._context
+    }
+
+    public func getProviderStatus() -> ProviderStatus {
+        return _providerStatus
     }
 
     public func getProviderMetadata() -> ProviderMetadata? {
@@ -72,17 +86,41 @@ public class OpenFeatureAPI {
         self.hooks.removeAll()
     }
 
-    public func observe() -> AnyPublisher<ProviderEvent, Never> {
+    public func getState() -> (
+        provider: FeatureProvider?, evaluationContext: EvaluationContext?, providerStatus: ProviderStatus
+    ) {
+        return self.stateManager.getState()
+    }
+
+    public func observe() -> AnyPublisher<ProviderEvent?, Never> {
         return providerSubject.map { provider in
             if let provider = provider {
                 return provider.observe()
+                    .merge(with: self.eventHandler.observe())
+                    .eraseToAnyPublisher()
             } else {
-                return Empty<ProviderEvent, Never>()
+                return Empty<ProviderEvent?, Never>()
                     .eraseToAnyPublisher()
             }
         }
         .switchToLatest()
         .eraseToAnyPublisher()
+    }
+}
+
+/// Accessory getters for properties managed in the state manager
+extension OpenFeatureAPI {
+    private var _provider: FeatureProvider? {
+        stateManager.providerSubject.value
+    }
+    private var _context: EvaluationContext? {
+        stateManager.evaluationContext
+    }
+    private var _providerStatus: ProviderStatus {
+        stateManager.providerStatus
+    }
+    private var providerSubject: CurrentValueSubject<FeatureProvider?, Never> {
+        stateManager.providerSubject
     }
 }
 
@@ -95,20 +133,67 @@ extension OpenFeatureAPI {
         let task = Task {
             var holder: [AnyCancellable] = []
             await withCheckedContinuation { continuation in
-                let stateObserver = provider.observe().sink {
-                    if $0 == .ready || $0 == .error {
-                        continuation.resume()
-                        holder.removeAll()
-                    }
-                }
-                stateObserver.store(in: &holder)
                 setProvider(provider: provider, initialContext: initialContext)
+                continuation.resume()
+                holder.removeAll()
             }
         }
         await withTaskCancellationHandler {
             await task.value
         } onCancel: {
             task.cancel()
+        }
+    }
+}
+
+/// This helper struct maintains the provider, its state and the global evaluation context
+/// It is designed to be thread safe on write: context and status are updated atomically, for example.
+/// The allowed bulk-changes are also executed in a serial fashion to guarantee thread-safety.
+struct SafeStateManager {
+    private let queue = DispatchQueue(label: "com.providerDescriptor.queue")
+
+    private(set) var provider: FeatureProvider?
+    private(set) var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
+    private(set) var evaluationContext: EvaluationContext? = nil
+    private(set) var providerStatus: ProviderStatus = .notReady
+
+    mutating func setProvider(provider: FeatureProvider, initialContext: EvaluationContext? = nil) {
+        queue.sync {
+            self.provider = provider
+            self.providerStatus = .notReady
+            if let initialContext = initialContext {
+                self.evaluationContext = initialContext
+            }
+            providerSubject.send(provider)
+        }
+    }
+
+    mutating func update(evaluationContext: EvaluationContext? = nil, providerStatus: ProviderStatus? = nil) {
+        queue.sync {
+            if let newContext = evaluationContext {
+                self.evaluationContext = newContext
+            }
+
+            if let newStatus = providerStatus {
+                self.providerStatus = newStatus
+            }
+        }
+    }
+
+    mutating func clearProvider() {
+        queue.sync {
+            self.provider = nil
+            self.providerSubject.send(nil)
+            self.providerStatus = .notReady
+        }
+    }
+
+    // Method to read all values atomically
+    func getState() -> (
+        provider: FeatureProvider?, evaluationContext: EvaluationContext?, providerStatus: ProviderStatus
+    ) {
+        return queue.sync {
+            (provider: provider, evaluationContext: evaluationContext, providerStatus: providerStatus)
         }
     }
 }
