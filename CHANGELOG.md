@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/open-feature/swift-sdk/compare/0.2.0...0.2.1) (2024-12-13)
+
+
+### 🐛 Bug Fixes
+
+* remove compilation warnings ([#47](https://github.com/open-feature/swift-sdk/issues/47)) ([a21214e](https://github.com/open-feature/swift-sdk/commit/a21214eb7d6ad7b5942d41097dd776032d635827))
+
 ## [0.2.0](https://github.com/open-feature/swift-sdk/compare/0.1.0...0.2.0) (2024-07-08)
 
 
