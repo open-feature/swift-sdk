@@ -69,6 +69,23 @@ final class DeveloperExperienceTests: XCTestCase {
         XCTAssertNotNil(observer)
     }
 
+    func testSetEvaluationContextAndWait() async {
+        let reconcilingExpectation = XCTestExpectation(description: "Reconciling")
+        let semaphore = DispatchSemaphore(value: 0)
+        let ctx = MutableContext(attributes: ["test": .string("value")])
+        let provider = StaggeredProvider(onContextSetSemaphore: semaphore)
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
+        Task {
+            await OpenFeatureAPI.shared.setEvaluationContextAndWait(evaluationContext: ctx)
+            reconcilingExpectation.fulfill()
+        }
+        XCTAssertEqual(provider.activeContext.asMap(), MutableContext().asMap())
+        semaphore.signal()
+        await fulfillment(of: [reconcilingExpectation], timeout: 2)
+        XCTAssertEqual(OpenFeatureAPI.shared.getEvaluationContext()?.asMap(), ctx.asMap())
+        XCTAssertEqual(provider.activeContext.asMap(), ctx.asMap())
+    }
+
     func testSetProviderAndWait() async {
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")

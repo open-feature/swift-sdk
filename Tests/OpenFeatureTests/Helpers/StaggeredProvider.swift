@@ -6,6 +6,7 @@ class StaggeredProvider: FeatureProvider {
     public static let name = "Something"
     private let eventHandler = EventHandler()
     private let onContextSetSemaphore: DispatchSemaphore?
+    public var activeContext: EvaluationContext = MutableContext()
 
     init(onContextSetSemaphore: DispatchSemaphore?) {
         self.onContextSetSemaphore = onContextSetSemaphore
@@ -13,9 +14,13 @@ class StaggeredProvider: FeatureProvider {
 
     func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
         onContextSetSemaphore?.wait()
+        activeContext = newContext
     }
 
     func initialize(initialContext: OpenFeature.EvaluationContext?) {
+        if let initialContext {
+            activeContext = initialContext
+        }
     }
 
     var hooks: [any OpenFeature.Hook] = []

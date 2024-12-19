@@ -32,7 +32,7 @@ public class OpenFeatureAPI {
 
     /**
     Set provider and calls its `initialize`.
-    This async function returns when the initalize from the provider is completed.
+    This async function returns when the `initalize` from the provider is completed.
     */
     public func setProviderAndWait(provider: FeatureProvider, initialContext: EvaluationContext?) async {
         await withCheckedContinuation { continuation in
@@ -55,7 +55,7 @@ public class OpenFeatureAPI {
 
     /**
     Set provider and calls its `initialize`.
-    This async function returns when the initalize from the provider is completed.
+    This async function returns when the `initalize` from the provider is completed.
     */
     public func setProviderAndWait(provider: FeatureProvider) async {
         await setProviderAndWait(provider: provider, initialContext: nil)
@@ -72,10 +72,29 @@ public class OpenFeatureAPI {
         }
     }
 
+    /**
+    Set evaluation context and calls the provider's `onContextSet` in a background thread.
+    Readiness can be determined from `getState` or listening for `contextChanged` event.
+    */
     public func setEvaluationContext(evaluationContext: EvaluationContext) {
         queue.async {
             Task {
                 await self.updateContext(evaluationContext: evaluationContext)
+            }
+        }
+    }
+
+    /**
+    Set evaluation context and calls the provider's `onContextSet`.
+    This async function returns when the `onContextSet` from the provider is completed.
+    */
+    public func setEvaluationContextAndWait(evaluationContext: EvaluationContext) async {
+        await withCheckedContinuation { continuation in
+            queue.async {
+                Task {
+                    await self.updateContext(evaluationContext: evaluationContext)
+                    continuation.resume()
+                }
             }
         }
     }
