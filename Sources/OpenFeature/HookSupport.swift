@@ -33,10 +33,14 @@ class HookSupport {
     }
 
     func finallyHooks<T>(
-        flagValueType: FlagValueType, hookCtx: HookContext<T>, hooks: [any Hook], hints: [String: Any]
+        flagValueType: FlagValueType,
+        hookCtx: HookContext<T>,
+        details: FlagEvaluationDetails<T>,
+        hooks: [any Hook],
+        hints: [String: Any]
     ) {
         hooks
             .filter { $0.supportsFlagValueType(flagValueType: flagValueType) }
-            .forEach { $0.finally(ctx: hookCtx, hints: hints) }
+            .forEach { $0.finally(ctx: hookCtx, details: details, hints: hints) }
     }
 }

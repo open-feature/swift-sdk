@@ -37,6 +37,7 @@ final class HookSupportTests: XCTestCase {
         hookSupport.finallyHooks(
             flagValueType: .boolean,
             hookCtx: hookContext,
+            details: FlagEvaluationDetails(flagKey: "", value: false),
             hooks: [hook],
             hints: [:])
 
