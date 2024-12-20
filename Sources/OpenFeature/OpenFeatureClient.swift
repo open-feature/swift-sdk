@@ -75,7 +75,7 @@ extension OpenFeatureClient {
             details.errorCode = .providerFatal
             details.errorMessage = OpenFeatureError
                 .providerFatalError(message: "unknown")
-                .description  // TODO Improve this message with error details
+                .description
             details.reason = Reason.error.rawValue
             return details
         case .notReady:
@@ -90,7 +90,7 @@ extension OpenFeatureClient {
             details.errorCode = .general
             details.errorMessage = OpenFeatureError
                 .generalError(message: "unknown")
-                .description  // TODO Improve this message with error details
+                .description
             details.reason = Reason.error.rawValue
             return details
         case .ready:
