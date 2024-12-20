@@ -55,7 +55,7 @@ public class OpenFeatureAPI {
 
     /**
     Set provider and calls its `initialize`.
-    This async function returns when the `initalize` from the provider is completed.
+    This async function returns when the `initialize` from the provider is completed.
     */
     public func setProviderAndWait(provider: FeatureProvider) async {
         await setProviderAndWait(provider: provider, initialContext: nil)
