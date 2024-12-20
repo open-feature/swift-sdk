@@ -5,7 +5,7 @@ import Foundation
 /// Configuration here will be shared across all ``Client``s.
 public class OpenFeatureAPI {
     private let eventHandler = EventHandler()
-    private let queue = DispatchQueue(label: "com.providerDescriptor.queue")
+    private let queue = DispatchQueue(label: "com.openfeature.providerDescriptor.queue")
 
     private(set) var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
     private(set) var evaluationContext: EvaluationContext?
