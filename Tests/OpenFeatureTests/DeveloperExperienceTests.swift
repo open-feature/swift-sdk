@@ -131,16 +131,16 @@ final class DeveloperExperienceTests: XCTestCase {
         client.addHooks(booleanHook, intHook)
 
         _ = client.getValue(key: "string-test", defaultValue: "test")
-        XCTAssertEqual(booleanHook.finallyAfterCalled, 0)
-        XCTAssertEqual(intHook.finallyAfterCalled, 0)
+        XCTAssertEqual(booleanHook.finallyCalled, 0)
+        XCTAssertEqual(intHook.finallyCalled, 0)
 
         _ = client.getValue(key: "bool-test", defaultValue: false)
-        XCTAssertEqual(booleanHook.finallyAfterCalled, 1)
-        XCTAssertEqual(intHook.finallyAfterCalled, 0)
+        XCTAssertEqual(booleanHook.finallyCalled, 1)
+        XCTAssertEqual(intHook.finallyCalled, 0)
 
         _ = client.getValue(key: "int-test", defaultValue: 0) as Int64
-        XCTAssertEqual(booleanHook.finallyAfterCalled, 1)
-        XCTAssertEqual(intHook.finallyAfterCalled, 1)
+        XCTAssertEqual(booleanHook.finallyCalled, 1)
+        XCTAssertEqual(intHook.finallyCalled, 1)
     }
 
     func testEvalHooks() async {
@@ -152,16 +152,16 @@ final class DeveloperExperienceTests: XCTestCase {
         let options = FlagEvaluationOptions(hooks: [booleanHook, intHook])
 
         _ = client.getValue(key: "test", defaultValue: "test", options: options)
-        XCTAssertEqual(booleanHook.finallyAfterCalled, 0)
-        XCTAssertEqual(intHook.finallyAfterCalled, 0)
+        XCTAssertEqual(booleanHook.finallyCalled, 0)
+        XCTAssertEqual(intHook.finallyCalled, 0)
 
         _ = client.getValue(key: "test", defaultValue: false, options: options)
-        XCTAssertEqual(booleanHook.finallyAfterCalled, 1)
-        XCTAssertEqual(intHook.finallyAfterCalled, 0)
+        XCTAssertEqual(booleanHook.finallyCalled, 1)
+        XCTAssertEqual(intHook.finallyCalled, 0)
 
         _ = client.getValue(key: "test", defaultValue: 0, options: options) as Int64
-        XCTAssertEqual(booleanHook.finallyAfterCalled, 1)
-        XCTAssertEqual(intHook.finallyAfterCalled, 1)
+        XCTAssertEqual(booleanHook.finallyCalled, 1)
+        XCTAssertEqual(intHook.finallyCalled, 1)
     }
 
     func testBrokenProvider() async {

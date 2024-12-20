@@ -247,7 +247,7 @@ class BooleanHook: Hook {
         // do something
     }
 
-    func finallyAfter<HookValue>(ctx: HookContext<HookValue>, hints: [String: Any]) {
+    func finally<HookValue>(ctx: HookContext<HookValue>, hints: [String: Any]) {
         // do something
     }
 }

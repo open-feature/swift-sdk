@@ -143,7 +143,7 @@ extension OpenFeatureClient {
             hookSupport.errorHooks(
                 flagValueType: T.flagValueType, hookCtx: hookCtx, error: error, hooks: mergedHooks, hints: hints)
         }
-        hookSupport.afterAllHooks(
+        hookSupport.finallyHooks(
             flagValueType: T.flagValueType, hookCtx: hookCtx, hooks: mergedHooks, hints: hints)
         return details
     }
