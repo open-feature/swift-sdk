@@ -28,21 +28,22 @@ final class HookSupportTests: XCTestCase {
             details: FlagEvaluationDetails(flagKey: "", value: false),
             hooks: [hook],
             hints: [:])
-        hookSupport.afterAllHooks(
-            flagValueType: .boolean,
-            hookCtx: hookContext,
-            hooks: [hook],
-            hints: [:])
         hookSupport.errorHooks(
             flagValueType: .boolean,
             hookCtx: hookContext,
             error: OpenFeatureError.invalidContextError,
             hooks: [hook],
             hints: [:])
+        hookSupport.finallyHooks(
+            flagValueType: .boolean,
+            hookCtx: hookContext,
+            details: FlagEvaluationDetails(flagKey: "", value: false),
+            hooks: [hook],
+            hints: [:])
 
         XCTAssertEqual(hook.beforeCalled, 1)
         XCTAssertEqual(hook.afterCalled, 1)
-        XCTAssertEqual(hook.finallyAfterCalled, 1)
         XCTAssertEqual(hook.errorCalled, 1)
+        XCTAssertEqual(hook.finallyCalled, 1)
     }
 }

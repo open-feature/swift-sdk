@@ -14,7 +14,7 @@
 <p align="center" class="github-badges">
 <!-- TODO: update this with the version of the SDK your implementation supports -->
 
-  <a href="https://github.com/open-feature/spec/releases/tag/v0.7.0">
+  <a href="https://github.com/open-feature/spec/releases/tag/v0.8.0">
     <img alt="Specification" src="https://img.shields.io/static/v1?label=specification&message=v0.7.0&color=yellow&style=for-the-badge" />
   </a>
   <!-- x-release-please-start-version -->
@@ -90,11 +90,12 @@ Task {
 ## 🌟 Features
 
 
-| Status | Features                        | Description                                                                                                                        |
-| ------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Status  | Features                        | Description                                                                                                                        |
+| ------  | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | ✅      | [Providers](#providers)         | Integrate with a commercial, open source, or in-house feature management tool.                                                     |
 | ✅      | [Targeting](#targeting)         | Contextually-aware flag evaluation using [evaluation context](https://openfeature.dev/docs/reference/concepts/evaluation-context). |
 | ✅      | [Hooks](#hooks)                 | Add functionality to various stages of the flag evaluation life-cycle.                                                             |
+| ❌      | [Tracking](#tracking)           | Associate user actions with feature flag evaluations.                                                                              |
 | ❌      | [Logging](#logging)             | Integrate with popular logging packages.                                                                                           |
 | ❌      | [Named clients](#named-clients) | Utilize multiple providers in a single application.                                                                                |
 | ✅      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
@@ -153,6 +154,10 @@ _ = client.getValue(
     defaultValue: false,
     options: FlagEvaluationOptions(hooks: [ExampleHook()]))
 ```
+### Tracking
+
+Tracking is not yet available in the iOS SDK.
+
 ### Logging
 
 Logging customization is not yet available in the iOS SDK.
@@ -242,7 +247,7 @@ class BooleanHook: Hook {
         // do something
     }
 
-    func finallyAfter<HookValue>(ctx: HookContext<HookValue>, hints: [String: Any]) {
+    func finally<HookValue>(ctx: HookContext<HookValue>, hints: [String: Any]) {
         // do something
     }
 }
