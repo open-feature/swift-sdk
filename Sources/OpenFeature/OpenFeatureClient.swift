@@ -83,9 +83,6 @@ extension OpenFeatureClient {
             details.errorMessage = OpenFeatureError.providerNotReadyError.description
             details.reason = Reason.error.rawValue
             return details
-        case .reconciling, .stale:
-            details.reason = Reason.stale.rawValue
-            return details
         case .error:
             details.errorCode = .general
             details.errorMessage = OpenFeatureError
@@ -93,7 +90,7 @@ extension OpenFeatureClient {
                 .description
             details.reason = Reason.error.rawValue
             return details
-        case .ready:
+        case .ready, .reconciling, .stale:
             return evaluateFlagReady(
                 key: key, defaultValue: defaultValue, options: options, openFeatureApiState: openFeatureApiState)
         }
