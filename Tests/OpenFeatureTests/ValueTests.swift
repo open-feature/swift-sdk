@@ -72,7 +72,6 @@ final class ValueTests: XCTestCase {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
 
-
         let date = try XCTUnwrap(formatter.date(from: "2022-01-01 12:00:00"))
 
         let value: Value = .structure([

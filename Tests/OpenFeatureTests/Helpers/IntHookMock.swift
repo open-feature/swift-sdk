@@ -38,7 +38,9 @@ class IntHookMock: Hook {
         self.addEval(self.prefix.isEmpty ? "error" : "\(self.prefix) error")
     }
 
-    func finally<HookValue>(ctx: HookContext<HookValue>, details: FlagEvaluationDetails<HookValue>, hints: [String: Any]) {
+    func finally<HookValue>(
+        ctx: HookContext<HookValue>, details: FlagEvaluationDetails<HookValue>, hints: [String: Any]
+    ) {
         finallyCalled += 1
         self.addEval(self.prefix.isEmpty ? "finally" : "\(self.prefix) finally")
     }

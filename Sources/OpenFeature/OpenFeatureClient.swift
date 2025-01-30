@@ -73,7 +73,8 @@ extension OpenFeatureClient {
         switch openFeatureApiState.providerStatus {
         case .fatal:
             details.errorCode = .providerFatal
-            details.errorMessage = OpenFeatureError
+            details.errorMessage =
+                OpenFeatureError
                 .providerFatalError(message: "unknown")
                 .description
             details.reason = Reason.error.rawValue
@@ -85,7 +86,8 @@ extension OpenFeatureClient {
             return details
         case .error:
             details.errorCode = .general
-            details.errorMessage = OpenFeatureError
+            details.errorMessage =
+                OpenFeatureError
                 .generalError(message: "unknown")
                 .description
             details.reason = Reason.error.rawValue
