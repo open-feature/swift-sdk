@@ -6,12 +6,9 @@ import XCTest
 final class HookSpecTests: XCTestCase {
     func testNoErrorHookCalled() {
         let provider = NoOpProvider()
-        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let eventState = provider.observe().sink { event in
+        let eventState = OpenFeatureAPI.shared.observe().sink { event in
             switch event {
-            case .notReady:
-                notReadyExpectation.fulfill()
             case .ready:
                 readyExpectation.fulfill()
             default:
@@ -33,19 +30,16 @@ final class HookSpecTests: XCTestCase {
         XCTAssertEqual(hook.beforeCalled, 1)
         XCTAssertEqual(hook.afterCalled, 1)
         XCTAssertEqual(hook.errorCalled, 0)
-        XCTAssertEqual(hook.finallyAfterCalled, 1)
+        XCTAssertEqual(hook.finallyCalled, 1)
         XCTAssertNotNil(eventState)
     }
 
     func testErrorHookButNoAfterCalled() {
         let provider = AlwaysBrokenProvider()
-        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
         let errorExpectation = XCTestExpectation(description: "Error")
         let eventState = provider.observe().sink { event in
             switch event {
-            case .notReady:
-                notReadyExpectation.fulfill()
             case .ready:
                 readyExpectation.fulfill()
             case .error:
@@ -68,7 +62,7 @@ final class HookSpecTests: XCTestCase {
         XCTAssertEqual(hook.beforeCalled, 1)
         XCTAssertEqual(hook.afterCalled, 0)
         XCTAssertEqual(hook.errorCalled, 1)
-        XCTAssertEqual(hook.finallyAfterCalled, 1)
+        XCTAssertEqual(hook.finallyCalled, 1)
         XCTAssertNotNil(eventState)
     }
 
@@ -81,12 +75,9 @@ final class HookSpecTests: XCTestCase {
         let providerMock = NoOpProviderMock(hooks: [
             BooleanHookMock(prefix: "provider", addEval: addEval)
         ])
-        let notReadyExpectation = XCTestExpectation(description: "NotReady")
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let eventState = providerMock.observe().sink { event in
+        let eventState = OpenFeatureAPI.shared.observe().sink { event in
             switch event {
-            case .notReady:
-                notReadyExpectation.fulfill()
             case .ready:
                 readyExpectation.fulfill()
             default:
@@ -116,10 +107,10 @@ final class HookSpecTests: XCTestCase {
                 "invocation after",
                 "client after",
                 "api after",
-                "provider finallyAfter",
-                "invocation finallyAfter",
-                "client finallyAfter",
-                "api finallyAfter",
+                "provider finally",
+                "invocation finally",
+                "client finally",
+                "api finally",
             ])
         XCTAssertNotNil(eventState)
     }

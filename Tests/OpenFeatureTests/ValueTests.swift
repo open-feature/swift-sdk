@@ -45,6 +45,8 @@ final class ValueTests: XCTestCase {
     func testEncodeDecode() throws {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
 
         let date = try XCTUnwrap(formatter.date(from: "2022-01-01 12:00:00"))
 
@@ -67,6 +69,8 @@ final class ValueTests: XCTestCase {
     func testDecodeValue() throws {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
 
         let date = try XCTUnwrap(formatter.date(from: "2022-01-01 12:00:00"))
 

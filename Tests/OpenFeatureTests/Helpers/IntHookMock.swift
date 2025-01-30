@@ -6,7 +6,7 @@ class IntHookMock: Hook {
 
     public var beforeCalled = 0
     public var afterCalled = 0
-    public var finallyAfterCalled = 0
+    public var finallyCalled = 0
     public var errorCalled = 0
 
     private var prefix: String
@@ -38,8 +38,10 @@ class IntHookMock: Hook {
         self.addEval(self.prefix.isEmpty ? "error" : "\(self.prefix) error")
     }
 
-    func finallyAfter<HookValue>(ctx: HookContext<HookValue>, hints: [String: Any]) {
-        finallyAfterCalled += 1
-        self.addEval(self.prefix.isEmpty ? "finallyAfter" : "\(self.prefix) finallyAfter")
+    func finally<HookValue>(
+        ctx: HookContext<HookValue>, details: FlagEvaluationDetails<HookValue>, hints: [String: Any]
+    ) {
+        finallyCalled += 1
+        self.addEval(self.prefix.isEmpty ? "finally" : "\(self.prefix) finally")
     }
 }

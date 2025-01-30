@@ -4,17 +4,13 @@ import Foundation
 /// A global singleton which holds base configuration for the OpenFeature library.
 /// Configuration here will be shared across all ``Client``s.
 public class OpenFeatureAPI {
-    private var _provider: FeatureProvider? {
-        get {
-            providerSubject.value
-        }
-        set {
-            providerSubject.send(newValue)
-        }
-    }
-    private var _context: EvaluationContext?
+    private let eventHandler = EventHandler()
+    private let queue = DispatchQueue(label: "com.openfeature.providerDescriptor.queue")
+
+    private(set) var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
+    private(set) var evaluationContext: EvaluationContext?
+    private(set) var providerStatus: ProviderStatus = .notReady
     private(set) var hooks: [any Hook] = []
-    private var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
 
     /// The ``OpenFeatureAPI`` singleton
     static public let shared = OpenFeatureAPI()
@@ -22,34 +18,93 @@ public class OpenFeatureAPI {
     public init() {
     }
 
-    public func setProvider(provider: FeatureProvider) {
-        self.setProvider(provider: provider, initialContext: nil)
+    /**
+    Set provider and calls its `initialize` in a background thread.
+    Readiness can be determined from `getState` or listening for `ready` event.
+    */
+    public func setProvider(provider: FeatureProvider, initialContext: EvaluationContext?) {
+        queue.async {
+            Task {
+                await self.setProviderInternal(provider: provider, initialContext: initialContext)
+            }
+        }
     }
 
-    public func setProvider(provider: FeatureProvider, initialContext: EvaluationContext?) {
-        self._provider = provider
-        if let context = initialContext {
-            self._context = context
+    /**
+    Set provider and calls its `initialize`.
+    This async function returns when the `initialize` from the provider is completed.
+    */
+    public func setProviderAndWait(provider: FeatureProvider, initialContext: EvaluationContext?) async {
+        await withCheckedContinuation { continuation in
+            queue.async {
+                Task {
+                    await self.setProviderInternal(provider: provider, initialContext: initialContext)
+                    continuation.resume()
+                }
+            }
         }
-        provider.initialize(initialContext: self._context)
+    }
+
+    /**
+    Set provider and calls its `initialize` in a background thread.
+    Readiness can be determined from `getState` or listening for `ready` event.
+    */
+    public func setProvider(provider: FeatureProvider) {
+        setProvider(provider: provider, initialContext: nil)
+    }
+
+    /**
+    Set provider and calls its `initialize`.
+    This async function returns when the `initialize` from the provider is completed.
+    */
+    public func setProviderAndWait(provider: FeatureProvider) async {
+        await setProviderAndWait(provider: provider, initialContext: nil)
     }
 
     public func getProvider() -> FeatureProvider? {
-        return self._provider
+        return self.providerSubject.value
     }
 
     public func clearProvider() {
-        self._provider = nil
+        queue.sync {
+            self.providerSubject.send(nil)
+            self.providerStatus = .notReady
+        }
     }
 
+    /**
+    Set evaluation context and calls the provider's `onContextSet` in a background thread.
+    Readiness can be determined from `getState` or listening for `contextChanged` event.
+    */
     public func setEvaluationContext(evaluationContext: EvaluationContext) {
-        let oldContext = self._context
-        self._context = evaluationContext
-        getProvider()?.onContextSet(oldContext: oldContext, newContext: evaluationContext)
+        queue.async {
+            Task {
+                await self.updateContext(evaluationContext: evaluationContext)
+            }
+        }
+    }
+
+    /**
+    Set evaluation context and calls the provider's `onContextSet`.
+    This async function returns when the `onContextSet` from the provider is completed.
+    */
+    public func setEvaluationContextAndWait(evaluationContext: EvaluationContext) async {
+        await withCheckedContinuation { continuation in
+            queue.async {
+                Task {
+                    await self.updateContext(evaluationContext: evaluationContext)
+                    continuation.resume()
+                }
+            }
+        }
     }
 
     public func getEvaluationContext() -> EvaluationContext? {
-        return self._context
+        return self.evaluationContext
+    }
+
+    public func getProviderStatus() -> ProviderStatus {
+        return self.providerStatus
     }
 
     public func getProviderMetadata() -> ProviderMetadata? {
@@ -72,43 +127,72 @@ public class OpenFeatureAPI {
         self.hooks.removeAll()
     }
 
-    public func observe() -> AnyPublisher<ProviderEvent, Never> {
+    public func observe() -> AnyPublisher<ProviderEvent?, Never> {
         return providerSubject.map { provider in
             if let provider = provider {
                 return provider.observe()
+                    .merge(with: self.eventHandler.observe())
+                    .eraseToAnyPublisher()
             } else {
-                return Empty<ProviderEvent, Never>()
+                return Empty<ProviderEvent?, Never>()
                     .eraseToAnyPublisher()
             }
         }
         .switchToLatest()
         .eraseToAnyPublisher()
     }
-}
 
-extension OpenFeatureAPI {
-    public func setProviderAndWait(provider: FeatureProvider) async {
-        await setProviderAndWait(provider: provider, initialContext: nil)
+    internal func getState() -> OpenFeatureState {
+        return queue.sync {
+            OpenFeatureState(
+                provider: providerSubject.value,
+                evaluationContext: evaluationContext,
+                providerStatus: providerStatus)
+        }
     }
 
-    public func setProviderAndWait(provider: FeatureProvider, initialContext: EvaluationContext?) async {
-        let task = Task {
-            var holder: [AnyCancellable] = []
-            await withCheckedContinuation { continuation in
-                let stateObserver = provider.observe().sink {
-                    if $0 == .ready || $0 == .error {
-                        continuation.resume()
-                        holder.removeAll()
-                    }
-                }
-                stateObserver.store(in: &holder)
-                setProvider(provider: provider, initialContext: initialContext)
+    private func setProviderInternal(provider: FeatureProvider, initialContext: EvaluationContext? = nil) async {
+        self.providerStatus = .notReady
+        self.providerSubject.send(provider)
+
+        if let initialContext = initialContext {
+            self.evaluationContext = initialContext
+        }
+
+        do {
+            try await provider.initialize(initialContext: initialContext)
+            self.providerStatus = .ready
+            self.eventHandler.send(.ready)
+        } catch {
+            switch error {
+            case OpenFeatureError.providerFatalError:
+                self.providerStatus = .fatal
+                self.eventHandler.send(.error(errorCode: .providerFatal))
+            default:
+                self.providerStatus = .error
+                self.eventHandler.send(.error(message: error.localizedDescription))
             }
         }
-        await withTaskCancellationHandler {
-            await task.value
-        } onCancel: {
-            task.cancel()
+    }
+
+    private func updateContext(evaluationContext: EvaluationContext) async {
+        do {
+            let oldContext = self.evaluationContext
+            self.evaluationContext = evaluationContext
+            self.providerStatus = .reconciling
+            eventHandler.send(.reconciling)
+            try await self.providerSubject.value?.onContextSet(oldContext: oldContext, newContext: evaluationContext)
+            self.providerStatus = .ready
+            eventHandler.send(.contextChanged)
+        } catch {
+            self.providerStatus = .error
+            eventHandler.send(.error(message: error.localizedDescription))
         }
+    }
+
+    struct OpenFeatureState {
+        let provider: FeatureProvider?
+        let evaluationContext: EvaluationContext?
+        let providerStatus: ProviderStatus
     }
 }

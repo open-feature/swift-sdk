@@ -11,7 +11,11 @@ public protocol Hook {
 
     func error<HookValue>(ctx: HookContext<HookValue>, error: Error, hints: [String: Any])
 
-    func finallyAfter<HookValue>(ctx: HookContext<HookValue>, hints: [String: Any])
+    func finally<HookValue>(
+        ctx: HookContext<HookValue>,
+        details: FlagEvaluationDetails<HookValue>,
+        hints: [String: Any]
+    )
 
     func supportsFlagValueType(flagValueType: FlagValueType) -> Bool
 }
@@ -31,7 +35,9 @@ extension Hook {
         // Default implementation
     }
 
-    public func finallyAfter<HookValue>(ctx: HookContext<HookValue>, hints: [String: Any]) {
+    public func finally<HookValue>(
+        ctx: HookContext<HookValue>, details: FlagEvaluationDetails<HookValue>, hints: [String: Any]
+    ) {
         // Default implementation
     }
 
