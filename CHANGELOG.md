@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.0](https://github.com/open-feature/swift-sdk/compare/0.2.1...0.3.0) (2025-01-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* Spec v0.8 adherence ([#46](https://github.com/open-feature/swift-sdk/issues/46))
+
+### ✨ New Features
+
+* Spec v0.8 adherence ([#46](https://github.com/open-feature/swift-sdk/issues/46)) ([b6457f6](https://github.com/open-feature/swift-sdk/commit/b6457f693e45bc620e6443f3b8435d30f091ca9d))
+
+
+### 📚 Documentation
+
+* Fix spec version label in README ([#54](https://github.com/open-feature/swift-sdk/issues/54)) ([3e1ec5b](https://github.com/open-feature/swift-sdk/commit/3e1ec5bffc9d6aef0deb76f343191664d377fd31))
+
 ## [0.2.1](https://github.com/open-feature/swift-sdk/compare/0.2.0...0.2.1) (2024-12-13)
 
 
