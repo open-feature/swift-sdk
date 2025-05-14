@@ -1,0 +1,38 @@
+name: CocoaPods
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  release:
+    types: [published]
+
+jobs:
+  pod-lint:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install CocoaPods
+        run: gem install cocoapods
+
+      - name: Lint Podspec
+        run: pod lib lint --allow-warnings
+
+  pod-publish:
+    needs: pod-lint
+    if: github.event_name == 'release'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install CocoaPods
+        run: gem install cocoapods
+
+      - name: Update CocoaPods Trunk
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+        run: |
+          # Ensure the version in podspec matches the release
+          ./scripts/update_podspec.sh
+          # Push the podspec to trunk
+          pod trunk push --allow-warnings

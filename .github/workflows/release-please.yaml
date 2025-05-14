@@ -24,9 +24,32 @@ jobs:
         run: |
           echo "$RELEASE_PLEASE_OUTPUT"
 
+      # Update podspec version when a release PR is created or updated
+      - name: Checkout code if PR is generated/updated
+        if: ${{ steps.release.outputs.pr }}
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+
+      - name: Update podspec version
+        if: ${{ steps.release.outputs.pr }}
+        run: |
+          ./scripts/update_podspec.sh
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add OpenFeature.podspec
+          git commit -m "chore: update podspec version [skip ci]" || true
+          git push
+
     # Outputs are namespaced by package when using a manifest in Release Please
     outputs:
       release_created: ${{ steps.release.outputs['OpenFeature--release_created'] }}
       # Version doesn't include `v` as a prefix. This is undocumented
       version: ${{ steps.release.outputs['OpenFeature--version'] }}
       upload_url: ${{ steps.release.outputs['OpenFeature--upload_url'] }}
+
+  # Trigger the CocoaPods workflow when a release is created
+  cocoapods:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    uses: ./.github/workflows/cocoapods.yaml
