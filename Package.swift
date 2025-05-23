@@ -8,14 +8,15 @@ let package = Package(
     platforms: [
         .iOS(.v14),
         .macOS(.v11),
+        .watchOS(.v7),
+        .tvOS(.v14),
     ],
     products: [
         .library(
             name: "OpenFeature",
-            targets: ["OpenFeature"]),
+            targets: ["OpenFeature"])
     ],
-    dependencies: [
-    ],
+    dependencies: [],
     targets: [
         .target(
             name: "OpenFeature",

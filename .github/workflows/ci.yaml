@@ -3,24 +3,44 @@ name: CI
 on:
   pull_request:
     branches:
-      - 'main'
+      - "main"
   push:
     branches:
-      - 'main'
+      - "main"
 
 jobs:
   Tests:
     runs-on: macOS-latest
+    strategy:
+      matrix:
+        platform: [iOS, macOS, watchOS, tvOS]
+        include:
+          - platform: iOS
+            destination: "platform=iOS Simulator,name=iPhone 15"
+          - platform: macOS
+            destination: "platform=macOS"
+          - platform: watchOS
+            destination: "platform=watchOS Simulator,name=Apple Watch Series 10 (42mm)"
+          - platform: tvOS
+            destination: "platform=tvOS Simulator,name=Apple TV"
     steps:
-    - uses: actions/checkout@v4
-    - name: Build and Test
-      run: swift test
+      - uses: actions/checkout@v4
+      - name: Build and Test on ${{ matrix.platform }}
+        run: |
+          if [ "${{ matrix.platform }}" = "macOS" ]; then
+            swift test
+          else
+            xcodebuild test \
+              -workspace .swiftpm/xcode/package.xcworkspace \
+              -scheme OpenFeature \
+              -destination "${{ matrix.destination }}"
+          fi
 
   SwiftLint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: GitHub Action for SwiftLint
-      uses: norio-nomura/action-swiftlint@3.2.1
-      with:
-        args: --config .swiftlint.yml
+      - uses: actions/checkout@v4
+      - name: GitHub Action for SwiftLint
+        uses: norio-nomura/action-swiftlint@3.2.1
+        with:
+          args: --config .swiftlint.yml
