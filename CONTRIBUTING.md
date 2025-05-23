@@ -30,12 +30,12 @@ swift test
 The project includes CocoaPods support via the `OpenFeature.podspec` file. When making changes:
 
 1. The version in the podspec is automatically updated from `version.txt` during the release process
-2. You can manually update the podspec version by running:
-   ```shell
-   ./scripts/update_podspec.sh
-   ```
-3. To validate the podspec locally, run:
+2. To validate the podspec locally, run:
    ```shell
    pod spec lint OpenFeature.podspec --allow-warnings
    ```
-4. The CocoaPods validation and publishing is handled automatically via GitHub workflows on release
+3. The CocoaPods validation and publishing is handled automatically via GitHub workflows on release
+
+#### Token Management
+
+For information on regenerating the CocoaPods trunk token used in CI/CD, see the "CocoaPods Release Token Management" section in [OWNERS.md](OWNERS.md).
