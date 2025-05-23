@@ -35,4 +35,4 @@ jobs:
           # Ensure the version in podspec matches the release
           ./scripts/update_podspec.sh
           # Push the podspec to trunk
-          pod trunk push --allow-warnings
+          pod trunk push OpenFeature.podspec --allow-warnings --verbose
