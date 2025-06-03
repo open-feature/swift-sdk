@@ -71,6 +71,20 @@ and in the target dependencies section add:
 .product(name: "OpenFeature", package: "swift-sdk"),
 ```
 
+#### CocoaPods
+
+If you manage dependencies through CocoaPods, add the following to your Podfile:
+
+```ruby
+pod 'OpenFeature', '~> 0.3.0'
+```
+
+Then, run:
+
+```bash
+pod install
+```
+
 ### Usage
 
 ```swift
@@ -194,7 +208,7 @@ A shutdown function is not yet available in the iOS SDK.
 ### Develop a provider
 
 To develop a provider, you need to create a new project and include the OpenFeature SDK as a dependency.
-You’ll then need to write the provider by implementing the `FeatureProvider` interface exported by the OpenFeature SDK.
+You'll then need to write the provider by implementing the `FeatureProvider` interface exported by the OpenFeature SDK.
 
 ```swift
 import OpenFeature
