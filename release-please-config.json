@@ -7,7 +7,10 @@
             "bump-patch-for-minor-pre-major": true,
             "versioning": "default",
             "include-v-in-tag": false,
-            "extra-files": ["README.md"]
+            "extra-files": [
+                "README.md",
+                "OpenFeature.podspec"
+            ]
         }
     },
     "changelog-sections": [
