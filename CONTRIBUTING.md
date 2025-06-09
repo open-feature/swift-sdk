@@ -34,7 +34,7 @@ The project includes CocoaPods support via the `OpenFeature.podspec` file. When 
    ```shell
    pod spec lint OpenFeature.podspec --allow-warnings
    ```
-4. The CocoaPods validation and publishing is handled automatically via GitHub workflows on release
+3. The CocoaPods validation and publishing is handled automatically via GitHub workflows on release
 
 #### Token Management
 
