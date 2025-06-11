@@ -22,7 +22,7 @@ jobs:
           - platform: watchOS
             destination: "platform=watchOS Simulator,name=Apple Watch Series 10 (42mm)"
           - platform: tvOS
-            destination: "platform=tvOS Simulator,name=Apple TV"
+            destination: "platform=tvOS Simulator,name=Apple TV 4K (3rd generation)"
     steps:
       - uses: actions/checkout@v4
       - name: Build and Test on ${{ matrix.platform }}
@@ -31,7 +31,6 @@ jobs:
             swift test
           else
             xcodebuild test \
-              -workspace .swiftpm/xcode/package.xcworkspace \
               -scheme OpenFeature \
               -destination "${{ matrix.destination }}"
           fi
