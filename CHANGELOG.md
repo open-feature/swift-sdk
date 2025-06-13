@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.1](https://github.com/open-feature/swift-sdk/compare/0.3.0...0.3.1) (2025-06-13)
+
+
+### ✨ New Features
+
+* Adding Cocoapods support ([#61](https://github.com/open-feature/swift-sdk/issues/61)) ([f481a51](https://github.com/open-feature/swift-sdk/commit/f481a51bd47a50025d9ba32a124f110eb0c8f0fc))
+* Adds watchOS / tvOS support ([#67](https://github.com/open-feature/swift-sdk/issues/67)) ([3a5af18](https://github.com/open-feature/swift-sdk/commit/3a5af18e7615e5c5a67690c2d626789bcee1e8a6))
+
+
+### 🧹 Chore
+
+* remove podspec update script and adjust release configuration ([#65](https://github.com/open-feature/swift-sdk/issues/65)) ([2903008](https://github.com/open-feature/swift-sdk/commit/290300835dfe8d123651ea15ab27af6f6de30da4))
+
 ## [0.3.0](https://github.com/open-feature/swift-sdk/compare/0.2.1...0.3.0) (2025-01-31)
 
 
