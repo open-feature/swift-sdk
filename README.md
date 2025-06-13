@@ -36,9 +36,13 @@
 
 ### Requirements
 
-- The minimum iOS version supported is: `iOS 14`.
+This SDK supports the following Apple platforms:
+- **iOS 14+**
+- **macOS 11+**
+- **watchOS 7+**
+- **tvOS 14+**
 
-Note that this library is intended to be used in a mobile context, and has not been evaluated for use in other type of applications (e.g. server applications, macOS, tvOS, watchOS, etc.).
+The SDK is built with Swift 5.5+ and uses only Foundation and Combine frameworks, making it suitable for all Apple platform contexts including mobile, desktop, wearable, and TV applications.
 
 ### Install
 
@@ -85,7 +89,7 @@ Then, run:
 pod install
 ```
 
-### Usage
+### iOS Usage
 
 ```swift
 import OpenFeature
