@@ -15,6 +15,10 @@ public class MutableContext: EvaluationContext {
         self.init(structure: MutableStructure(attributes: attributes))
     }
 
+    public func deepCopy() -> EvaluationContext {
+        return MutableContext(targetingKey: targetingKey, structure: structure.deepCopy())
+    }
+
     public func getTargetingKey() -> String {
         return self.targetingKey
     }

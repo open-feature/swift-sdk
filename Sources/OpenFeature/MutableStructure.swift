@@ -24,6 +24,10 @@ public class MutableStructure: Structure {
     public func asObjectMap() -> [String: AnyHashable?] {
         return attributes.mapValues(convertValue)
     }
+
+    public func deepCopy() -> MutableStructure {
+        MutableStructure(attributes: attributes)
+    }
 }
 
 extension MutableStructure {

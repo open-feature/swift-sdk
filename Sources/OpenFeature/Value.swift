@@ -3,6 +3,7 @@ import Foundation
 /// Values serve as a generic return type for structure data from providers.
 /// Providers may deal in JSON, protobuf, XML or some other data-interchange format.
 /// This intermediate representation provides a good medium of exchange.
+/// All the enum types must be value types, as Value is expected to support deep copies.
 public enum Value: Equatable, Codable {
     case boolean(Bool)
     case string(String)
