@@ -14,7 +14,7 @@ let package = Package(
     products: [
         .library(
             name: "OpenFeature",
-            targets: ["OpenFeature"])
+            targets: ["OpenFeature"]),
     ],
     dependencies: [],
     targets: [

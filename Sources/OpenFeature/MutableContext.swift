@@ -1,8 +1,9 @@
 import Foundation
 
-/// The ``MutableContext`` is an ``EvaluationContext`` implementation which is not threadsafe, and whose attributes can
+/// The ``MutableContext`` is an ``EvaluationContext`` implementation which is threadsafe, and whose attributes can
 /// be modified after instantiation.
 public class MutableContext: EvaluationContext {
+    private let queue = DispatchQueue(label: "com.openfeature.mutablecontext.queue", qos: .userInitiated)
     private var targetingKey: String
     private var structure: MutableStructure
 
@@ -16,38 +17,54 @@ public class MutableContext: EvaluationContext {
     }
 
     public func deepCopy() -> EvaluationContext {
-        return MutableContext(targetingKey: targetingKey, structure: structure.deepCopy())
+        return queue.sync {
+            MutableContext(targetingKey: targetingKey, structure: structure.deepCopy())
+        }
     }
 
     public func getTargetingKey() -> String {
-        return self.targetingKey
+        return queue.sync {
+            self.targetingKey
+        }
     }
 
     public func setTargetingKey(targetingKey: String) {
-        self.targetingKey = targetingKey
+        queue.sync {
+            self.targetingKey = targetingKey
+        }
     }
 
     public func keySet() -> Set<String> {
-        return structure.keySet()
+        return queue.sync {
+            structure.keySet()
+        }
     }
 
     public func getValue(key: String) -> Value? {
-        return structure.getValue(key: key)
+        return queue.sync {
+            structure.getValue(key: key)
+        }
     }
 
     public func asMap() -> [String: Value] {
-        return structure.asMap()
+        return queue.sync {
+            structure.asMap()
+        }
     }
 
     public func asObjectMap() -> [String: AnyHashable?] {
-        return structure.asObjectMap()
+        return queue.sync {
+            structure.asObjectMap()
+        }
     }
 }
 
 extension MutableContext {
     @discardableResult
     public func add(key: String, value: Value) -> MutableContext {
-        self.structure.add(key: key, value: value)
+        queue.sync {
+            self.structure.add(key: key, value: value)
+        }
         return self
     }
 }
