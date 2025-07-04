@@ -146,7 +146,7 @@ final class EvalContextTests: XCTestCase {
         originalContext.add(key: "list", value: .list([.string("item1"), .integer(100)]))
         originalContext.add(key: "structure", value: .structure([
             "nested-string": .string("nested-value"),
-            "nested-int": .integer(200)
+            "nested-int": .integer(200),
         ]))
 
         let copiedContext = originalContext.deepCopy() as! MutableContext
@@ -200,7 +200,7 @@ final class EvalContextTests: XCTestCase {
         originalContext.add(key: "list", value: .list([.string("list-item"), .integer(999)]))
         originalContext.add(key: "structure", value: .structure([
             "struct-key": .string("struct-value"),
-            "struct-number": .integer(777)
+            "struct-number": .integer(777),
         ]))
 
         let copiedContext = originalContext.deepCopy() as! MutableContext
@@ -215,5 +215,39 @@ final class EvalContextTests: XCTestCase {
         XCTAssertEqual(copiedContext.getValue(key: "list")?.asList()?[1].asInteger(), 999)
         XCTAssertEqual(copiedContext.getValue(key: "structure")?.asStructure()?["struct-key"]?.asString(), "struct-value")
         XCTAssertEqual(copiedContext.getValue(key: "structure")?.asStructure()?["struct-number"]?.asInteger(), 777)
+    }
+
+    func testContextDeepCopyIsThreadSafe() {
+        let context = MutableContext(targetingKey: "initial-key")
+        context.add(key: "initial", value: .string("initial-value"))
+
+        let expectation = XCTestExpectation(description: "Concurrent deep copy operations")
+        let concurrentQueue = DispatchQueue(label: "test.concurrent", attributes: .concurrent)
+        let group = DispatchGroup()
+
+        // Perform multiple concurrent operations
+        for i in 0..<100 {
+            group.enter()
+            concurrentQueue.async {
+                // Modify the context
+                context.setTargetingKey(targetingKey: "modified-\(i)")
+                context.add(key: "key-\(i)", value: .integer(Int64(i)))
+
+                // Perform deep copy
+                let copiedContext = context.deepCopy()
+
+                // Verify the copy is independent
+                XCTAssertNotEqual(copiedContext.getTargetingKey(), "initial-key")
+                XCTAssertNotNil(copiedContext.getValue(key: "initial"))
+
+                group.leave()
+            }
+        }
+
+        group.notify(queue: .main) {
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 5.0)
     }
 }
