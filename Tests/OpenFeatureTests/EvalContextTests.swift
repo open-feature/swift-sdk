@@ -149,7 +149,10 @@ final class EvalContextTests: XCTestCase {
             "nested-int": .integer(200),
         ]))
 
-        let copiedContext = originalContext.deepCopy() as! MutableContext
+        guard let copiedContext = originalContext.deepCopy() as? MutableContext else {
+            XCTFail("Failed to cast to MutableContext")
+            return
+        }
 
         XCTAssertEqual(copiedContext.getTargetingKey(), "original-key")
         XCTAssertEqual(copiedContext.getValue(key: "string")?.asString(), "original-value")
@@ -157,7 +160,10 @@ final class EvalContextTests: XCTestCase {
         XCTAssertEqual(copiedContext.getValue(key: "boolean")?.asBoolean(), true)
         XCTAssertEqual(copiedContext.getValue(key: "list")?.asList()?[0].asString(), "item1")
         XCTAssertEqual(copiedContext.getValue(key: "list")?.asList()?[1].asInteger(), 100)
-        XCTAssertEqual(copiedContext.getValue(key: "structure")?.asStructure()?["nested-string"]?.asString(), "nested-value")
+        XCTAssertEqual(
+            copiedContext.getValue(key: "structure")?.asStructure()?["nested-string"]?.asString(),
+            "nested-value"
+        )
         XCTAssertEqual(copiedContext.getValue(key: "structure")?.asStructure()?["nested-int"]?.asInteger(), 200)
 
         originalContext.setTargetingKey(targetingKey: "modified-key")
@@ -174,7 +180,10 @@ final class EvalContextTests: XCTestCase {
 
     func testContextDeepCopyWithEmptyContext() {
         let emptyContext = MutableContext()
-        let copiedContext = emptyContext.deepCopy() as! MutableContext
+        guard let copiedContext = emptyContext.deepCopy() as? MutableContext else {
+            XCTFail("Failed to cast to MutableContext")
+            return
+        }
 
         XCTAssertEqual(emptyContext.getTargetingKey(), "")
         XCTAssertEqual(copiedContext.getTargetingKey(), "")
@@ -203,7 +212,10 @@ final class EvalContextTests: XCTestCase {
             "struct-number": .integer(777),
         ]))
 
-        let copiedContext = originalContext.deepCopy() as! MutableContext
+        guard let copiedContext = originalContext.deepCopy() as? MutableContext else {
+            XCTFail("Failed to cast to MutableContext")
+            return
+        }
 
         XCTAssertTrue(copiedContext.getValue(key: "null")?.isNull() ?? false)
         XCTAssertEqual(copiedContext.getValue(key: "string")?.asString(), "test-string")
@@ -213,7 +225,10 @@ final class EvalContextTests: XCTestCase {
         XCTAssertEqual(copiedContext.getValue(key: "date")?.asDate(), date)
         XCTAssertEqual(copiedContext.getValue(key: "list")?.asList()?[0].asString(), "list-item")
         XCTAssertEqual(copiedContext.getValue(key: "list")?.asList()?[1].asInteger(), 999)
-        XCTAssertEqual(copiedContext.getValue(key: "structure")?.asStructure()?["struct-key"]?.asString(), "struct-value")
+        XCTAssertEqual(
+            copiedContext.getValue(key: "structure")?.asStructure()?["struct-key"]?.asString(),
+            "struct-value"
+        )
         XCTAssertEqual(copiedContext.getValue(key: "structure")?.asStructure()?["struct-number"]?.asInteger(), 777)
     }
 

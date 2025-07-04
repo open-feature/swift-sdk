@@ -181,7 +181,10 @@ public class OpenFeatureAPI {
             self.evaluationContext = evaluationContext.deepCopy()
             self.providerStatus = .reconciling
             eventHandler.send(.reconciling)
-            try await self.providerSubject.value?.onContextSet(oldContext: oldContext, newContext: evaluationContext.deepCopy())
+            try await self.providerSubject.value?.onContextSet(
+                oldContext: oldContext,
+                newContext: evaluationContext.deepCopy()
+            )
             self.providerStatus = .ready
             eventHandler.send(.contextChanged)
         } catch {
