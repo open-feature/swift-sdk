@@ -156,11 +156,11 @@ public class OpenFeatureAPI {
         self.providerSubject.send(provider)
 
         if let initialContext = initialContext {
-            self.evaluationContext = initialContext
+            self.evaluationContext = initialContext.deepCopy()
         }
 
         do {
-            try await provider.initialize(initialContext: initialContext)
+            try await provider.initialize(initialContext: initialContext?.deepCopy())
             self.providerStatus = .ready
             self.eventHandler.send(.ready)
         } catch {
@@ -177,11 +177,14 @@ public class OpenFeatureAPI {
 
     private func updateContext(evaluationContext: EvaluationContext) async {
         do {
-            let oldContext = self.evaluationContext
-            self.evaluationContext = evaluationContext
+            let oldContext = self.evaluationContext?.deepCopy()
+            self.evaluationContext = evaluationContext.deepCopy()
             self.providerStatus = .reconciling
             eventHandler.send(.reconciling)
-            try await self.providerSubject.value?.onContextSet(oldContext: oldContext, newContext: evaluationContext)
+            try await self.providerSubject.value?.onContextSet(
+                oldContext: oldContext,
+                newContext: evaluationContext.deepCopy()
+            )
             self.providerStatus = .ready
             eventHandler.send(.contextChanged)
         } catch {

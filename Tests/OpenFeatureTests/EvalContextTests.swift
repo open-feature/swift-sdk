@@ -136,4 +136,133 @@ final class EvalContextTests: XCTestCase {
 
         XCTAssertEqual(ctx.asObjectMap(), expected)
     }
+
+    func testContextDeepCopyCreatesIndependentCopy() {
+        // Create original context with various data types
+        let originalContext = MutableContext(targetingKey: "original-key")
+        originalContext.add(key: "string", value: .string("original-value"))
+        originalContext.add(key: "integer", value: .integer(42))
+        originalContext.add(key: "boolean", value: .boolean(true))
+        originalContext.add(key: "list", value: .list([.string("item1"), .integer(100)]))
+        originalContext.add(key: "structure", value: .structure([
+            "nested-string": .string("nested-value"),
+            "nested-int": .integer(200),
+        ]))
+
+        guard let copiedContext = originalContext.deepCopy() as? MutableContext else {
+            XCTFail("Failed to cast to MutableContext")
+            return
+        }
+
+        XCTAssertEqual(copiedContext.getTargetingKey(), "original-key")
+        XCTAssertEqual(copiedContext.getValue(key: "string")?.asString(), "original-value")
+        XCTAssertEqual(copiedContext.getValue(key: "integer")?.asInteger(), 42)
+        XCTAssertEqual(copiedContext.getValue(key: "boolean")?.asBoolean(), true)
+        XCTAssertEqual(copiedContext.getValue(key: "list")?.asList()?[0].asString(), "item1")
+        XCTAssertEqual(copiedContext.getValue(key: "list")?.asList()?[1].asInteger(), 100)
+        XCTAssertEqual(
+            copiedContext.getValue(key: "structure")?.asStructure()?["nested-string"]?.asString(),
+            "nested-value"
+        )
+        XCTAssertEqual(copiedContext.getValue(key: "structure")?.asStructure()?["nested-int"]?.asInteger(), 200)
+
+        originalContext.setTargetingKey(targetingKey: "modified-key")
+        originalContext.add(key: "string", value: .string("modified-value"))
+        originalContext.add(key: "new-key", value: .string("new-value"))
+
+        XCTAssertEqual(copiedContext.getTargetingKey(), "original-key")
+        XCTAssertEqual(copiedContext.getValue(key: "string")?.asString(), "original-value")
+        XCTAssertNil(copiedContext.getValue(key: "new-key"))
+        XCTAssertEqual(originalContext.getTargetingKey(), "modified-key")
+        XCTAssertEqual(originalContext.getValue(key: "string")?.asString(), "modified-value")
+        XCTAssertEqual(originalContext.getValue(key: "new-key")?.asString(), "new-value")
+    }
+
+    func testContextDeepCopyWithEmptyContext() {
+        let emptyContext = MutableContext()
+        guard let copiedContext = emptyContext.deepCopy() as? MutableContext else {
+            XCTFail("Failed to cast to MutableContext")
+            return
+        }
+
+        XCTAssertEqual(emptyContext.getTargetingKey(), "")
+        XCTAssertEqual(copiedContext.getTargetingKey(), "")
+        XCTAssertTrue(emptyContext.keySet().isEmpty)
+        XCTAssertTrue(copiedContext.keySet().isEmpty)
+
+        emptyContext.setTargetingKey(targetingKey: "test")
+        emptyContext.add(key: "key", value: .string("value"))
+
+        XCTAssertEqual(copiedContext.getTargetingKey(), "")
+        XCTAssertTrue(copiedContext.keySet().isEmpty)
+    }
+
+    func testContextDeepCopyPreservesAllValueTypes() {
+        let date = Date()
+        let originalContext = MutableContext(targetingKey: "test-key")
+        originalContext.add(key: "null", value: .null)
+        originalContext.add(key: "string", value: .string("test-string"))
+        originalContext.add(key: "boolean", value: .boolean(false))
+        originalContext.add(key: "integer", value: .integer(12345))
+        originalContext.add(key: "double", value: .double(3.14159))
+        originalContext.add(key: "date", value: .date(date))
+        originalContext.add(key: "list", value: .list([.string("list-item"), .integer(999)]))
+        originalContext.add(key: "structure", value: .structure([
+            "struct-key": .string("struct-value"),
+            "struct-number": .integer(777),
+        ]))
+
+        guard let copiedContext = originalContext.deepCopy() as? MutableContext else {
+            XCTFail("Failed to cast to MutableContext")
+            return
+        }
+
+        XCTAssertTrue(copiedContext.getValue(key: "null")?.isNull() ?? false)
+        XCTAssertEqual(copiedContext.getValue(key: "string")?.asString(), "test-string")
+        XCTAssertEqual(copiedContext.getValue(key: "boolean")?.asBoolean(), false)
+        XCTAssertEqual(copiedContext.getValue(key: "integer")?.asInteger(), 12345)
+        XCTAssertEqual(copiedContext.getValue(key: "double")?.asDouble(), 3.14159)
+        XCTAssertEqual(copiedContext.getValue(key: "date")?.asDate(), date)
+        XCTAssertEqual(copiedContext.getValue(key: "list")?.asList()?[0].asString(), "list-item")
+        XCTAssertEqual(copiedContext.getValue(key: "list")?.asList()?[1].asInteger(), 999)
+        XCTAssertEqual(
+            copiedContext.getValue(key: "structure")?.asStructure()?["struct-key"]?.asString(),
+            "struct-value"
+        )
+        XCTAssertEqual(copiedContext.getValue(key: "structure")?.asStructure()?["struct-number"]?.asInteger(), 777)
+    }
+
+    func testContextDeepCopyIsThreadSafe() {
+        let context = MutableContext(targetingKey: "initial-key")
+        context.add(key: "initial", value: .string("initial-value"))
+
+        let expectation = XCTestExpectation(description: "Concurrent deep copy operations")
+        let concurrentQueue = DispatchQueue(label: "test.concurrent", attributes: .concurrent)
+        let group = DispatchGroup()
+
+        // Perform multiple concurrent operations
+        for i in 0..<100 {
+            group.enter()
+            concurrentQueue.async {
+                // Modify the context
+                context.setTargetingKey(targetingKey: "modified-\(i)")
+                context.add(key: "key-\(i)", value: .integer(Int64(i)))
+
+                // Perform deep copy
+                let copiedContext = context.deepCopy()
+
+                // Verify the copy is independent
+                XCTAssertNotEqual(copiedContext.getTargetingKey(), "initial-key")
+                XCTAssertNotNil(copiedContext.getValue(key: "initial"))
+
+                group.leave()
+            }
+        }
+
+        group.notify(queue: .main) {
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 5.0)
+    }
 }

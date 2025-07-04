@@ -1,8 +1,9 @@
 import Foundation
 
-/// The ``MutableStructure`` is a ``Structure`` implementation which is not threadsafe, and whose attributes can
+/// The ``MutableStructure`` is a ``Structure`` implementation which is threadsafe, and whose attributes can
 /// be modified after instantiation.
 public class MutableStructure: Structure {
+    private let queue = DispatchQueue(label: "com.openfeature.mutablestructure.queue", qos: .userInitiated)
     private var attributes: [String: Value]
 
     public init(attributes: [String: Value] = [:]) {
@@ -10,19 +11,33 @@ public class MutableStructure: Structure {
     }
 
     public func keySet() -> Set<String> {
-        return Set(attributes.keys)
+        return queue.sync {
+            Set(attributes.keys)
+        }
     }
 
     public func getValue(key: String) -> Value? {
-        return attributes[key]
+        return queue.sync {
+            attributes[key]
+        }
     }
 
     public func asMap() -> [String: Value] {
-        return attributes
+        return queue.sync {
+            attributes
+        }
     }
 
     public func asObjectMap() -> [String: AnyHashable?] {
-        return attributes.mapValues(convertValue)
+        return queue.sync {
+            attributes.mapValues(convertValue)
+        }
+    }
+
+    public func deepCopy() -> MutableStructure {
+        return queue.sync {
+            MutableStructure(attributes: attributes)
+        }
     }
 }
 
@@ -58,7 +73,9 @@ extension MutableStructure {
 extension MutableStructure {
     @discardableResult
     public func add(key: String, value: Value) -> MutableStructure {
-        attributes[key] = value
+        queue.sync {
+            attributes[key] = value
+        }
         return self
     }
 }
