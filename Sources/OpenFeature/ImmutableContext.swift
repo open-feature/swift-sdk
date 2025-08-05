@@ -41,14 +41,6 @@ public struct ImmutableContext: EvaluationContext {
 }
 
 extension ImmutableContext {
-    /// Creates an immutable context from a mutable context
-    public init(from mutableContext: MutableContext) {
-        self.init(
-            targetingKey: mutableContext.getTargetingKey(),
-            structure: ImmutableStructure(attributes: mutableContext.asMap())
-        )
-    }
-
     public func withTargetingKey(_ targetingKey: String) -> ImmutableContext {
         return ImmutableContext(targetingKey: targetingKey, structure: structure)
     }

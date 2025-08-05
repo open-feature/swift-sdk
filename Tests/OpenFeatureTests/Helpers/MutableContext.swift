@@ -1,5 +1,7 @@
 import Foundation
 
+@testable import OpenFeature
+
 /// The ``MutableContext`` is an ``EvaluationContext`` implementation which is threadsafe, and whose attributes can
 /// be modified after instantiation.
 public class MutableContext: EvaluationContext {
@@ -49,6 +51,12 @@ public class MutableContext: EvaluationContext {
     public func asObjectMap() -> [String: AnyHashable?] {
         return queue.sync {
             structure.asObjectMap()
+        }
+    }
+
+    public func setTargetingKey(targetingKey: String) {
+        queue.sync {
+            self.targetingKey = targetingKey
         }
     }
 }

@@ -202,3 +202,12 @@ final class ImmutableContextTests: XCTestCase {
         wait(for: [expectation], timeout: 1.0)
     }
 }
+
+extension ImmutableContext {
+    public init(from mutableContext: MutableContext) {
+        self.init(
+            targetingKey: mutableContext.getTargetingKey(),
+            structure: ImmutableStructure(attributes: mutableContext.asMap())
+        )
+    }
+}
