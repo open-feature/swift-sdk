@@ -4,8 +4,7 @@ import XCTest
 
 final class EvalContextTests: XCTestCase {
     func testContextStoresTargetingKey() {
-        let ctx = MutableContext()
-        ctx.setTargetingKey(targetingKey: "test")
+        let ctx = MutableContext(targetingKey: "test")
         XCTAssertEqual(ctx.getTargetingKey(), "test")
     }
 
@@ -166,14 +165,12 @@ final class EvalContextTests: XCTestCase {
         )
         XCTAssertEqual(copiedContext.getValue(key: "structure")?.asStructure()?["nested-int"]?.asInteger(), 200)
 
-        originalContext.setTargetingKey(targetingKey: "modified-key")
         originalContext.add(key: "string", value: .string("modified-value"))
         originalContext.add(key: "new-key", value: .string("new-value"))
 
         XCTAssertEqual(copiedContext.getTargetingKey(), "original-key")
         XCTAssertEqual(copiedContext.getValue(key: "string")?.asString(), "original-value")
         XCTAssertNil(copiedContext.getValue(key: "new-key"))
-        XCTAssertEqual(originalContext.getTargetingKey(), "modified-key")
         XCTAssertEqual(originalContext.getValue(key: "string")?.asString(), "modified-value")
         XCTAssertEqual(originalContext.getValue(key: "new-key")?.asString(), "new-value")
     }
@@ -190,7 +187,6 @@ final class EvalContextTests: XCTestCase {
         XCTAssertTrue(emptyContext.keySet().isEmpty)
         XCTAssertTrue(copiedContext.keySet().isEmpty)
 
-        emptyContext.setTargetingKey(targetingKey: "test")
         emptyContext.add(key: "key", value: .string("value"))
 
         XCTAssertEqual(copiedContext.getTargetingKey(), "")
@@ -245,14 +241,12 @@ final class EvalContextTests: XCTestCase {
             group.enter()
             concurrentQueue.async {
                 // Modify the context
-                context.setTargetingKey(targetingKey: "modified-\(i)")
                 context.add(key: "key-\(i)", value: .integer(Int64(i)))
 
                 // Perform deep copy
                 let copiedContext = context.deepCopy()
 
                 // Verify the copy is independent
-                XCTAssertNotEqual(copiedContext.getTargetingKey(), "initial-key")
                 XCTAssertNotNil(copiedContext.getValue(key: "initial"))
 
                 group.leave()

@@ -28,12 +28,6 @@ public class MutableContext: EvaluationContext {
         }
     }
 
-    public func setTargetingKey(targetingKey: String) {
-        queue.sync {
-            self.targetingKey = targetingKey
-        }
-    }
-
     public func keySet() -> Set<String> {
         return queue.sync {
             structure.keySet()
@@ -62,7 +56,7 @@ public class MutableContext: EvaluationContext {
 extension MutableContext {
     @discardableResult
     public func add(key: String, value: Value) -> MutableContext {
-        queue.sync {
+        _ = queue.sync {
             self.structure.add(key: key, value: value)
         }
         return self
