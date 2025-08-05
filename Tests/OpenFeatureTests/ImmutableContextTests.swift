@@ -99,4 +99,106 @@ final class ImmutableContextTests: XCTestCase {
         let nullValue = objectMap["null"]
         XCTAssertNil(nullValue as? AnyHashable) // But the unwrapped value is nil
     }
+
+    func testImmutableContextWithTargetingKey() {
+        let original = ImmutableContext(targetingKey: "original-key")
+        let modified = original.withTargetingKey("new-key")
+
+        XCTAssertEqual(original.getTargetingKey(), "original-key")
+        XCTAssertEqual(modified.getTargetingKey(), "new-key")
+        XCTAssertTrue(original.keySet().isEmpty)
+        XCTAssertTrue(modified.keySet().isEmpty)
+    }
+
+    func testImmutableContextSetAttribute() {
+        let original = ImmutableContext(targetingKey: "user-123")
+        let modified = original.setAttribute(key: "country", value: .string("US"))
+
+        XCTAssertEqual(original.getTargetingKey(), "user-123")
+        XCTAssertEqual(modified.getTargetingKey(), "user-123")
+        XCTAssertTrue(original.keySet().isEmpty)
+        XCTAssertEqual(modified.keySet().count, 1)
+        XCTAssertEqual(modified.getValue(key: "country")?.asString(), "US")
+        XCTAssertNil(original.getValue(key: "country"))
+    }
+
+    func testImmutableContextSetMultipleAttributes() {
+        let original = ImmutableContext(targetingKey: "user-123")
+        let attributes: [String: Value] = [
+            "country": .string("US"),
+            "age": .integer(25),
+            "premium": .boolean(true),
+        ]
+        let modified = original.setAttributes(attributes)
+
+        XCTAssertEqual(original.getTargetingKey(), "user-123")
+        XCTAssertEqual(modified.getTargetingKey(), "user-123")
+        XCTAssertTrue(original.keySet().isEmpty)
+        XCTAssertEqual(modified.keySet().count, 3)
+        XCTAssertEqual(modified.getValue(key: "country")?.asString(), "US")
+        XCTAssertEqual(modified.getValue(key: "age")?.asInteger(), 25)
+        XCTAssertEqual(modified.getValue(key: "premium")?.asBoolean(), true)
+    }
+
+    func testImmutableContextRemoveAttribute() {
+        let original = ImmutableContext(
+            targetingKey: "user-123",
+            structure: ImmutableStructure(attributes: [
+                "country": .string("US"),
+                "age": .integer(25),
+                "premium": .boolean(true),
+            ])
+        )
+        let modified = original.removeAttribute(key: "age")
+
+        XCTAssertEqual(original.getTargetingKey(), "user-123")
+        XCTAssertEqual(modified.getTargetingKey(), "user-123")
+        XCTAssertEqual(original.keySet().count, 3)
+        XCTAssertEqual(modified.keySet().count, 2)
+        XCTAssertEqual(original.getValue(key: "age")?.asInteger(), 25)
+        XCTAssertNil(modified.getValue(key: "age"))
+        XCTAssertEqual(modified.getValue(key: "country")?.asString(), "US")
+        XCTAssertEqual(modified.getValue(key: "premium")?.asBoolean(), true)
+    }
+
+    func testImmutableContextChaining() {
+        let context = ImmutableContext(targetingKey: "user-123")
+            .setAttribute(key: "country", value: .string("US"))
+            .setAttribute(key: "age", value: .integer(25))
+            .setAttribute(key: "premium", value: .boolean(true))
+
+        XCTAssertEqual(context.getTargetingKey(), "user-123")
+        XCTAssertEqual(context.keySet().count, 3)
+        XCTAssertEqual(context.getValue(key: "country")?.asString(), "US")
+        XCTAssertEqual(context.getValue(key: "age")?.asInteger(), 25)
+        XCTAssertEqual(context.getValue(key: "premium")?.asBoolean(), true)
+    }
+
+    func testImmutableContextThreadSafetyWithModifications() {
+        let original = ImmutableContext(targetingKey: "user-123")
+            .setAttribute(key: "country", value: .string("US"))
+
+        let expectation = XCTestExpectation(description: "Thread safety with modifications test")
+        expectation.expectedFulfillmentCount = 10
+
+        DispatchQueue.concurrentPerform(iterations: 10) { index in
+            let modified = original
+                .setAttribute(key: "thread", value: .integer(Int64(index)))
+                .setAttribute(key: "timestamp", value: .double(Double(index)))
+
+            XCTAssertEqual(modified.getTargetingKey(), "user-123")
+            XCTAssertEqual(modified.getValue(key: "country")?.asString(), "US")
+            XCTAssertEqual(modified.getValue(key: "thread")?.asInteger(), Int64(index))
+            XCTAssertEqual(modified.getValue(key: "timestamp")?.asDouble(), Double(index))
+
+            XCTAssertEqual(original.keySet().count, 1)
+            XCTAssertEqual(original.getValue(key: "country")?.asString(), "US")
+            XCTAssertNil(original.getValue(key: "thread"))
+            XCTAssertNil(original.getValue(key: "timestamp"))
+
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1.0)
+    }
 }
