@@ -144,9 +144,9 @@ If the flag management system you're using supports targeting, you can provide t
 
 ```swift
 // Configure your evaluation context and pass it to OpenFeatureAPI
-let ctx = MutableContext(
+let ctx = ImmutableContext(
     targetingKey: userId,
-    structure: MutableStructure(attributes: ["product": Value.string(productId)]))
+    structure: ImmutableStructure(attributes: ["product": Value.string(productId)]))
 OpenFeatureAPI.shared.setEvaluationContext(evaluationContext: ctx)
 ```
 
