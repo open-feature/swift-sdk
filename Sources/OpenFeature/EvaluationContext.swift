@@ -4,5 +4,4 @@ import Foundation
 public protocol EvaluationContext: Structure {
     func getTargetingKey() -> String
     func deepCopy() -> EvaluationContext
-    func setTargetingKey(targetingKey: String)
 }
