@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0](https://github.com/open-feature/swift-sdk/compare/0.3.1...0.4.0) (2025-08-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* Add ImmutableContext implementation ([#70](https://github.com/open-feature/swift-sdk/issues/70))
+
+### ✨ New Features
+
+* Add ImmutableContext implementation ([#70](https://github.com/open-feature/swift-sdk/issues/70)) ([e8690d1](https://github.com/open-feature/swift-sdk/commit/e8690d15bcd331d8455970bc5d38ed6057c64db7))
+
 ## [0.3.1](https://github.com/open-feature/swift-sdk/compare/0.3.0...0.3.1) (2025-07-04)
 
 
