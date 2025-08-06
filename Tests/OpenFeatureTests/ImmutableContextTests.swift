@@ -112,7 +112,7 @@ final class ImmutableContextTests: XCTestCase {
 
     func testImmutableContextSetAttribute() {
         let original = ImmutableContext(targetingKey: "user-123")
-        let modified = original.setAttribute(key: "country", value: .string("US"))
+        let modified = original.withAttribute(key: "country", value: .string("US"))
 
         XCTAssertEqual(original.getTargetingKey(), "user-123")
         XCTAssertEqual(modified.getTargetingKey(), "user-123")
@@ -129,7 +129,7 @@ final class ImmutableContextTests: XCTestCase {
             "age": .integer(25),
             "premium": .boolean(true),
         ]
-        let modified = original.setAttributes(attributes)
+        let modified = original.withAttributes(attributes)
 
         XCTAssertEqual(original.getTargetingKey(), "user-123")
         XCTAssertEqual(modified.getTargetingKey(), "user-123")
@@ -149,7 +149,7 @@ final class ImmutableContextTests: XCTestCase {
                 "premium": .boolean(true),
             ])
         )
-        let modified = original.removeAttribute(key: "age")
+        let modified = original.withoutAttribute(key: "age")
 
         XCTAssertEqual(original.getTargetingKey(), "user-123")
         XCTAssertEqual(modified.getTargetingKey(), "user-123")
@@ -163,9 +163,9 @@ final class ImmutableContextTests: XCTestCase {
 
     func testImmutableContextChaining() {
         let context = ImmutableContext(targetingKey: "user-123")
-            .setAttribute(key: "country", value: .string("US"))
-            .setAttribute(key: "age", value: .integer(25))
-            .setAttribute(key: "premium", value: .boolean(true))
+            .withAttribute(key: "country", value: .string("US"))
+            .withAttribute(key: "age", value: .integer(25))
+            .withAttribute(key: "premium", value: .boolean(true))
 
         XCTAssertEqual(context.getTargetingKey(), "user-123")
         XCTAssertEqual(context.keySet().count, 3)
@@ -176,15 +176,15 @@ final class ImmutableContextTests: XCTestCase {
 
     func testImmutableContextThreadSafetyWithModifications() {
         let original = ImmutableContext(targetingKey: "user-123")
-            .setAttribute(key: "country", value: .string("US"))
+            .withAttribute(key: "country", value: .string("US"))
 
         let expectation = XCTestExpectation(description: "Thread safety with modifications test")
         expectation.expectedFulfillmentCount = 10
 
         DispatchQueue.concurrentPerform(iterations: 10) { index in
             let modified = original
-                .setAttribute(key: "thread", value: .integer(Int64(index)))
-                .setAttribute(key: "timestamp", value: .double(Double(index)))
+                .withAttribute(key: "thread", value: .integer(Int64(index)))
+                .withAttribute(key: "timestamp", value: .double(Double(index)))
 
             XCTAssertEqual(modified.getTargetingKey(), "user-123")
             XCTAssertEqual(modified.getValue(key: "country")?.asString(), "US")

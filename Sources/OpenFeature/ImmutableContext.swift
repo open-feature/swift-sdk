@@ -45,13 +45,13 @@ extension ImmutableContext {
         return ImmutableContext(targetingKey: targetingKey, structure: structure)
     }
 
-    public func setAttribute(key: String, value: Value) -> ImmutableContext {
+    public func withAttribute(key: String, value: Value) -> ImmutableContext {
         var newAttributes = structure.asMap()
         newAttributes[key] = value
         return ImmutableContext(targetingKey: targetingKey, structure: ImmutableStructure(attributes: newAttributes))
     }
 
-    public func setAttributes(_ attributes: [String: Value]) -> ImmutableContext {
+    public func withAttributes(_ attributes: [String: Value]) -> ImmutableContext {
         var newAttributes = structure.asMap()
         for (key, value) in attributes {
             newAttributes[key] = value
@@ -59,7 +59,7 @@ extension ImmutableContext {
         return ImmutableContext(targetingKey: targetingKey, structure: ImmutableStructure(attributes: newAttributes))
     }
 
-    public func removeAttribute(key: String) -> ImmutableContext {
+    public func withoutAttribute(key: String) -> ImmutableContext {
         var newAttributes = structure.asMap()
         newAttributes.removeValue(forKey: key)
         return ImmutableContext(targetingKey: targetingKey, structure: ImmutableStructure(attributes: newAttributes))
