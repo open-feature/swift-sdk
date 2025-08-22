@@ -6,14 +6,14 @@ public struct FlagEvaluationDetails<T: Equatable>: BaseEvaluation, Equatable {
     public var value: T
     public var variant: String?
     public var reason: String?
-    public var flagMetadata: [String: FlagMetadataValue]
+    public var flagMetadata: FlagMetadata
     public var errorCode: ErrorCode?
     public var errorMessage: String?
 
     public init(
         flagKey: String,
         value: T,
-        flagMetadata: [String: FlagMetadataValue] = [:],
+        flagMetadata: FlagMetadata = [:],
         variant: String? = nil,
         reason: String? = nil,
         errorCode: ErrorCode? = nil,

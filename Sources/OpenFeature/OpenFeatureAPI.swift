@@ -162,15 +162,15 @@ public class OpenFeatureAPI {
         do {
             try await provider.initialize(initialContext: initialContext)
             self.providerStatus = .ready
-            self.eventHandler.send(.ready)
+            self.eventHandler.send(.ready(nil))
         } catch {
             switch error {
-            case OpenFeatureError.providerFatalError:
+            case OpenFeatureError.providerFatalError(let message):
                 self.providerStatus = .fatal
-                self.eventHandler.send(.error(errorCode: .providerFatal))
+                self.eventHandler.send(.error(ProviderEventDetails(message: message, errorCode: .providerFatal)))
             default:
                 self.providerStatus = .error
-                self.eventHandler.send(.error(message: error.localizedDescription))
+                self.eventHandler.send(.error(ProviderEventDetails(message: error.localizedDescription)))
             }
         }
     }
@@ -180,16 +180,16 @@ public class OpenFeatureAPI {
             let oldContext = self.evaluationContext
             self.evaluationContext = evaluationContext
             self.providerStatus = .reconciling
-            eventHandler.send(.reconciling)
+            eventHandler.send(.reconciling(nil))
             try await self.providerSubject.value?.onContextSet(
                 oldContext: oldContext,
                 newContext: evaluationContext
             )
             self.providerStatus = .ready
-            eventHandler.send(.contextChanged)
+            eventHandler.send(.contextChanged(nil))
         } catch {
             self.providerStatus = .error
-            eventHandler.send(.error(message: error.localizedDescription))
+            eventHandler.send(.error(ProviderEventDetails(message: error.localizedDescription)))
         }
     }
 

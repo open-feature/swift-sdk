@@ -1,10 +1,10 @@
 import Foundation
 
 public enum ProviderEvent: Equatable {
-    case ready
-    case error(errorCode: ErrorCode? = nil, message: String? = nil)
-    case configurationChanged
-    case stale
-    case reconciling
-    case contextChanged
+    case ready(ProviderEventDetails? = nil)
+    case error(ProviderEventDetails? = nil)
+    case configurationChanged(ProviderEventDetails? = nil)
+    case stale(ProviderEventDetails? = nil)
+    case reconciling(ProviderEventDetails? = nil)
+    case contextChanged(ProviderEventDetails? = nil)
 }
