@@ -4,7 +4,6 @@ import OpenFeature
 import XCTest
 
 final class ProviderEventTests: XCTestCase {
-    
     func testObservingProviderEventInitialization() {
         let mockEventHandler = EventHandler()
         let provider = MockProvider(
@@ -15,7 +14,9 @@ final class ProviderEventTests: XCTestCase {
         let api = OpenFeatureAPI()
         api.setProvider(provider: provider)
         let expectation = XCTestExpectation(description: "Error")
-        api.observe().sink { event in
+        api
+        .observe()
+        .sink { event in
             switch event {
             case .error(let details):
                 if let details {
@@ -33,7 +34,7 @@ final class ProviderEventTests: XCTestCase {
         wait(for: [expectation], timeout: 5)
         cancellables.removeAll()
     }
-    
+
     func testObservingProviderEventsWithDetails() {
         let mockEventHandler = EventHandler()
         let provider = MockProvider(
@@ -44,7 +45,9 @@ final class ProviderEventTests: XCTestCase {
         let api = OpenFeatureAPI()
         api.setProvider(provider: provider)
         let readyExpectation = XCTestExpectation(description: "Ready")
-        api.observe().sink { event in
+        api
+        .observe()
+        .sink { event in
             switch event {
             case .ready:
                 readyExpectation.fulfill()
@@ -55,16 +58,19 @@ final class ProviderEventTests: XCTestCase {
         .store(in: &cancellables)
         api.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
-        
+
         let eventsExpectation = XCTestExpectation(description: "Events")
         var receivedEvents: [ProviderEvent] = []
         let mockEvents = [mockReady]
-        api.observe().sink { event in
+        api
+        .observe()
+        .sink { event in
             if let event {
                 receivedEvents.append(event)
             }
             receivedEvents.count == mockEvents.count ? eventsExpectation.fulfill() : nil
-        }.store(in: &cancellables)
+        }
+        .store(in: &cancellables)
         mockEvents.forEach { event in
             mockEventHandler.send(event)
         }
@@ -72,7 +78,7 @@ final class ProviderEventTests: XCTestCase {
         XCTAssertEqual(receivedEvents, mockEvents)
         cancellables.removeAll()
     }
-    
+
     func testProviderEventDetails() throws {
         let mockFlags = ["Flag1", "Flag2"]
         let mockMessage = "Mock Message"
@@ -81,7 +87,7 @@ final class ProviderEventTests: XCTestCase {
             "Bool": .boolean(true),
             "Int": .integer(42),
             "Double": .double(10.5),
-            "String": .string("Hello World")
+            "String": .string("Hello World"),
         ]
         let eventDetails = ProviderEventDetails(
             flagsChanged: mockFlags,
@@ -89,7 +95,7 @@ final class ProviderEventTests: XCTestCase {
             errorCode: mockError,
             eventMetadata: mockMetadata
         )
-        
+
         let event = ProviderEvent.configurationChanged(eventDetails)
         switch event {
         case .configurationChanged(let details):
@@ -101,54 +107,63 @@ final class ProviderEventTests: XCTestCase {
             // Validate metadata types and values
             XCTAssertTrue(mockMetadata["Bool"]?.asBoolean() == true)
             XCTAssertTrue(mockMetadata["Int"]?.asInteger() == 42)
-            XCTAssertTrue(mockMetadata["Double"]?.asDouble() ==  10.5)
+            XCTAssertTrue(mockMetadata["Double"]?.asDouble() == 10.5)
             XCTAssertTrue(mockMetadata["String"]?.asString() == "Hello World")
         default:
             XCTFail("Unexpected event type")
         }
     }
-    
-    // MARK: - Helpers for Provider Events
-    var mockReady: ProviderEvent = .ready(ProviderEventDetails(
-        flagsChanged: nil,
-        message: nil,
-        errorCode: nil,
-        eventMetadata: [:]
-    ))
-    var mockError: ProviderEvent = .error(ProviderEventDetails(
-        flagsChanged: nil,
-        message: "general error message",
-        errorCode: .general,
-        eventMetadata: [:]
-    ))
-    var mockConfigurationChanged: ProviderEvent = .configurationChanged(ProviderEventDetails(
-        flagsChanged: ["Flag1", "Flag2"],
-        message: nil,
-        errorCode: nil,
-        eventMetadata: [
-            "Mock String": .string("some details"),
-            "Mock Bool": .boolean(true),
-            "Mock Double": .double(10),
-            "Mock Integer": .integer(100)
-        ]
-    ))
-    var mockStale: ProviderEvent = .stale(ProviderEventDetails(
-        flagsChanged: nil,
-        message: nil,
-        errorCode: nil,
-        eventMetadata: [:]
-    ))
-    var mockReconciling: ProviderEvent = .reconciling(ProviderEventDetails(
-        flagsChanged: nil,
-        message: nil,
-        errorCode: nil,
-        eventMetadata: [:]
-    ))
-    var mockContextChanged: ProviderEvent = .contextChanged(ProviderEventDetails(
-        flagsChanged: nil,
-        message: nil,
-        errorCode: nil,
-        eventMetadata: [:]
-    ))
 
+    // MARK: - Helpers for Provider Events
+    var mockReady: ProviderEvent = .ready(
+        ProviderEventDetails(
+            flagsChanged: nil,
+            message: nil,
+            errorCode: nil,
+            eventMetadata: [:]
+        ))
+    var mockError: ProviderEvent = .error(
+        ProviderEventDetails(
+            flagsChanged: nil,
+            message: "general error message",
+            errorCode: .general,
+            eventMetadata: [:]
+        ))
+    var mockConfigurationChanged: ProviderEvent = .configurationChanged(
+        ProviderEventDetails(
+            flagsChanged: ["Flag1", "Flag2"],
+            message: nil,
+            errorCode: nil,
+            eventMetadata: [
+                "Mock String": .string("some details"),
+                "Mock Bool": .boolean(true),
+                "Mock Double": .double(10),
+                "Mock Integer": .integer(100),
+            ]
+        )
+    )
+    var mockStale: ProviderEvent = .stale(
+        ProviderEventDetails(
+            flagsChanged: nil,
+            message: nil,
+            errorCode: nil,
+            eventMetadata: [:]
+        )
+    )
+    var mockReconciling: ProviderEvent = .reconciling(
+        ProviderEventDetails(
+            flagsChanged: nil,
+            message: nil,
+            errorCode: nil,
+            eventMetadata: [:]
+        )
+    )
+    var mockContextChanged: ProviderEvent = .contextChanged(
+        ProviderEventDetails(
+            flagsChanged: ["Flag1", "Flag2"],
+            message: nil,
+            errorCode: nil,
+            eventMetadata: [:]
+        )
+    )
 }

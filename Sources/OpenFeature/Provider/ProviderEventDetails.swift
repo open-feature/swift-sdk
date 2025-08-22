@@ -18,5 +18,4 @@ public struct ProviderEventDetails: Equatable {
         self.errorCode = errorCode
         self.eventMetadata = eventMetadata
     }
-
 }

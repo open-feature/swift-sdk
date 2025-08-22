@@ -25,11 +25,41 @@ class MockProvider: FeatureProvider {
     init(
         onContextSet: @escaping (EvaluationContext?, EvaluationContext) async throws -> Void = { _, _ in },
         initialize: @escaping (EvaluationContext?) async throws -> Void = { _ in },
-        getBooleanEvaluation: @escaping (String, Bool, EvaluationContext?) throws ->  ProviderEvaluation<Bool> = { _, fallback, _ in return ProviderEvaluation(value: fallback, flagMetadata: [:]) },
-        getStringEvaluation: @escaping (String, String, EvaluationContext?) throws -> ProviderEvaluation<String> = { _, fallback, _ in return ProviderEvaluation(value: fallback, flagMetadata: [:]) },
-        getIntegerEvaluation: @escaping (String, Int64, EvaluationContext?) throws -> ProviderEvaluation<Int64> = { _, fallback, _ in return ProviderEvaluation(value: fallback, flagMetadata: [:]) },
-        getDoubleEvaluation: @escaping (String, Double, EvaluationContext?) throws -> ProviderEvaluation<Double> = { _, fallback, _ in return ProviderEvaluation(value: fallback, flagMetadata: [:]) },
-        getObjectEvaluation: @escaping (String, Value, EvaluationContext?) throws -> ProviderEvaluation<Value> = { _, fallback, _ in return ProviderEvaluation(value: fallback, flagMetadata: [:]) },
+        getBooleanEvaluation: @escaping (
+            String,
+            Bool,
+            EvaluationContext?
+        ) throws -> ProviderEvaluation<Bool> = { _, fallback, _ in
+            return ProviderEvaluation(value: fallback, flagMetadata: [:])
+        },
+        getStringEvaluation: @escaping (
+            String,
+            String,
+            EvaluationContext?
+        ) throws -> ProviderEvaluation<String> = { _, fallback, _ in
+            return ProviderEvaluation(value: fallback, flagMetadata: [:])
+        },
+        getIntegerEvaluation: @escaping (
+            String,
+            Int64,
+            EvaluationContext?
+        ) throws -> ProviderEvaluation<Int64> = {  _, fallback, _ in
+            return ProviderEvaluation(value: fallback, flagMetadata: [:])
+        },
+        getDoubleEvaluation: @escaping (
+            String,
+            Double,
+            EvaluationContext?
+        ) throws -> ProviderEvaluation<Double> = { _, fallback, _ in
+            return ProviderEvaluation(value: fallback, flagMetadata: [:])
+        },
+        getObjectEvaluation: @escaping (
+            String,
+            Value,
+            EvaluationContext?
+        ) throws -> ProviderEvaluation<Value> = { _, fallback, _  in
+            return ProviderEvaluation(value: fallback, flagMetadata: [:])
+        },
         observe: @escaping () -> AnyPublisher<ProviderEvent?, Never> = { Just(nil).eraseToAnyPublisher() }
     ) {
         self._onContextSet = onContextSet
@@ -59,7 +89,7 @@ class MockProvider: FeatureProvider {
     func getStringEvaluation(key: String, defaultValue: String, context: EvaluationContext?) throws
         -> ProviderEvaluation<String>
     {
-        try  _getStringEvaluation(key, defaultValue, context)
+        try _getStringEvaluation(key, defaultValue, context)
     }
 
     func getIntegerEvaluation(key: String, defaultValue: Int64, context: EvaluationContext?) throws
@@ -94,7 +124,7 @@ extension MockProvider {
 extension MockProvider {
     enum MockProviderError: LocalizedError {
         case message(String)
-        
+
         var errorDescription: String? {
             switch self {
             case .message(let message):
