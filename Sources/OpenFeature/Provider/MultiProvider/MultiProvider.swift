@@ -3,7 +3,6 @@ import Foundation
 
 /// A provider that combines multiple providers into a single provider.
 public class MultiProvider: FeatureProvider {
-
     public var hooks: [any Hook] {
         []
     }
@@ -52,50 +51,65 @@ public class MultiProvider: FeatureProvider {
         -> ProviderEvaluation<Bool>
     {
         return try strategy.evaluate(
-            providers: providers, key: key, defaultValue: defaultValue, evaluationContext: context,
-            flagEvaluation: { provider in
-                return provider.getBooleanEvaluation(key:defaultValue:context:)
-            })
+            providers: providers,
+            key: key,
+            defaultValue: defaultValue,
+            evaluationContext: context
+        ) { provider in
+            return provider.getBooleanEvaluation(key:defaultValue:context:)
+        }
     }
 
     public func getStringEvaluation(key: String, defaultValue: String, context: EvaluationContext?) throws
         -> ProviderEvaluation<String>
     {
         return try strategy.evaluate(
-            providers: providers, key: key, defaultValue: defaultValue, evaluationContext: context,
-            flagEvaluation: { provider in
-                return provider.getStringEvaluation(key:defaultValue:context:)
-            })
+            providers: providers,
+            key: key,
+            defaultValue: defaultValue,
+            evaluationContext: context
+        ) { provider in
+            return provider.getStringEvaluation(key:defaultValue:context:)
+        }
     }
 
     public func getIntegerEvaluation(key: String, defaultValue: Int64, context: EvaluationContext?) throws
         -> ProviderEvaluation<Int64>
     {
         return try strategy.evaluate(
-            providers: providers, key: key, defaultValue: defaultValue, evaluationContext: context,
-            flagEvaluation: { provider in
-                return provider.getIntegerEvaluation(key:defaultValue:context:)
-            })
+            providers: providers,
+            key: key,
+            defaultValue: defaultValue,
+            evaluationContext: context
+        ) { provider in
+            return provider.getIntegerEvaluation(key:defaultValue:context:)
+        }
     }
 
     public func getDoubleEvaluation(key: String, defaultValue: Double, context: EvaluationContext?) throws
         -> ProviderEvaluation<Double>
     {
         return try strategy.evaluate(
-            providers: providers, key: key, defaultValue: defaultValue, evaluationContext: context,
-            flagEvaluation: { provider in
-                return provider.getDoubleEvaluation(key:defaultValue:context:)
-            })
+            providers: providers,
+            key: key,
+            defaultValue: defaultValue,
+            evaluationContext: context
+        ) { provider in
+            return provider.getDoubleEvaluation(key:defaultValue:context:)
+        }
     }
 
     public func getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?) throws
         -> ProviderEvaluation<Value>
     {
         return try strategy.evaluate(
-            providers: providers, key: key, defaultValue: defaultValue, evaluationContext: context,
-            flagEvaluation: { provider in
-                return provider.getObjectEvaluation(key:defaultValue:context:)
-            })
+            providers: providers,
+            key: key,
+            defaultValue: defaultValue,
+            evaluationContext: context
+        ) { provider in
+            return provider.getObjectEvaluation(key:defaultValue:context:)
+        }
     }
 
     public func observe() -> AnyPublisher<ProviderEvent?, Never> {
