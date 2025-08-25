@@ -20,7 +20,6 @@ final public class FirstSuccessfulStrategy: Strategy {
             }
         }
 
-        throw OpenFeatureError.generalError(
-            message: "No provider returned a successful evaluation for the requested flag.")
+        throw OpenFeatureError.flagNotFoundError(key: key)
     }
 }
