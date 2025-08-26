@@ -120,7 +120,7 @@ final class MultiProviderTests: XCTestCase {
         XCTAssertTrue(result.errorCode == .flagNotFound)
     }
 
-    func testEvaluationWithMultipleProvidersAndFirstMatchStrategy_Throws() throws {
+    func testEvaluationWithMultipleProvidersAndFirstMatchStrategy_HandlesOpenFeatureError() throws {
         let mockKey = "test-key"
         let mockProvider1 = MockProvider(
             initialize: { _ in },
@@ -138,12 +138,39 @@ final class MultiProviderTests: XCTestCase {
             providers: [mockProvider1, mockProvider2],
             strategy: FirstMatchStrategy()
         )
+        let defaultValue = false
+        let result = try multiProvider.getBooleanEvaluation(
+            key: mockKey, defaultValue: defaultValue, context: MutableContext())
+        XCTAssertEqual(result.value, false)
+        XCTAssertNotNil(result.errorCode)
+    }
 
+    func testEvaluationWithMultipleProvidersAndFirstMatchStrategy_Throws() throws {
+        let mockKey = "test-key"
+        let mockError = MockProvider.MockProviderError.message("test non-open feature error")
+        let mockProvider1 = MockProvider(
+            initialize: { _ in },
+            getBooleanEvaluation: { _, defaultValue, _ in
+                return ProviderEvaluation(value: defaultValue, errorCode: .flagNotFound)
+            }
+        )
+        let mockProvider2 = MockProvider(
+            initialize: { _ in },
+            getBooleanEvaluation: { _, _, _ in
+                throw mockError
+            }
+        )
+        let multiProvider = MultiProvider(
+            providers: [mockProvider1, mockProvider2],
+            strategy: FirstMatchStrategy()
+        )
+        let defaultValue = false
         do {
-            _ = try multiProvider.getBooleanEvaluation(key: mockKey, defaultValue: false, context: MutableContext())
-            XCTFail("Expected error to be thrown")
+            _ = try multiProvider.getBooleanEvaluation(
+                key: mockKey, defaultValue: defaultValue, context: MutableContext())
+            XCTFail("Expected to throw")
         } catch {
-            XCTAssertEqual(error as? OpenFeatureError, OpenFeatureError.generalError(message: "test error"))
+            XCTAssertTrue(error is MockProvider.MockProviderError)
         }
     }
 
@@ -192,12 +219,11 @@ final class MultiProviderTests: XCTestCase {
             strategy: FirstSuccessfulStrategy()
         )
 
-        do {
-            _ = try multiProvider.getBooleanEvaluation(key: mockKey, defaultValue: false, context: MutableContext())
-            XCTFail("Expected error to be thrown")
-        } catch {
-            XCTAssertTrue(error as? OpenFeatureError == OpenFeatureError.flagNotFoundError(key: mockKey))
-        }
+        let defaultValue = false
+        let result = try multiProvider.getBooleanEvaluation(
+            key: mockKey, defaultValue: defaultValue, context: MutableContext())
+        XCTAssertEqual(result.errorCode, .flagNotFound)
+        XCTAssertEqual(result.value, defaultValue)
     }
 
     func testObserveWithMultipleProviders() {

@@ -19,6 +19,13 @@ final public class FirstMatchStrategy: Strategy {
                 }
             } catch OpenFeatureError.flagNotFoundError {
                 continue
+            } catch let error as OpenFeatureError {
+                return ProviderEvaluation(
+                    value: defaultValue,
+                    reason: Reason.error.rawValue,
+                    errorCode: error.errorCode(),
+                    errorMessage: error.description
+                )
             } catch {
                 throw error
             }
