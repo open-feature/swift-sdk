@@ -9,15 +9,16 @@ public enum MetadataValue: Equatable, Codable {
     case double(Double)
 
     public static func of<T>(_ value: T) -> MetadataValue? {
-        if let value = value as? Bool {
-            return .boolean(value)
-        } else if let value = value as? String {
-            return .string(value)
-        } else if let value = value as? Int64 {
-            return .integer(value)
-        } else if let value = value as? Double {
-            return .double(value)
-        } else {
+        switch value {
+        case let val as Bool:
+            return .boolean(val)
+        case let val as String:
+            return .string(val)
+        case let val as Int64:
+            return .integer(val)
+        case let val as Double:
+            return .double(val)
+        default:
             return nil
         }
     }
