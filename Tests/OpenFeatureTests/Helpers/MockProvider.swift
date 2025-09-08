@@ -11,7 +11,6 @@ class MockProvider: FeatureProvider {
 
     var hooks: [any Hook] = []
     var throwFatal = false
-    private let eventHandler = EventHandler()
     private let _onContextSet: (EvaluationContext?, EvaluationContext) async throws -> Void
     private let _initialize: (EvaluationContext?) async throws -> Void
     private let _getBooleanEvaluation: (String, Bool, EvaluationContext?) throws -> ProviderEvaluation<Bool>
