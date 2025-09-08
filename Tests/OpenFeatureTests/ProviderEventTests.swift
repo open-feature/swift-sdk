@@ -12,7 +12,6 @@ final class ProviderEventTests: XCTestCase {
         )
         var cancellables = Set<AnyCancellable>()
         let api = OpenFeatureAPI()
-        api.setProvider(provider: provider)
         let expectation = XCTestExpectation(description: "Error")
         api
         .observe()
@@ -43,7 +42,6 @@ final class ProviderEventTests: XCTestCase {
         )
         var cancellables = Set<AnyCancellable>()
         let api = OpenFeatureAPI()
-        api.setProvider(provider: provider)
         let readyExpectation = XCTestExpectation(description: "Ready")
         api
         .observe()
