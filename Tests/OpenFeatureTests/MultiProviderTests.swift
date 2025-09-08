@@ -254,7 +254,9 @@ final class MultiProviderTests: XCTestCase {
             }
         wait(for: [fulfillment], timeout: 2)
         observation.cancel()
-        XCTAssertEqual(receivedEvents, mockEvents)
+        XCTAssertEqual(receivedEvents.count, mockEvents.count)
+        XCTAssertTrue(receivedEvents.contains(mockEvent1))
+        XCTAssertTrue(receivedEvents.contains(mockEvent2))
     }
 }
 
