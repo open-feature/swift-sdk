@@ -105,10 +105,10 @@ final class ProviderEventTests: XCTestCase {
             XCTAssertEqual(details.errorCode, mockError)
             XCTAssertEqual(details.eventMetadata, mockMetadata)
             // Validate metadata types and values
-            XCTAssertTrue(mockMetadata["Bool"]?.asBoolean() == true)
-            XCTAssertTrue(mockMetadata["Int"]?.asInteger() == 42)
-            XCTAssertTrue(mockMetadata["Double"]?.asDouble() == 10.5)
-            XCTAssertTrue(mockMetadata["String"]?.asString() == "Hello World")
+            XCTAssertEqual(mockMetadata["Bool"]?.asBoolean(), true)
+            XCTAssertEqual(mockMetadata["Int"]?.asInteger(), 42)
+            XCTAssertEqual(mockMetadata["Double"]?.asDouble(), 10.5)
+            XCTAssertEqual(mockMetadata["String"]?.asString(), "Hello World")
         default:
             XCTFail("Unexpected event type")
         }
