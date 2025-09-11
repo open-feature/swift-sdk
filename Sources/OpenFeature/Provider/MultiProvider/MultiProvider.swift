@@ -23,7 +23,7 @@ public class MultiProvider: FeatureProvider {
     ) {
         self.providers = providers
         self.strategy = strategy
-        self.metadata = MultiProviderMetadata(providers: providers)
+        metadata = MultiProviderMetadata(providers: providers)
     }
 
     public func initialize(initialContext: EvaluationContext?) async throws {
@@ -57,7 +57,7 @@ public class MultiProvider: FeatureProvider {
             defaultValue: defaultValue,
             evaluationContext: context
         ) { provider in
-            return provider.getBooleanEvaluation(key:defaultValue:context:)
+            provider.getBooleanEvaluation(key:defaultValue:context:)
         }
     }
 
@@ -70,7 +70,7 @@ public class MultiProvider: FeatureProvider {
             defaultValue: defaultValue,
             evaluationContext: context
         ) { provider in
-            return provider.getStringEvaluation(key:defaultValue:context:)
+            provider.getStringEvaluation(key:defaultValue:context:)
         }
     }
 
@@ -83,7 +83,7 @@ public class MultiProvider: FeatureProvider {
             defaultValue: defaultValue,
             evaluationContext: context
         ) { provider in
-            return provider.getIntegerEvaluation(key:defaultValue:context:)
+            provider.getIntegerEvaluation(key:defaultValue:context:)
         }
     }
 
@@ -96,7 +96,7 @@ public class MultiProvider: FeatureProvider {
             defaultValue: defaultValue,
             evaluationContext: context
         ) { provider in
-            return provider.getDoubleEvaluation(key:defaultValue:context:)
+            provider.getDoubleEvaluation(key:defaultValue:context:)
         }
     }
 
@@ -109,7 +109,7 @@ public class MultiProvider: FeatureProvider {
             defaultValue: defaultValue,
             evaluationContext: context
         ) { provider in
-            return provider.getObjectEvaluation(key:defaultValue:context:)
+            provider.getObjectEvaluation(key:defaultValue:context:)
         }
     }
 
@@ -119,11 +119,12 @@ public class MultiProvider: FeatureProvider {
 
     public struct MultiProviderMetadata: ProviderMetadata {
         public var name: String?
-        
+
         init(providers: [FeatureProvider]) {
-            self.name = providers.map({
+            name = providers.map {
                 $0.metadata.name ?? "MultiProvider"
-            }).joined(separator: ", ")
+            }
+            .joined(separator: ", ")
         }
     }
 }

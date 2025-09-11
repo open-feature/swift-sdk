@@ -201,22 +201,19 @@ final class DeveloperExperienceTests: XCTestCase {
             getBooleanEvaluation: { _, _, _ in throw OpenFeatureError.generalError(message: "test error") },
             observe: { mockEvent2Subject.eraseToAnyPublisher() }
         )
-        
         // Create MultiProvider with both providers
         let multiProvider = MultiProvider(providers: [eventEmittingProvider1, eventEmittingProvider2])
-        
         // Set up expectations for different events
         let readyExpectation = XCTestExpectation(description: "Ready event received")
         let configChangedExpectation = XCTestExpectation(description: "Configuration changed event received")
         let errorExpectation = XCTestExpectation(description: "Error event received")
-        
+
         var receivedEvents: [ProviderEvent] = []
-        
         // Observe events from MultiProvider
         let observer = multiProvider.observe().sink { event in
             guard let event = event else { return }
             receivedEvents.append(event)
-            
+
             switch event {
             case .ready:
                 readyExpectation.fulfill()
@@ -228,26 +225,25 @@ final class DeveloperExperienceTests: XCTestCase {
                 break
             }
         }
-        
+
         // Set the MultiProvider in OpenFeatureAPI to test integration
         await OpenFeatureAPI.shared.setProviderAndWait(provider: multiProvider)
-        
+
         // Emit events from the first provider
         mockEvent1Subject.send(.ready)
         mockEvent1Subject.send(.configurationChanged)
-        
+
         // Emit events from the second provider
         mockEvent2Subject.send(.error(errorCode: .general, message: "Test error"))
-        
         // Wait for all events to be received
         await fulfillment(of: [readyExpectation, configChangedExpectation, errorExpectation], timeout: 2)
-        
+
         // Verify that events from both providers were received
         XCTAssertTrue(receivedEvents.contains(.ready))
         XCTAssertTrue(receivedEvents.contains(.configurationChanged))
         XCTAssertTrue(receivedEvents.contains(.error(errorCode: .general, message: "Test error")))
         XCTAssertGreaterThanOrEqual(receivedEvents.count, 3)
-        
+
         observer.cancel()
     }
 }
