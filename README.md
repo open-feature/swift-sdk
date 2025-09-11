@@ -115,7 +115,7 @@ Task {
 | ✅      | [Hooks](#hooks)                 | Add functionality to various stages of the flag evaluation life-cycle.                                                             |
 | ❌      | [Tracking](#tracking)           | Associate user actions with feature flag evaluations.                                                                              |
 | ❌      | [Logging](#logging)             | Integrate with popular logging packages.                                                                                           |
-| ❌      | [Named clients](#named-clients) | Utilize multiple providers in a single application.                                                                                |
+| ✅      | [MultiProvider](#multiprovider) | Utilize multiple providers in a single application.                                                                                |
 | ✅      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
 | ❌      | [Shutdown](#shutdown)           | Gracefully clean up a provider during application shutdown.                                                                        |
 | ✅      | [Extending](#extending)         | Extend OpenFeature with custom providers and hooks.                                                                                |
@@ -183,6 +183,89 @@ Logging customization is not yet available in the iOS SDK.
 ### Named clients
 
 Support for named clients is not yet available in the iOS SDK.
+
+### MultiProvider
+
+The `MultiProvider` allows you to combine multiple feature flag providers into a single provider, enabling you to use different providers for different flags or implement fallback mechanisms. This is useful when migrating between providers, implementing A/B testing across providers, or ensuring high availability.
+
+#### Basic Usage
+
+```swift
+import OpenFeature
+
+Task {
+    // Create individual providers
+    let primaryProvider = PrimaryProvider()
+    let fallbackProvider = FallbackProvider()
+    
+    // Create a MultiProvider with default FirstFoundStrategy
+    let multiProvider = MultiProvider(providers: [primaryProvider, fallbackProvider])
+    
+    // Set the MultiProvider as the global provider
+    await OpenFeatureAPI.shared.setProviderAndWait(provider: multiProvider)
+    
+    // Use flags normally - the MultiProvider will handle provider selection
+    let client = OpenFeatureAPI.shared.getClient()
+    let flagValue = client.getBooleanValue(key: "my-flag", defaultValue: false)
+}
+```
+
+#### Evaluation Strategies
+
+The `MultiProvider` supports different strategies for evaluating flags across multiple providers:
+
+##### FirstFoundStrategy (Default)
+
+The `FirstFoundStrategy` evaluates providers in order and returns the first result that doesn't indicate "flag not found". If a provider returns an error other than "flag not found", that error is returned immediately.
+
+```swift
+let multiProvider = MultiProvider(
+    providers: [primaryProvider, fallbackProvider],
+    strategy: FirstFoundStrategy()
+)
+```
+
+##### FirstSuccessfulStrategy
+
+The `FirstSuccessfulStrategy` evaluates providers in order and returns the first successful result (no error). Unlike `FirstFoundStrategy`, it continues to the next provider if any error occurs, including "flag not found".
+
+```swift
+let multiProvider = MultiProvider(
+    providers: [primaryProvider, fallbackProvider],
+    strategy: FirstSuccessfulStrategy()
+)
+```
+
+#### Use Cases
+
+**Provider Migration:**
+```swift
+// Gradually migrate from OldProvider to NewProvider
+let multiProvider = MultiProvider(providers: [
+    NewProvider(),  // Check new provider first
+    OldProvider()   // Fall back to old provider
+])
+```
+
+**High Availability:**
+```swift
+// Use multiple providers for redundancy
+let multiProvider = MultiProvider(providers: [
+    RemoteProvider(),
+    LocalCacheProvider(),
+    StaticProvider()
+])
+```
+
+**Environment-Specific Providers:**
+```swift
+// Different providers for different environments
+let providers = [
+    EnvironmentProvider(environment: "production"),
+    DefaultProvider()
+]
+let multiProvider = MultiProvider(providers: providers)
+```
 
 ### Eventing
 
