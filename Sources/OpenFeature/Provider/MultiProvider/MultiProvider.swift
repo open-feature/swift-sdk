@@ -16,10 +16,10 @@ public class MultiProvider: FeatureProvider {
     /// Initialize a MultiProvider with a list of providers and a strategy.
     /// - Parameters:
     ///   - providers: A list of providers to evaluate.
-    ///   - strategy: A strategy to evaluate the providers. Defaults to FirstFoundStrategy.
+    ///   - strategy: A strategy to evaluate the providers. Defaults to FirstMatchStrategy.
     public init(
         providers: [FeatureProvider],
-        strategy: Strategy = FirstFoundStrategy()
+        strategy: Strategy = FirstMatchStrategy()
     ) {
         self.providers = providers
         self.strategy = strategy

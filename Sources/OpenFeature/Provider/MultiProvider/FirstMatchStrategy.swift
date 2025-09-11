@@ -1,7 +1,9 @@
 /// FirstMatchStrategy is a strategy that evaluates a feature flag across multiple providers
-/// and returns the first result. Similar to `FirstFoundStrategy` but does not bubble up individual provider errors.
-/// If no provider successfully responds, it will return an error.
+/// and returns the first result. Skips providers that indicate they had no value due to flag not found.
+/// If any provider returns an error result other than flag not found, the error is returned.
 final public class FirstMatchStrategy: Strategy {
+    public init() {}
+
     public func evaluate<T>(
         providers: [FeatureProvider],
         key: String,
@@ -12,11 +14,20 @@ final public class FirstMatchStrategy: Strategy {
         for provider in providers {
             do {
                 let eval = try flagEvaluation(provider)(key, defaultValue, evaluationContext)
-                if eval.errorCode == nil {
+                if eval.errorCode != ErrorCode.flagNotFound {
                     return eval
                 }
-            } catch {
+            } catch OpenFeatureError.flagNotFoundError {
                 continue
+            } catch let error as OpenFeatureError {
+                return ProviderEvaluation(
+                    value: defaultValue,
+                    reason: Reason.error.rawValue,
+                    errorCode: error.errorCode(),
+                    errorMessage: error.description
+                )
+            } catch {
+                throw error
             }
         }
 

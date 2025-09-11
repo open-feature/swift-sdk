@@ -198,7 +198,7 @@ Task {
     let primaryProvider = PrimaryProvider()
     let fallbackProvider = FallbackProvider()
     
-    // Create a MultiProvider with default FirstFoundStrategy
+    // Create a MultiProvider with default FirstMatchStrategy
     let multiProvider = MultiProvider(providers: [primaryProvider, fallbackProvider])
     
     // Set the MultiProvider as the global provider
@@ -214,25 +214,25 @@ Task {
 
 The `MultiProvider` supports different strategies for evaluating flags across multiple providers:
 
-##### FirstFoundStrategy (Default)
+##### FirstMatchStrategy (Default)
 
-The `FirstFoundStrategy` evaluates providers in order and returns the first result that doesn't indicate "flag not found". If a provider returns an error other than "flag not found", that error is returned immediately.
-
-```swift
-let multiProvider = MultiProvider(
-    providers: [primaryProvider, fallbackProvider],
-    strategy: FirstFoundStrategy()
-)
-```
-
-##### FirstMatchStrategy
-
-The `FirstMatchStrategy` evaluates providers in order and returns the first successful result (no error). Unlike `FirstFoundStrategy`, it continues to the next provider if any error occurs, including "flag not found".
+The `FirstMatchStrategy` evaluates providers in order and returns the first result that doesn't indicate "flag not found". If a provider returns an error other than "flag not found", that error is returned immediately.
 
 ```swift
 let multiProvider = MultiProvider(
     providers: [primaryProvider, fallbackProvider],
     strategy: FirstMatchStrategy()
+)
+```
+
+##### FirstSuccessfulStrategy
+
+The `FirstSuccessfulStrategy` evaluates providers in order and returns the first successful result (no error). Unlike `FirstMatchStrategy`, it continues to the next provider if any error occurs, including "flag not found".
+
+```swift
+let multiProvider = MultiProvider(
+    providers: [primaryProvider, fallbackProvider],
+    strategy: FirstSuccessfulStrategy()
 )
 ```
 
