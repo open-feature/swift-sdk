@@ -121,8 +121,8 @@ public class MultiProvider: FeatureProvider {
         public var name: String?
 
         init(providers: [FeatureProvider]) {
-            name = providers.map {
-                $0.metadata.name ?? "MultiProvider"
+            name = "MultiProvider: " + providers.map {
+                $0.metadata.name ?? "Provider"
             }
             .joined(separator: ", ")
         }

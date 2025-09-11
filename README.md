@@ -225,14 +225,14 @@ let multiProvider = MultiProvider(
 )
 ```
 
-##### FirstSuccessfulStrategy
+##### FirstMatchStrategy
 
-The `FirstSuccessfulStrategy` evaluates providers in order and returns the first successful result (no error). Unlike `FirstFoundStrategy`, it continues to the next provider if any error occurs, including "flag not found".
+The `FirstMatchStrategy` evaluates providers in order and returns the first successful result (no error). Unlike `FirstFoundStrategy`, it continues to the next provider if any error occurs, including "flag not found".
 
 ```swift
 let multiProvider = MultiProvider(
     providers: [primaryProvider, fallbackProvider],
-    strategy: FirstSuccessfulStrategy()
+    strategy: FirstMatchStrategy()
 )
 ```
 
