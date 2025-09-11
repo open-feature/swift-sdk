@@ -1,4 +1,5 @@
 import XCTest
+
 @testable import OpenFeature
 
 final class ImmutableContextTests: XCTestCase {
@@ -97,7 +98,7 @@ final class ImmutableContextTests: XCTestCase {
 
         // For null values, we need to check the unwrapped value
         let nullValue = objectMap["null"]
-        XCTAssertNil(nullValue as? AnyHashable) // But the unwrapped value is nil
+        XCTAssertNil(nullValue as? AnyHashable)  // But the unwrapped value is nil
     }
 
     func testImmutableContextWithTargetingKey() {
@@ -182,7 +183,8 @@ final class ImmutableContextTests: XCTestCase {
         expectation.expectedFulfillmentCount = 10
 
         DispatchQueue.concurrentPerform(iterations: 10) { index in
-            let modified = original
+            let modified =
+                original
                 .withAttribute(key: "thread", value: .integer(Int64(index)))
                 .withAttribute(key: "timestamp", value: .double(Double(index)))
 
