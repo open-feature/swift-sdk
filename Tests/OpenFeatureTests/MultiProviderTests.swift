@@ -45,7 +45,7 @@ final class MultiProviderTests: XCTestCase {
         XCTAssertEqual(objectResult.value, mockProviderObjectValue)
     }
 
-    func testEvaluationWithMultipleProvidersAndFirstMatchStrategy_FirstProviderHasFlag() throws {
+    func testEvaluationWithMultipleProvidersAndFirstFoundStrategy_FirstProviderHasFlag() throws {
         let mockKey = "test-key"
         let mockProvider1Value = true
         let mockProvider1 = MockProvider(
@@ -58,7 +58,7 @@ final class MultiProviderTests: XCTestCase {
         )
         let multiProvider = MultiProvider(
             providers: [mockProvider1, mockProvider2],
-            strategy: FirstMatchStrategy()
+            strategy: FirstFoundStrategy()
         )
 
         let boolResult = try multiProvider.getBooleanEvaluation(
@@ -66,7 +66,7 @@ final class MultiProviderTests: XCTestCase {
         XCTAssertEqual(boolResult.value, mockProvider1Value)
     }
 
-    func testEvaluationWithMultipleProvidersAndFirstMatchStrategy_FlagNotFound() throws {
+    func testEvaluationWithMultipleProvidersAndFirstFoundStrategy_FlagNotFound() throws {
         let mockKey = "test-key"
         let mockProviderValue = true
         let mockProvider1 = MockProvider(
@@ -87,7 +87,7 @@ final class MultiProviderTests: XCTestCase {
         )
         let multiProvider = MultiProvider(
             providers: [mockProvider1, mockProvider2],
-            strategy: FirstMatchStrategy()
+            strategy: FirstFoundStrategy()
         )
 
         let boolResult = try multiProvider.getBooleanEvaluation(
@@ -95,7 +95,7 @@ final class MultiProviderTests: XCTestCase {
         XCTAssertEqual(boolResult.value, mockProviderValue)
     }
 
-    func testEvaluationWithMultipleProvidersAndFirstMatchStrategy_AllProvidersMissingFlag() throws {
+    func testEvaluationWithMultipleProvidersAndFirstFoundStrategy_AllProvidersMissingFlag() throws {
         let mockKey = "test-key"
         let mockProvider1 = MockProvider(
             initialize: { _ in },
@@ -109,7 +109,7 @@ final class MultiProviderTests: XCTestCase {
         )
         let multiProvider = MultiProvider(
             providers: [mockProvider1, mockProvider2],
-            strategy: FirstMatchStrategy()
+            strategy: FirstFoundStrategy()
         )
 
         let result = try multiProvider.getBooleanEvaluation(
@@ -120,7 +120,7 @@ final class MultiProviderTests: XCTestCase {
         XCTAssertTrue(result.errorCode == .flagNotFound)
     }
 
-    func testEvaluationWithMultipleProvidersAndFirstMatchStrategy_HandlesOpenFeatureError() throws {
+    func testEvaluationWithMultipleProvidersAndFirstFoundStrategy_HandlesOpenFeatureError() throws {
         let mockKey = "test-key"
         let mockProvider1 = MockProvider(
             initialize: { _ in },
@@ -136,7 +136,7 @@ final class MultiProviderTests: XCTestCase {
         )
         let multiProvider = MultiProvider(
             providers: [mockProvider1, mockProvider2],
-            strategy: FirstMatchStrategy()
+            strategy: FirstFoundStrategy()
         )
         let defaultValue = false
         let result = try multiProvider.getBooleanEvaluation(
@@ -145,7 +145,7 @@ final class MultiProviderTests: XCTestCase {
         XCTAssertNotNil(result.errorCode)
     }
 
-    func testEvaluationWithMultipleProvidersAndFirstMatchStrategy_Throws() throws {
+    func testEvaluationWithMultipleProvidersAndFirstFoundStrategy_Throws() throws {
         let mockKey = "test-key"
         let mockError = MockProvider.MockProviderError.message("test non-open feature error")
         let mockProvider1 = MockProvider(
@@ -162,7 +162,7 @@ final class MultiProviderTests: XCTestCase {
         )
         let multiProvider = MultiProvider(
             providers: [mockProvider1, mockProvider2],
-            strategy: FirstMatchStrategy()
+            strategy: FirstFoundStrategy()
         )
         let defaultValue = false
         do {

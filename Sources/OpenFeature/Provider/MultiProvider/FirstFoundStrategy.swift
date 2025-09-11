@@ -1,7 +1,7 @@
-/// FirstMatchStrategy is a strategy that evaluates a feature flag across multiple providers
+/// FirstFoundStrategy (FirstMatchStrategy) is a strategy that evaluates a feature flag across multiple providers
 /// and returns the first result. Skips providers that indicate they had no value due to flag not found.
 /// If any provider returns an error result other than flag not found, the error is returned.
-final public class FirstMatchStrategy: Strategy {
+final public class FirstFoundStrategy: Strategy {
     public init() {}
 
     public func evaluate<T>(

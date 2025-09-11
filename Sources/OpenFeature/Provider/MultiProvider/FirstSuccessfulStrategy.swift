@@ -1,5 +1,5 @@
 /// FirstSuccessfulStrategy is a strategy that evaluates a feature flag across multiple providers
-/// and returns the first result. Similar to `FirstMatchStrategy` but does not bubble up individual provider errors.
+/// and returns the first result. Similar to `FirstFoundStrategy` but does not bubble up individual provider errors.
 /// If no provider successfully responds, it will return an error.
 final public class FirstSuccessfulStrategy: Strategy {
     public func evaluate<T>(

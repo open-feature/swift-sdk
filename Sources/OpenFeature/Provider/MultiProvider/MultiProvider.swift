@@ -8,7 +8,7 @@ public class MultiProvider: FeatureProvider {
     }
 
     public static let name = "MultiProvider"
-    public var metadata: ProviderMetadata = MultiProvider.MultiProviderMetadata()
+    public var metadata: ProviderMetadata
 
     private let providers: [FeatureProvider]
     private let strategy: Strategy
@@ -16,13 +16,14 @@ public class MultiProvider: FeatureProvider {
     /// Initialize a MultiProvider with a list of providers and a strategy.
     /// - Parameters:
     ///   - providers: A list of providers to evaluate.
-    ///   - strategy: A strategy to evaluate the providers. Defaults to FirstMatchStrategy.
+    ///   - strategy: A strategy to evaluate the providers. Defaults to FirstFoundStrategy.
     public init(
         providers: [FeatureProvider],
-        strategy: Strategy = FirstMatchStrategy()
+        strategy: Strategy = FirstFoundStrategy()
     ) {
         self.providers = providers
         self.strategy = strategy
+        self.metadata = MultiProviderMetadata(providers: providers)
     }
 
     public func initialize(initialContext: EvaluationContext?) async throws {
@@ -117,6 +118,12 @@ public class MultiProvider: FeatureProvider {
     }
 
     public struct MultiProviderMetadata: ProviderMetadata {
-        public var name: String? = MultiProvider.name
+        public var name: String?
+        
+        init(providers: [FeatureProvider]) {
+            self.name = providers.map({
+                $0.metadata.name ?? "MultiProvider"
+            }).joined(separator: ", ")
+        }
     }
 }
