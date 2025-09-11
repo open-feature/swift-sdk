@@ -9,21 +9,27 @@ final public class FirstSuccessfulStrategy: Strategy {
         evaluationContext: EvaluationContext?,
         flagEvaluation: FlagEvaluation<T>
     ) throws -> ProviderEvaluation<T> where T: AllowedFlagValueType {
+        var flagNotFound = false
         for provider in providers {
             do {
                 let eval = try flagEvaluation(provider)(key, defaultValue, evaluationContext)
                 if eval.errorCode == nil {
                     return eval
+                } else if eval.errorCode == ErrorCode.flagNotFound {
+                    flagNotFound = true
                 }
+            } catch OpenFeatureError.flagNotFoundError {
+                flagNotFound = true
             } catch {
                 continue
             }
         }
 
+        let errorCode = flagNotFound ? ErrorCode.flagNotFound : ErrorCode.general
         return ProviderEvaluation(
             value: defaultValue,
             reason: Reason.defaultReason.rawValue,
-            errorCode: ErrorCode.flagNotFound
+            errorCode: errorCode
         )
     }
 }
