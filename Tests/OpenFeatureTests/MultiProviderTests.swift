@@ -227,12 +227,12 @@ final class MultiProviderTests: XCTestCase {
     }
 
     func testObserveWithMultipleProviders() {
-        let mockEvent1 = ProviderEvent.ready
+        let mockEvent1 = ProviderEvent.ready(nil)
         let mockProvider1 = MockProvider(
             getBooleanEvaluation: { _, _, _ in throw OpenFeatureError.generalError(message: "test error") },
             observe: { Just(mockEvent1).eraseToAnyPublisher() }
         )
-        let mockEvent2 = ProviderEvent.contextChanged
+        let mockEvent2 = ProviderEvent.contextChanged(nil)
         let mockProvider2 = MockProvider(
             getBooleanEvaluation: { _, _, _ in throw OpenFeatureError.generalError(message: "test error") },
             observe: { Just(mockEvent2).eraseToAnyPublisher() }

@@ -192,12 +192,12 @@ final class DeveloperExperienceTests: XCTestCase {
         let mockEvent2Subject = CurrentValueSubject<ProviderEvent?, Never>(nil)
         // Create test providers that can emit events
         let eventEmittingProvider1 = MockProvider(
-            initialize: { _ in mockEvent1Subject.send(.ready) },
+            initialize: { _ in mockEvent1Subject.send(.ready(nil)) },
             getBooleanEvaluation: { _, _, _ in throw OpenFeatureError.generalError(message: "test error") },
             observe: { mockEvent1Subject.eraseToAnyPublisher() }
         )
         let eventEmittingProvider2 = MockProvider(
-            initialize: { _ in mockEvent2Subject.send(.ready) },
+            initialize: { _ in mockEvent2Subject.send(.ready(nil)) },
             getBooleanEvaluation: { _, _, _ in throw OpenFeatureError.generalError(message: "test error") },
             observe: { mockEvent2Subject.eraseToAnyPublisher() }
         )
@@ -230,18 +230,18 @@ final class DeveloperExperienceTests: XCTestCase {
         await OpenFeatureAPI.shared.setProviderAndWait(provider: multiProvider)
 
         // Emit events from the first provider
-        mockEvent1Subject.send(.ready)
-        mockEvent1Subject.send(.configurationChanged)
+        mockEvent1Subject.send(.ready(nil))
+        mockEvent1Subject.send(.configurationChanged(nil))
 
         // Emit events from the second provider
-        mockEvent2Subject.send(.error(errorCode: .general, message: "Test error"))
+        mockEvent2Subject.send(.error(ProviderEventDetails(message: "Test error", errorCode: .general)))
         // Wait for all events to be received
         await fulfillment(of: [readyExpectation, configChangedExpectation, errorExpectation], timeout: 2)
 
         // Verify that events from both providers were received
-        XCTAssertTrue(receivedEvents.contains(.ready))
-        XCTAssertTrue(receivedEvents.contains(.configurationChanged))
-        XCTAssertTrue(receivedEvents.contains(.error(errorCode: .general, message: "Test error")))
+        XCTAssertTrue(receivedEvents.contains(.ready(nil)))
+        XCTAssertTrue(receivedEvents.contains(.configurationChanged(nil)))
+        XCTAssertTrue(receivedEvents.contains(.error(ProviderEventDetails(message: "Test error", errorCode: .general))))
         XCTAssertGreaterThanOrEqual(receivedEvents.count, 3)
 
         observer.cancel()
