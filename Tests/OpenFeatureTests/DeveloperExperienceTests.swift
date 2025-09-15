@@ -1,3 +1,4 @@
+import Combine
 import XCTest
 
 @testable import OpenFeature
@@ -184,5 +185,65 @@ final class DeveloperExperienceTests: XCTestCase {
         XCTAssertEqual(details.errorCode, .providerFatal)
         XCTAssertEqual(details.errorMessage, "A fatal error occurred in the provider: unknown")
         XCTAssertEqual(details.reason, Reason.error.rawValue)
+    }
+
+    func testMultiProviderObserveEvents() async {
+        let mockEvent1Subject = CurrentValueSubject<ProviderEvent?, Never>(nil)
+        let mockEvent2Subject = CurrentValueSubject<ProviderEvent?, Never>(nil)
+        // Create test providers that can emit events
+        let eventEmittingProvider1 = MockProvider(
+            initialize: { _ in mockEvent1Subject.send(.ready(nil)) },
+            getBooleanEvaluation: { _, _, _ in throw OpenFeatureError.generalError(message: "test error") },
+            observe: { mockEvent1Subject.eraseToAnyPublisher() }
+        )
+        let eventEmittingProvider2 = MockProvider(
+            initialize: { _ in mockEvent2Subject.send(.ready(nil)) },
+            getBooleanEvaluation: { _, _, _ in throw OpenFeatureError.generalError(message: "test error") },
+            observe: { mockEvent2Subject.eraseToAnyPublisher() }
+        )
+        // Create MultiProvider with both providers
+        let multiProvider = MultiProvider(providers: [eventEmittingProvider1, eventEmittingProvider2])
+        // Set up expectations for different events
+        let readyExpectation = XCTestExpectation(description: "Ready event received")
+        let configChangedExpectation = XCTestExpectation(description: "Configuration changed event received")
+        let errorExpectation = XCTestExpectation(description: "Error event received")
+
+        var receivedEvents: [ProviderEvent] = []
+        // Observe events from MultiProvider
+        let observer = multiProvider.observe().sink { event in
+            guard let event = event else { return }
+            receivedEvents.append(event)
+
+            switch event {
+            case .ready:
+                readyExpectation.fulfill()
+            case .configurationChanged:
+                configChangedExpectation.fulfill()
+            case .error:
+                errorExpectation.fulfill()
+            default:
+                break
+            }
+        }
+
+        // Set the MultiProvider in OpenFeatureAPI to test integration
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: multiProvider)
+
+        // Emit events from the first provider
+        mockEvent1Subject.send(.ready(nil))
+        mockEvent1Subject.send(.configurationChanged(nil))
+
+        // Emit events from the second provider
+        mockEvent2Subject.send(.error(ProviderEventDetails(message: "Test error", errorCode: .general)))
+        // Wait for all events to be received
+        await fulfillment(of: [readyExpectation, configChangedExpectation, errorExpectation], timeout: 2)
+
+        // Verify that events from both providers were received
+        XCTAssertTrue(receivedEvents.contains(.ready(nil)))
+        XCTAssertTrue(receivedEvents.contains(.configurationChanged(nil)))
+        XCTAssertTrue(receivedEvents.contains(.error(ProviderEventDetails(message: "Test error", errorCode: .general))))
+        XCTAssertGreaterThanOrEqual(receivedEvents.count, 3)
+
+        observer.cancel()
     }
 }
