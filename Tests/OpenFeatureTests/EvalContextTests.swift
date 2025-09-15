@@ -144,10 +144,12 @@ final class EvalContextTests: XCTestCase {
         originalContext.add(key: "integer", value: .integer(42))
         originalContext.add(key: "boolean", value: .boolean(true))
         originalContext.add(key: "list", value: .list([.string("item1"), .integer(100)]))
-        originalContext.add(key: "structure", value: .structure([
-            "nested-string": .string("nested-value"),
-            "nested-int": .integer(200),
-        ]))
+        originalContext.add(
+            key: "structure",
+            value: .structure([
+                "nested-string": .string("nested-value"),
+                "nested-int": .integer(200),
+            ]))
 
         guard let copiedContext = originalContext.deepCopy() as? MutableContext else {
             XCTFail("Failed to cast to MutableContext")
@@ -207,10 +209,12 @@ final class EvalContextTests: XCTestCase {
         originalContext.add(key: "double", value: .double(3.14159))
         originalContext.add(key: "date", value: .date(date))
         originalContext.add(key: "list", value: .list([.string("list-item"), .integer(999)]))
-        originalContext.add(key: "structure", value: .structure([
-            "struct-key": .string("struct-value"),
-            "struct-number": .integer(777),
-        ]))
+        originalContext.add(
+            key: "structure",
+            value: .structure([
+                "struct-key": .string("struct-value"),
+                "struct-number": .integer(777),
+            ]))
 
         guard let copiedContext = originalContext.deepCopy() as? MutableContext else {
             XCTFail("Failed to cast to MutableContext")
