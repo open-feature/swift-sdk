@@ -246,4 +246,37 @@ final class DeveloperExperienceTests: XCTestCase {
 
         observer.cancel()
     }
+    
+    func testTrack() async {
+        var trackCalled = false
+        let onTrack = { (key: String, _: EvaluationContext?, details: TrackingEventDetails?) -> Void in
+            trackCalled = true
+            XCTAssertEqual(key, "test")
+            XCTAssertEqual(details?.getValue(), 5)
+        }
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: MockProvider(track: onTrack))
+        let client = OpenFeatureAPI.shared.getClient()
+
+        client.track(key: "test", details: ImmutableTrackingEventDetails(value: 5))
+        
+        XCTAssertTrue(trackCalled)
+    }
+    
+    func testTrackMergeContext() async {
+        var context: (any EvaluationContext)? = nil
+        let onTrack = { (_: String, evaluationContext: EvaluationContext?, _: TrackingEventDetails?) -> Void in
+            context = evaluationContext
+        }
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: MockProvider(track: onTrack))
+        await OpenFeatureAPI.shared.setEvaluationContextAndWait(
+            evaluationContext: ImmutableContext(attributes: ["string": .string("user"), "num": .double(10)])
+        )
+        let client = OpenFeatureAPI.shared.getClient()
+        client.track(key: "test", context: ImmutableContext(attributes: ["num": .double(20), "bool": .boolean(true)]), details: ImmutableTrackingEventDetails(value: 5))
+        
+        XCTAssertEqual(context?.keySet().count, 3)
+        XCTAssertEqual(context?.getValue(key: "string"), .string("user"))
+        XCTAssertEqual(context?.getValue(key: "num"), .double(20))
+        XCTAssertEqual(context?.getValue(key: "bool"), .boolean(true))
+    }
 }
