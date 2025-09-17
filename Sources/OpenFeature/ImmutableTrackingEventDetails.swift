@@ -39,11 +39,12 @@ extension ImmutableTrackingEventDetails {
     public func withValue(_ value: Double?) -> ImmutableTrackingEventDetails {
         ImmutableTrackingEventDetails(value: value, structure: structure)
     }
-    
+
     public func withAttribute(key: String, value: Value) -> ImmutableTrackingEventDetails {
         var newAttributes = structure.asMap()
         newAttributes[key] = value
-        return ImmutableTrackingEventDetails(value: self.value, structure: ImmutableStructure(attributes: newAttributes))
+        return ImmutableTrackingEventDetails(
+            value: self.value, structure: ImmutableStructure(attributes: newAttributes))
     }
 
     public func withAttributes(_ attributes: [String: Value]) -> ImmutableTrackingEventDetails {
@@ -51,12 +52,14 @@ extension ImmutableTrackingEventDetails {
         for (key, value) in attributes {
             newAttributes[key] = value
         }
-        return ImmutableTrackingEventDetails(value: self.value, structure: ImmutableStructure(attributes: newAttributes))
+        return ImmutableTrackingEventDetails(
+            value: self.value, structure: ImmutableStructure(attributes: newAttributes))
     }
 
     public func withoutAttribute(key: String) -> ImmutableTrackingEventDetails {
         var newAttributes = structure.asMap()
         newAttributes.removeValue(forKey: key)
-        return ImmutableTrackingEventDetails(value: self.value, structure: ImmutableStructure(attributes: newAttributes))
+        return ImmutableTrackingEventDetails(
+            value: self.value, structure: ImmutableStructure(attributes: newAttributes))
     }
 }

@@ -35,7 +35,7 @@ public protocol FeatureProvider: EventPublisher {
         -> ProviderEvaluation<
             Value
         >
-    
+
     /// Performs tracking of a particular action or application state.
     /// - Parameters:
     ///   - key: Event name to track
@@ -44,8 +44,8 @@ public protocol FeatureProvider: EventPublisher {
     func track(key: String, context: (any EvaluationContext)?, details: (any TrackingEventDetails)?) throws
 }
 
-public extension FeatureProvider {
-    func track(key: String, context: (any EvaluationContext)?, details: (any TrackingEventDetails)?) throws {
+extension FeatureProvider {
+    public func track(key: String, context: (any EvaluationContext)?, details: (any TrackingEventDetails)?) throws {
         // Default to no-op
     }
 }

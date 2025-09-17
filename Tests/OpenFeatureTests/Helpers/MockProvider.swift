@@ -43,7 +43,7 @@ class MockProvider: FeatureProvider {
             String,
             Int64,
             EvaluationContext?
-        ) throws -> ProviderEvaluation<Int64> = {  _, fallback, _ in
+        ) throws -> ProviderEvaluation<Int64> = { _, fallback, _ in
             return ProviderEvaluation(value: fallback, flagMetadata: [:])
         },
         getDoubleEvaluation: @escaping (
@@ -57,7 +57,7 @@ class MockProvider: FeatureProvider {
             String,
             Value,
             EvaluationContext?
-        ) throws -> ProviderEvaluation<Value> = { _, fallback, _  in
+        ) throws -> ProviderEvaluation<Value> = { _, fallback, _ in
             return ProviderEvaluation(value: fallback, flagMetadata: [:])
         },
         observe: @escaping () -> AnyPublisher<ProviderEvent?, Never> = { Just(nil).eraseToAnyPublisher() },
@@ -119,7 +119,7 @@ class MockProvider: FeatureProvider {
     func observe() -> AnyPublisher<ProviderEvent?, Never> {
         _observe()
     }
-    
+
     func track(key: String, context: (any EvaluationContext)?, details: (any TrackingEventDetails)?) throws {
         try _track(key, context, details)
     }

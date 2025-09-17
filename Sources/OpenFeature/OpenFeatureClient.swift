@@ -227,19 +227,19 @@ extension OpenFeatureClient {
     public func track(key: String) {
         reportTrack(key: key, context: nil, details: nil)
     }
-    
+
     public func track(key: String, context: any EvaluationContext) {
         reportTrack(key: key, context: context, details: nil)
     }
-    
+
     public func track(key: String, details: any TrackingEventDetails) {
         reportTrack(key: key, context: nil, details: details)
     }
-    
+
     public func track(key: String, context: any EvaluationContext, details: any TrackingEventDetails) {
         reportTrack(key: key, context: context, details: details)
     }
-    
+
     private func reportTrack(key: String, context: (any EvaluationContext)?, details: (any TrackingEventDetails)?) {
         let openFeatureApiState = openFeatureApi.getState()
         switch openFeatureApiState.providerStatus {
@@ -261,7 +261,7 @@ extension OpenFeatureClient {
         let apiContext = OpenFeatureAPI.shared.getEvaluationContext()
         return mergeContextMaps(apiContext, invocationContext)
     }
-    
+
     private func mergeContextMaps(_ contexts: (any EvaluationContext)?...) -> (any EvaluationContext)? {
         guard !contexts.isEmpty else { return nil }
         var merged: (any EvaluationContext)? = nil
@@ -272,14 +272,15 @@ extension OpenFeatureClient {
                     targetingKey: _merged.getTargetingKey(),
                     structure: ImmutableStructure(attributes: _merged.asMap())
                 )
-                merged = immutableContext
+                merged =
+                    immutableContext
                     .withTargetingKey(context.getTargetingKey())
                     .withAttributes(context.asMap())
             } else {
                 merged = context
             }
         }
-        
+
         return merged
     }
 }
