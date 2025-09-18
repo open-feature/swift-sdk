@@ -44,22 +44,25 @@ extension ImmutableTrackingEventDetails {
         var newAttributes = structure.asMap()
         newAttributes[key] = value
         return ImmutableTrackingEventDetails(
-            value: self.value, structure: ImmutableStructure(attributes: newAttributes))
+            value: self.value,
+            structure: ImmutableStructure(attributes: newAttributes)
+        )
     }
 
     public func withAttributes(_ attributes: [String: Value]) -> ImmutableTrackingEventDetails {
-        var newAttributes = structure.asMap()
-        for (key, value) in attributes {
-            newAttributes[key] = value
-        }
+        let newAttributes = structure.asMap().merging(attributes) { (_, new) in new }
         return ImmutableTrackingEventDetails(
-            value: self.value, structure: ImmutableStructure(attributes: newAttributes))
+            value: self.value,
+            structure: ImmutableStructure(attributes: newAttributes)
+        )
     }
 
     public func withoutAttribute(key: String) -> ImmutableTrackingEventDetails {
         var newAttributes = structure.asMap()
         newAttributes.removeValue(forKey: key)
         return ImmutableTrackingEventDetails(
-            value: self.value, structure: ImmutableStructure(attributes: newAttributes))
+            value: self.value,
+            structure: ImmutableStructure(attributes: newAttributes)
+        )
     }
 }

@@ -78,4 +78,13 @@ final class OpenFeatureClientTests: XCTestCase {
         XCTAssertEqual(result?.getValue(key: "num"), .integer(1))
         XCTAssertEqual(result?.getValue(key: "string"), .string("test"))
     }
+
+    func testMergeEvaluationContext_ApiContextAndInvocationContextWithEmptyKey_ThenTargetingKeyNotOverriden() async {
+        let client = OpenFeatureClient(openFeatureApi: OpenFeatureAPI.shared, name: nil, version: nil)
+        let apiContext = ImmutableContext(targetingKey: "api")
+        let invocationContext = ImmutableContext(targetingKey: "")
+        await OpenFeatureAPI.shared.setEvaluationContextAndWait(evaluationContext: apiContext)
+        let result = client.mergeEvaluationContext(invocationContext)
+        XCTAssertEqual(result?.getTargetingKey(), "api")
+    }
 }

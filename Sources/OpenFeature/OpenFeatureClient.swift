@@ -263,24 +263,14 @@ extension OpenFeatureClient {
     }
 
     private func mergeContextMaps(_ contexts: (any EvaluationContext)?...) -> (any EvaluationContext)? {
-        guard !contexts.isEmpty else { return nil }
-        var merged: (any EvaluationContext)? = nil
-        for context in contexts {
-            guard let context else { continue }
-            if let _merged = merged {
-                let immutableContext = ImmutableContext(
-                    targetingKey: _merged.getTargetingKey(),
-                    structure: ImmutableStructure(attributes: _merged.asMap())
-                )
-                merged =
-                    immutableContext
-                    .withTargetingKey(context.getTargetingKey())
-                    .withAttributes(context.asMap())
-            } else {
-                merged = context
-            }
-        }
+        let validContexts = contexts.compactMap { $0 }
+        guard !validContexts.isEmpty else { return nil }
 
-        return merged
+        return validContexts.reduce(ImmutableContext()) { merged, next in
+            let newTargetingKey = next.getTargetingKey()
+            let targetingKey = newTargetingKey.isEmpty ? merged.getTargetingKey() : newTargetingKey
+            let attributes = merged.asMap().merging(next.asMap()) { _, newKey in newKey }
+            return ImmutableContext(targetingKey: targetingKey, structure: ImmutableStructure(attributes: attributes))
+        }
     }
 }
