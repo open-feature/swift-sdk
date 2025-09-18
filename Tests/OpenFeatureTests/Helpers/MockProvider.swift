@@ -19,6 +19,7 @@ class MockProvider: FeatureProvider {
     private let _getDoubleEvaluation: (String, Double, EvaluationContext?) throws -> ProviderEvaluation<Double>
     private let _getObjectEvaluation: (String, Value, EvaluationContext?) throws -> ProviderEvaluation<Value>
     private let _observe: () -> AnyPublisher<ProviderEvent?, Never>
+    private let _track: (String, EvaluationContext?, TrackingEventDetails?) throws -> Void
 
     /// Initialize the provider with a set of callbacks that will be called when the provider is initialized,
     init(
@@ -42,7 +43,7 @@ class MockProvider: FeatureProvider {
             String,
             Int64,
             EvaluationContext?
-        ) throws -> ProviderEvaluation<Int64> = {  _, fallback, _ in
+        ) throws -> ProviderEvaluation<Int64> = { _, fallback, _ in
             return ProviderEvaluation(value: fallback, flagMetadata: [:])
         },
         getDoubleEvaluation: @escaping (
@@ -56,10 +57,15 @@ class MockProvider: FeatureProvider {
             String,
             Value,
             EvaluationContext?
-        ) throws -> ProviderEvaluation<Value> = { _, fallback, _  in
+        ) throws -> ProviderEvaluation<Value> = { _, fallback, _ in
             return ProviderEvaluation(value: fallback, flagMetadata: [:])
         },
-        observe: @escaping () -> AnyPublisher<ProviderEvent?, Never> = { Just(nil).eraseToAnyPublisher() }
+        observe: @escaping () -> AnyPublisher<ProviderEvent?, Never> = { Just(nil).eraseToAnyPublisher() },
+        track: @escaping (
+            String,
+            EvaluationContext?,
+            TrackingEventDetails?
+        ) throws -> Void = { _, _, _ in }
     ) {
         self._onContextSet = onContextSet
         self._initialize = initialize
@@ -69,6 +75,7 @@ class MockProvider: FeatureProvider {
         self._getDoubleEvaluation = getDoubleEvaluation
         self._getObjectEvaluation = getObjectEvaluation
         self._observe = observe
+        self._track = track
     }
 
     func onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) async throws {
@@ -111,6 +118,10 @@ class MockProvider: FeatureProvider {
 
     func observe() -> AnyPublisher<ProviderEvent?, Never> {
         _observe()
+    }
+
+    func track(key: String, context: (any EvaluationContext)?, details: (any TrackingEventDetails)?) throws {
+        try _track(key, context, details)
     }
 }
 

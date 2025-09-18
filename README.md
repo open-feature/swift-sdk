@@ -113,7 +113,7 @@ Task {
 | ✅      | [Providers](#providers)         | Integrate with a commercial, open source, or in-house feature management tool.                                                     |
 | ✅      | [Targeting](#targeting)         | Contextually-aware flag evaluation using [evaluation context](https://openfeature.dev/docs/reference/concepts/evaluation-context). |
 | ✅      | [Hooks](#hooks)                 | Add functionality to various stages of the flag evaluation life-cycle.                                                             |
-| ❌      | [Tracking](#tracking)           | Associate user actions with feature flag evaluations.                                                                              |
+| ✅      | [Tracking](#tracking)           | Associate user actions with feature flag evaluations.                                                                              |
 | ❌      | [Logging](#logging)             | Integrate with popular logging packages.                                                                                           |
 | ✅      | [MultiProvider](#multiprovider) | Utilize multiple providers in a single application.                                                                                |
 | ✅      | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                  |
@@ -163,7 +163,7 @@ Once you've added a hook as a dependency, it can be registered at the global, cl
 OpenFeatureAPI.shared.addHooks(hooks: ExampleHook())
 
 // add a hook on this client, to run on all evaluations made by this client
-val client = OpenFeatureAPI.shared.getClient()
+let client = OpenFeatureAPI.shared.getClient()
 client.addHooks(ExampleHook())
 
 // add a hook for this evaluation only
@@ -174,7 +174,21 @@ _ = client.getValue(
 ```
 ### Tracking
 
-Tracking is not yet available in the iOS SDK.
+The tracking API allows you to use OpenFeature abstractions and objects to associate user actions with feature flag evaluations.
+This is essential for robust experimentation powered by feature flags.
+For example, a flag enhancing the appearance of a UI component might drive user engagement to a new feature; to test this hypothesis, telemetry collected by a [hook](#hooks) or [provider](#providers) can be associated with telemetry reported in the client's `track` function.
+
+```swift
+let client = OpenFeatureAPI.shared.getClient()
+
+// Track an event
+client.track(key: "test")
+
+// Track an event with a numeric value
+client.track(key: "test-value", details: ImmutableTrackingEventDetails(value: 5))
+```
+
+Note that some providers may not support tracking; check the documentation for your provider for more information.
 
 ### Logging
 

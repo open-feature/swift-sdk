@@ -14,21 +14,21 @@ final class ProviderEventTests: XCTestCase {
         let api = OpenFeatureAPI()
         let expectation = XCTestExpectation(description: "Error")
         api
-        .observe()
-        .sink { event in
-            switch event {
-            case .error(let details):
-                if let details {
-                    XCTAssertEqual(details.message, "Mock error")
-                } else {
-                    XCTFail("Expected non-nil details")
+            .observe()
+            .sink { event in
+                switch event {
+                case .error(let details):
+                    if let details {
+                        XCTAssertEqual(details.message, "Mock error")
+                    } else {
+                        XCTFail("Expected non-nil details")
+                    }
+                    expectation.fulfill()
+                default:
+                    break
                 }
-                expectation.fulfill()
-            default:
-                break
             }
-        }
-        .store(in: &cancellables)
+            .store(in: &cancellables)
         api.setProvider(provider: provider)
         wait(for: [expectation], timeout: 5)
         cancellables.removeAll()
@@ -44,16 +44,16 @@ final class ProviderEventTests: XCTestCase {
         let api = OpenFeatureAPI()
         let readyExpectation = XCTestExpectation(description: "Ready")
         api
-        .observe()
-        .sink { event in
-            switch event {
-            case .ready:
-                readyExpectation.fulfill()
-            default:
-                break
+            .observe()
+            .sink { event in
+                switch event {
+                case .ready:
+                    readyExpectation.fulfill()
+                default:
+                    break
+                }
             }
-        }
-        .store(in: &cancellables)
+            .store(in: &cancellables)
         api.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
 
@@ -61,14 +61,14 @@ final class ProviderEventTests: XCTestCase {
         var receivedEvents: [ProviderEvent] = []
         let mockEvents = [mockReady]
         api
-        .observe()
-        .sink { event in
-            if let event {
-                receivedEvents.append(event)
+            .observe()
+            .sink { event in
+                if let event {
+                    receivedEvents.append(event)
+                }
+                receivedEvents.count == mockEvents.count ? eventsExpectation.fulfill() : nil
             }
-            receivedEvents.count == mockEvents.count ? eventsExpectation.fulfill() : nil
-        }
-        .store(in: &cancellables)
+            .store(in: &cancellables)
         mockEvents.forEach { event in
             mockEventHandler.send(event)
         }
