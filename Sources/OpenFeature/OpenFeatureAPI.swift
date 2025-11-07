@@ -90,16 +90,6 @@ public class OpenFeatureAPI {
         }
     }
 
-    /// Async version of clearProvider for atomic operations
-    private func clearProviderInternal() async {
-        await atomicOperationsQueue.run { [self] in
-            stateQueue.sync {
-                self.providerSubject.send(nil)
-                self.providerStatus = .notReady
-            }
-        }
-    }
-
     /**
     Set evaluation context and calls the provider's `onContextSet` in a background thread.
     Readiness can be determined from `getState` or listening for `contextChanged` event.
