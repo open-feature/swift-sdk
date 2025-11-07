@@ -1,29 +1,19 @@
 import Combine
 import Foundation
 
-/// Simple async semaphore for serializing operations
-private actor AsyncSemaphore {
-    private var isAvailable = true
-    private var waiters: [CheckedContinuation<Void, Never>] = []
+/// Simple serial async task queue for serializing operations
+private actor AsyncSerialQueue {
+    private var last: Task<Void, Never>? = nil
 
-    func wait() async {
-        if isAvailable {
-            isAvailable = false
-            return
+    /// Runs the given operation after previously enqueued work completes.
+    func run(_ operation: @Sendable @escaping () async -> Void) async {
+        let previous = last
+        let task = Task {
+            _ = await previous?.result
+            await operation()
         }
-
-        await withCheckedContinuation { continuation in
-            waiters.append(continuation)
-        }
-    }
-
-    func signal() {
-        if let waiter = waiters.first {
-            waiters.removeFirst()
-            waiter.resume()
-        } else {
-            isAvailable = true
-        }
+        last = task
+        await task.value
     }
 }
 
@@ -32,7 +22,7 @@ private actor AsyncSemaphore {
 public class OpenFeatureAPI {
     private let eventHandler = EventHandler()
     private let queue = DispatchQueue(label: "com.openfeature.providerDescriptor.queue")
-    private let contextUpdateSemaphore = AsyncSemaphore()
+    private let contextUpdateQueue = AsyncSerialQueue()
 
     private(set) var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
     private(set) var evaluationContext: EvaluationContext?
@@ -196,26 +186,24 @@ public class OpenFeatureAPI {
     }
 
     private func updateContext(evaluationContext: EvaluationContext) async {
-        // Ensure only ONE updateContext operation runs at a time
-        await contextUpdateSemaphore.wait()
-        defer { Task { await contextUpdateSemaphore.signal() } }
+        await contextUpdateQueue.run { [self] in
+            do {
+                let oldContext = self.evaluationContext
+                self.evaluationContext = evaluationContext
+                self.providerStatus = .reconciling
+                eventHandler.send(.reconciling(nil))
 
-        do {
-            let oldContext = self.evaluationContext
-            self.evaluationContext = evaluationContext
-            self.providerStatus = .reconciling
-            eventHandler.send(.reconciling(nil))
+                try await self.providerSubject.value?.onContextSet(
+                    oldContext: oldContext,
+                    newContext: evaluationContext
+                )
 
-            try await self.providerSubject.value?.onContextSet(
-                oldContext: oldContext,
-                newContext: evaluationContext
-            )
-
-            self.providerStatus = .ready
-            eventHandler.send(.contextChanged(nil))
-        } catch {
-            self.providerStatus = .error
-            eventHandler.send(.error(ProviderEventDetails(message: error.localizedDescription)))
+                self.providerStatus = .ready
+                eventHandler.send(.contextChanged(nil))
+            } catch {
+                self.providerStatus = .error
+                eventHandler.send(.error(ProviderEventDetails(message: error.localizedDescription)))
+            }
         }
     }
 
