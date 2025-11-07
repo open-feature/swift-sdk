@@ -1,11 +1,38 @@
 import Combine
 import Foundation
 
+/// Simple async semaphore for serializing operations
+private actor AsyncSemaphore {
+    private var isAvailable = true
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async {
+        if isAvailable {
+            isAvailable = false
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            waiters.append(continuation)
+        }
+    }
+
+    func signal() {
+        if let waiter = waiters.first {
+            waiters.removeFirst()
+            waiter.resume()
+        } else {
+            isAvailable = true
+        }
+    }
+}
+
 /// A global singleton which holds base configuration for the OpenFeature library.
 /// Configuration here will be shared across all ``Client``s.
 public class OpenFeatureAPI {
     private let eventHandler = EventHandler()
     private let queue = DispatchQueue(label: "com.openfeature.providerDescriptor.queue")
+    private let contextUpdateSemaphore = AsyncSemaphore()
 
     private(set) var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
     private(set) var evaluationContext: EvaluationContext?
@@ -89,14 +116,7 @@ public class OpenFeatureAPI {
     This async function returns when the `onContextSet` from the provider is completed.
     */
     public func setEvaluationContextAndWait(evaluationContext: EvaluationContext) async {
-        await withCheckedContinuation { continuation in
-            queue.async {
-                Task {
-                    await self.updateContext(evaluationContext: evaluationContext)
-                    continuation.resume()
-                }
-            }
-        }
+        await updateContext(evaluationContext: evaluationContext)
     }
 
     public func getEvaluationContext() -> EvaluationContext? {
@@ -176,15 +196,21 @@ public class OpenFeatureAPI {
     }
 
     private func updateContext(evaluationContext: EvaluationContext) async {
+        // Ensure only ONE updateContext operation runs at a time
+        await contextUpdateSemaphore.wait()
+        defer { Task { await contextUpdateSemaphore.signal() } }
+
         do {
             let oldContext = self.evaluationContext
             self.evaluationContext = evaluationContext
             self.providerStatus = .reconciling
             eventHandler.send(.reconciling(nil))
+
             try await self.providerSubject.value?.onContextSet(
                 oldContext: oldContext,
                 newContext: evaluationContext
             )
+
             self.providerStatus = .ready
             eventHandler.send(.contextChanged(nil))
         } catch {
