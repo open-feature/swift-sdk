@@ -40,10 +40,8 @@ public class OpenFeatureAPI {
     Readiness can be determined from `getState` or listening for `ready` event.
     */
     public func setProvider(provider: FeatureProvider, initialContext: EvaluationContext?) {
-        stateQueue.async {
-            Task {
-                await self.setProviderInternal(provider: provider, initialContext: initialContext)
-            }
+        Task {
+            await self.setProviderInternal(provider: provider, initialContext: initialContext)
         }
     }
 
@@ -52,14 +50,7 @@ public class OpenFeatureAPI {
     This async function returns when the `initialize` from the provider is completed.
     */
     public func setProviderAndWait(provider: FeatureProvider, initialContext: EvaluationContext?) async {
-        await withCheckedContinuation { continuation in
-            stateQueue.async {
-                Task {
-                    await self.setProviderInternal(provider: provider, initialContext: initialContext)
-                    continuation.resume()
-                }
-            }
-        }
+        await self.setProviderInternal(provider: provider, initialContext: initialContext)
     }
 
     /**
@@ -95,10 +86,8 @@ public class OpenFeatureAPI {
     Readiness can be determined from `getState` or listening for `contextChanged` event.
     */
     public func setEvaluationContext(evaluationContext: EvaluationContext) {
-        stateQueue.async {
-            Task {
-                await self.updateContext(evaluationContext: evaluationContext)
-            }
+        Task {
+            await self.updateContext(evaluationContext: evaluationContext)
         }
     }
 
