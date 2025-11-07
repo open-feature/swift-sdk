@@ -1,11 +1,28 @@
 import Combine
 import Foundation
 
+/// Simple serial async task queue for serializing operations
+private actor AsyncSerialQueue {
+    private var last: Task<Void, Never>?
+
+    /// Runs the given operation after previously enqueued work completes.
+    func run(_ operation: @Sendable @escaping () async -> Void) async {
+        let previous = last
+        let task = Task {
+            _ = await previous?.result
+            await operation()
+        }
+        last = task
+        await task.value
+    }
+}
+
 /// A global singleton which holds base configuration for the OpenFeature library.
 /// Configuration here will be shared across all ``Client``s.
 public class OpenFeatureAPI {
     private let eventHandler = EventHandler()
-    private let queue = DispatchQueue(label: "com.openfeature.providerDescriptor.queue")
+    private let stateQueue = DispatchQueue(label: "com.openfeature.state.queue")
+    private let atomicOperationsQueue = AsyncSerialQueue()
 
     private(set) var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
     private(set) var evaluationContext: EvaluationContext?
@@ -23,10 +40,8 @@ public class OpenFeatureAPI {
     Readiness can be determined from `getState` or listening for `ready` event.
     */
     public func setProvider(provider: FeatureProvider, initialContext: EvaluationContext?) {
-        queue.async {
-            Task {
-                await self.setProviderInternal(provider: provider, initialContext: initialContext)
-            }
+        Task {
+            await self.setProviderInternal(provider: provider, initialContext: initialContext)
         }
     }
 
@@ -35,14 +50,7 @@ public class OpenFeatureAPI {
     This async function returns when the `initialize` from the provider is completed.
     */
     public func setProviderAndWait(provider: FeatureProvider, initialContext: EvaluationContext?) async {
-        await withCheckedContinuation { continuation in
-            queue.async {
-                Task {
-                    await self.setProviderInternal(provider: provider, initialContext: initialContext)
-                    continuation.resume()
-                }
-            }
-        }
+        await self.setProviderInternal(provider: provider, initialContext: initialContext)
     }
 
     /**
@@ -66,7 +74,8 @@ public class OpenFeatureAPI {
     }
 
     public func clearProvider() {
-        queue.sync {
+        // For synchronous API, we need to use the sync queue
+        stateQueue.sync {
             self.providerSubject.send(nil)
             self.providerStatus = .notReady
         }
@@ -77,10 +86,8 @@ public class OpenFeatureAPI {
     Readiness can be determined from `getState` or listening for `contextChanged` event.
     */
     public func setEvaluationContext(evaluationContext: EvaluationContext) {
-        queue.async {
-            Task {
-                await self.updateContext(evaluationContext: evaluationContext)
-            }
+        Task {
+            await self.updateContext(evaluationContext: evaluationContext)
         }
     }
 
@@ -89,14 +96,7 @@ public class OpenFeatureAPI {
     This async function returns when the `onContextSet` from the provider is completed.
     */
     public func setEvaluationContextAndWait(evaluationContext: EvaluationContext) async {
-        await withCheckedContinuation { continuation in
-            queue.async {
-                Task {
-                    await self.updateContext(evaluationContext: evaluationContext)
-                    continuation.resume()
-                }
-            }
-        }
+        await updateContext(evaluationContext: evaluationContext)
     }
 
     public func getEvaluationContext() -> EvaluationContext? {
@@ -143,7 +143,7 @@ public class OpenFeatureAPI {
     }
 
     internal func getState() -> OpenFeatureState {
-        return queue.sync {
+        return stateQueue.sync {
             OpenFeatureState(
                 provider: providerSubject.value,
                 evaluationContext: evaluationContext,
@@ -152,44 +152,70 @@ public class OpenFeatureAPI {
     }
 
     private func setProviderInternal(provider: FeatureProvider, initialContext: EvaluationContext? = nil) async {
-        self.providerStatus = .notReady
-        self.providerSubject.send(provider)
+        await atomicOperationsQueue.run { [self] in
+            // Set initial state atomically
+            stateQueue.sync {
+                self.providerStatus = .notReady
+                self.providerSubject.send(provider)
+                if let initialContext = initialContext {
+                    self.evaluationContext = initialContext
+                }
+            }
 
-        if let initialContext = initialContext {
-            self.evaluationContext = initialContext
-        }
-
-        do {
-            try await provider.initialize(initialContext: initialContext)
-            self.providerStatus = .ready
-            self.eventHandler.send(.ready(nil))
-        } catch {
-            switch error {
-            case OpenFeatureError.providerFatalError(let message):
-                self.providerStatus = .fatal
-                self.eventHandler.send(.error(ProviderEventDetails(message: message, errorCode: .providerFatal)))
-            default:
-                self.providerStatus = .error
-                self.eventHandler.send(.error(ProviderEventDetails(message: error.localizedDescription)))
+            // Initialize provider - this entire operation is atomic
+            do {
+                try await provider.initialize(initialContext: initialContext)
+                stateQueue.sync {
+                    self.providerStatus = .ready
+                }
+                self.eventHandler.send(.ready(nil))
+            } catch {
+                stateQueue.sync {
+                    switch error {
+                    case OpenFeatureError.providerFatalError(_):
+                        self.providerStatus = .fatal
+                    default:
+                        self.providerStatus = .error
+                    }
+                }
+                switch error {
+                case OpenFeatureError.providerFatalError(let message):
+                    self.eventHandler.send(.error(ProviderEventDetails(message: message, errorCode: .providerFatal)))
+                default:
+                    self.eventHandler.send(.error(ProviderEventDetails(message: error.localizedDescription)))
+                }
             }
         }
     }
 
     private func updateContext(evaluationContext: EvaluationContext) async {
-        do {
-            let oldContext = self.evaluationContext
-            self.evaluationContext = evaluationContext
-            self.providerStatus = .reconciling
+        await atomicOperationsQueue.run { [self] in
+            // Get old context and set new context atomically
+            let (oldContext, provider) = stateQueue.sync { () -> (EvaluationContext?, FeatureProvider?) in
+                let oldContext = self.evaluationContext
+                self.evaluationContext = evaluationContext
+                self.providerStatus = .reconciling
+                return (oldContext, self.providerSubject.value)
+            }
+
             eventHandler.send(.reconciling(nil))
-            try await self.providerSubject.value?.onContextSet(
-                oldContext: oldContext,
-                newContext: evaluationContext
-            )
-            self.providerStatus = .ready
-            eventHandler.send(.contextChanged(nil))
-        } catch {
-            self.providerStatus = .error
-            eventHandler.send(.error(ProviderEventDetails(message: error.localizedDescription)))
+
+            // Call provider's onContextSet - this entire operation is atomic
+            do {
+                try await provider?.onContextSet(
+                    oldContext: oldContext,
+                    newContext: evaluationContext
+                )
+                stateQueue.sync {
+                    self.providerStatus = .ready
+                }
+                eventHandler.send(.contextChanged(nil))
+            } catch {
+                stateQueue.sync {
+                    self.providerStatus = .error
+                }
+                eventHandler.send(.error(ProviderEventDetails(message: error.localizedDescription)))
+            }
         }
     }
 
