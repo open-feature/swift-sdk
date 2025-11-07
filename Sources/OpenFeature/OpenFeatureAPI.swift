@@ -3,7 +3,7 @@ import Foundation
 
 /// Simple serial async task queue for serializing operations
 private actor AsyncSerialQueue {
-    private var last: Task<Void, Never>? = nil
+    private var last: Task<Void, Never>?
 
     /// Runs the given operation after previously enqueued work completes.
     func run(_ operation: @Sendable @escaping () async -> Void) async {
