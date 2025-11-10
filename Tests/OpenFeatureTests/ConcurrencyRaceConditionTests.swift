@@ -167,4 +167,123 @@ class ConcurrencyRaceConditionTests: XCTestCase {
             XCTFail("Provider or Evaluation Context unexpectedly nil")
         }
     }
+
+    func testAsyncSerialQueueCoalescence() async throws {
+        print("\n========== AsyncSerialQueue Coalescence Test ==========\n")
+
+        // Track which operations actually executed
+        actor ExecutionTracker {
+            var executedOperations: [String] = []
+
+            func recordExecution(_ operation: String) {
+                executedOperations.append(operation)
+                print("📝 Recorded execution: \(operation)")
+            }
+
+            func getExecutions() -> [String] {
+                return executedOperations
+            }
+        }
+
+        let tracker = ExecutionTracker()
+
+        // Create a provider with a slow onContextSet to ensure operations overlap
+        let provider = MockProvider(
+            onContextSet: { oldContext, newContext in
+                // Add delay to simulate slow provider operation
+                // This ensures that when tasks 2 and 3 are queued, task 1 is still running
+                let targetingKey = newContext.getTargetingKey()
+                print("⚙️  Provider.onContextSet running for: \(targetingKey)")
+                await tracker.recordExecution(targetingKey)
+                try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+                print("✓ Provider.onContextSet completed for: \(targetingKey)")
+            }
+        )
+
+        // Set up provider first
+        print("🔧 Setting up provider...")
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
+        print("✅ Provider ready\n")
+
+        // Start three concurrent context updates
+        print("🚀 Starting three concurrent setEvaluationContext calls:\n")
+
+        async let task1: Void = {
+            print("🔵 Task 1: STARTING - Creating context for user1")
+            let ctx1 = ImmutableContext(
+                targetingKey: "user1",
+                structure: ImmutableStructure(attributes: ["id": .integer(1)])
+            )
+            print("🔵 Task 1: CALLING setEvaluationContextAndWait(user1)")
+            await OpenFeatureAPI.shared.setEvaluationContextAndWait(evaluationContext: ctx1)
+            print("🔵 Task 1: RETURNED from setEvaluationContextAndWait")
+            print("🔵 Task 1: COMPLETED\n")
+        }()
+
+        // Small delay to ensure task1 starts first
+        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+
+        async let task2: Void = {
+            print("🟢 Task 2: STARTING - Creating context for user2")
+            let ctx2 = ImmutableContext(
+                targetingKey: "user2",
+                structure: ImmutableStructure(attributes: ["id": .integer(2)])
+            )
+            print("🟢 Task 2: CALLING setEvaluationContextAndWait(user2)")
+            await OpenFeatureAPI.shared.setEvaluationContextAndWait(evaluationContext: ctx2)
+            print("🟢 Task 2: RETURNED from setEvaluationContextAndWait")
+            print("🟢 Task 2: COMPLETED\n")
+        }()
+
+        // Small delay to ensure task2 starts before task3
+        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+
+        async let task3: Void = {
+            print("🔴 Task 3: STARTING - Creating context for user3")
+            let ctx3 = ImmutableContext(
+                targetingKey: "user3",
+                structure: ImmutableStructure(attributes: ["id": .integer(3)])
+            )
+            print("🔴 Task 3: CALLING setEvaluationContextAndWait(user3)")
+            await OpenFeatureAPI.shared.setEvaluationContextAndWait(evaluationContext: ctx3)
+            print("🔴 Task 3: RETURNED from setEvaluationContextAndWait")
+            print("🔴 Task 3: COMPLETED\n")
+        }()
+
+        // Wait for all tasks to complete
+        await task1
+        await task2
+        await task3
+
+        let executedOperations = await tracker.getExecutions()
+
+        print("========== RESULTS ==========")
+        print("Operations that actually executed: \(executedOperations)")
+        print("Total operations executed: \(executedOperations.count)")
+        print("Expected: 2 operations (user1 and user3)")
+        print("Expected skipped: user2 (replaced by user3)")
+        print("========================================\n")
+
+        // Verify coalescence: if working correctly, should have executed at most 2 operations
+        // (first one + latest one), skipping the middle one
+        XCTAssertLessThanOrEqual(
+            executedOperations.count,
+            2,
+            "Should execute at most 2 operations due to coalescence (first + latest), but executed: \(executedOperations)"
+        )
+
+        // Verify user2 was NOT executed (it should be coalesced/skipped)
+        XCTAssertFalse(
+            executedOperations.contains("user2"),
+            "user2 operation should have been skipped due to coalescence"
+        )
+
+        // Verify final context is from the last operation
+        let finalContext = OpenFeatureAPI.shared.getEvaluationContext()
+        XCTAssertEqual(
+            finalContext?.getTargetingKey(),
+            "user3",
+            "Final context should be from the last operation (user3)"
+        )
+    }
 }
