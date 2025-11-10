@@ -55,7 +55,7 @@ class ConcurrencyRaceConditionTests: XCTestCase {
             XCTAssertTrue(contextMap.keys.contains("timestamp"), "Context should contain 'timestamp' attribute")
 
             if let idValue = contextMap["id"] as? Int64 {
-                let expectedId = Int64(targetingKey.replacingOccurrences(of: "user", with: ""))!
+                let expectedId = Int64(targetingKey.replacingOccurrences(of: "user", with: ""))
                 XCTAssertEqual(idValue, expectedId, "Context 'id' should match the targeting key number")
             } else {
                 XCTFail("Context 'id' should be an Int64 value")
@@ -152,14 +152,14 @@ class ConcurrencyRaceConditionTests: XCTestCase {
             "Provider status '\(finalState.providerStatus)' should be in a valid state after high-frequency operations"
         )
         if finalState.provider != nil && finalState.evaluationContext != nil {
-            let context = finalState.evaluationContext!
-            let targetingKey = context.getTargetingKey()
+            let context = finalState.evaluationContext
+            let targetingKey = context?.getTargetingKey() ?? ""
             XCTAssertTrue(
                 targetingKey.hasPrefix("rapid-user"),
                 "Final targeting key '\(targetingKey)' should be from the rapid operations if context exists"
             )
 
-            let contextMap = context.asObjectMap()
+            let contextMap = context?.asObjectMap() ?? [:]
             if contextMap.keys.contains("iteration") {
                 XCTAssertTrue(contextMap.keys.contains("timestamp"), "Context with iteration should also have timestamp")
             }

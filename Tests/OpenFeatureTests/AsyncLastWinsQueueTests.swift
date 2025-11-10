@@ -2,9 +2,6 @@ import XCTest
 @testable import OpenFeature
 
 class AsyncLastWinsQueueTests: XCTestCase {
-
-    // MARK: - Basic Behavior Tests
-
     func testSingleOperationExecutes() async throws {
         let queue = AsyncLastWinsQueue()
         let executed = ActorBox<Bool>(false)
