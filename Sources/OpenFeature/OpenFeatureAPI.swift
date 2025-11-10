@@ -1,19 +1,36 @@
 import Combine
 import Foundation
 
-/// Simple serial async task queue for serializing operations
-private actor AsyncSerialQueue {
-    private var last: Task<Void, Never>?
+/// Async queue that only executes the latest operation, cancelling pending ones
+/// This implements "last wins" semantics where intermediate operations that haven't
+/// started yet will be skipped in favor of the most recently queued operation.
+internal actor AsyncLastWinsQueue {
+    private var currentTask: Task<Void, Never>?
+    private var pendingOperation: (() async -> Void)?
 
-    /// Runs the given operation after previously enqueued work completes.
+    /// Runs the given operation, but only the latest one will execute.
+    /// Any pending operations that haven't started yet will be skipped.
     func run(_ operation: @Sendable @escaping () async -> Void) async {
-        let previous = last
-        let task = Task {
-            _ = await previous?.result
-            await operation()
+        // Store this as the pending operation
+        pendingOperation = operation
+
+        // If there's already a task running, it will pick up this new operation when done
+        if currentTask == nil {
+            await executeNext()
         }
-        last = task
-        await task.value
+    }
+
+    private func executeNext() async {
+        while let operation = pendingOperation {
+            pendingOperation = nil  // Clear pending before starting
+
+            let task = Task {
+                await operation()
+            }
+            currentTask = task
+            await task.value
+            currentTask = nil
+        }
     }
 }
 
@@ -22,7 +39,7 @@ private actor AsyncSerialQueue {
 public class OpenFeatureAPI {
     private let eventHandler = EventHandler()
     private let stateQueue = DispatchQueue(label: "com.openfeature.state.queue")
-    private let atomicOperationsQueue = AsyncSerialQueue()
+    private let atomicOperationsQueue = AsyncLastWinsQueue()
 
     private(set) var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
     private(set) var evaluationContext: EvaluationContext?
