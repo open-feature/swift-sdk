@@ -1,28 +1,12 @@
 import Combine
 import Foundation
 
-/// Simple serial async task queue for serializing operations
-private actor AsyncSerialQueue {
-    private var last: Task<Void, Never>?
-
-    /// Runs the given operation after previously enqueued work completes.
-    func run(_ operation: @Sendable @escaping () async -> Void) async {
-        let previous = last
-        let task = Task {
-            _ = await previous?.result
-            await operation()
-        }
-        last = task
-        await task.value
-    }
-}
-
 /// A global singleton which holds base configuration for the OpenFeature library.
 /// Configuration here will be shared across all ``Client``s.
 public class OpenFeatureAPI {
     private let eventHandler = EventHandler()
     private let stateQueue = DispatchQueue(label: "com.openfeature.state.queue")
-    private let atomicOperationsQueue = AsyncSerialQueue()
+    private let contextQueue: AsyncCoalescingSerialQueue
 
     private(set) var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
     private(set) var evaluationContext: EvaluationContext?
@@ -33,6 +17,7 @@ public class OpenFeatureAPI {
     static public let shared = OpenFeatureAPI()
 
     public init() {
+        contextQueue = AsyncCoalescingSerialQueue()
     }
 
     /**
@@ -152,7 +137,7 @@ public class OpenFeatureAPI {
     }
 
     private func setProviderInternal(provider: FeatureProvider, initialContext: EvaluationContext? = nil) async {
-        await atomicOperationsQueue.run { [self] in
+        await contextQueue.run { [self] in
             // Set initial state atomically
             stateQueue.sync {
                 self.providerStatus = .notReady
@@ -189,7 +174,7 @@ public class OpenFeatureAPI {
     }
 
     private func updateContext(evaluationContext: EvaluationContext) async {
-        await atomicOperationsQueue.run { [self] in
+        await contextQueue.run { [self] in
             // Get old context and set new context atomically
             let (oldContext, provider) = stateQueue.sync { () -> (EvaluationContext?, FeatureProvider?) in
                 let oldContext = self.evaluationContext
