@@ -6,7 +6,7 @@ import Foundation
 public class OpenFeatureAPI {
     private let eventHandler = EventHandler()
     private let stateQueue = DispatchQueue(label: "com.openfeature.state.queue")
-    private let atomicOperationsQueue: AsyncSerialQueue
+    private let contextQueue: AsyncCoalescingSerialQueue
 
     private(set) var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
     private(set) var evaluationContext: EvaluationContext?
@@ -19,7 +19,7 @@ public class OpenFeatureAPI {
     public init() {
         // Check for OPENFEATURE_ASQ_VERBOSE environment variable to enable verbose logging
         let verboseMode = ProcessInfo.processInfo.environment["OPENFEATURE_ASQ_VERBOSE"] != nil
-        atomicOperationsQueue = AsyncSerialQueue(verbose: verboseMode)
+        contextQueue = AsyncCoalescingSerialQueue(verbose: verboseMode)
     }
 
     /**
@@ -139,7 +139,7 @@ public class OpenFeatureAPI {
     }
 
     private func setProviderInternal(provider: FeatureProvider, initialContext: EvaluationContext? = nil) async {
-        await atomicOperationsQueue.run { [self] in
+        await contextQueue.run { [self] in
             // Set initial state atomically
             stateQueue.sync {
                 self.providerStatus = .notReady
@@ -176,7 +176,7 @@ public class OpenFeatureAPI {
     }
 
     private func updateContext(evaluationContext: EvaluationContext) async {
-        await atomicOperationsQueue.run { [self] in
+        await contextQueue.run { [self] in
             // Get old context and set new context atomically
             let (oldContext, provider) = stateQueue.sync { () -> (EvaluationContext?, FeatureProvider?) in
                 let oldContext = self.evaluationContext

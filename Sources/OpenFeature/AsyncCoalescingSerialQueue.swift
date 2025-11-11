@@ -3,7 +3,7 @@ import Foundation
 /// Simple serial async task queue that coalesces operations.
 /// Only the currently running task and at most one pending operation are kept.
 /// Intermediate operations are skipped to avoid queue buildup.
-internal actor AsyncSerialQueue {
+internal actor AsyncCoalescingSerialQueue {
     private var currentTask: Task<Void, Never>?
     private var pendingOperation: (() async -> Void)?
     private var pendingContinuations: [CheckedContinuation<Void, Never>] = []

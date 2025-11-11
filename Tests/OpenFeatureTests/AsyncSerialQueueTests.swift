@@ -2,7 +2,7 @@ import XCTest
 import Combine
 @testable import OpenFeature
 
-class AsyncSerialQueueTests: XCTestCase {
+class AsyncCoalescingSerialQueueTests: XCTestCase {
     override func setUp() {
         super.setUp()
         OpenFeatureAPI.shared.clearProvider()
@@ -168,7 +168,7 @@ class AsyncSerialQueueTests: XCTestCase {
         }
     }
 
-    func testAsyncSerialQueueCoalescence() async throws {
+    func testAsyncCoalescingSerialQueueCoalescence() async throws {
         // Track which operations actually executed
         actor ExecutionTracker {
             var executedOperations: [String] = []
@@ -259,9 +259,9 @@ class AsyncSerialQueueTests: XCTestCase {
         )
     }
 
-    // MARK: - Edge Case Tests for AsyncSerialQueue Coalescence
+    // MARK: - Edge Case Tests for AsyncCoalescingSerialQueue Coalescence
 
-    func testAsyncSerialQueueSingleOperation() async throws {
+    func testAsyncCoalescingSerialQueueSingleOperation() async throws {
         // Test that a single operation executes normally without coalescence
         actor ExecutionTracker {
             var executedOperations: [String] = []
@@ -292,7 +292,7 @@ class AsyncSerialQueueTests: XCTestCase {
         XCTAssertEqual(OpenFeatureAPI.shared.getEvaluationContext()?.getTargetingKey(), "single-user")
     }
 
-    func testAsyncSerialQueueTwoSequentialOperations() async throws {
+    func testAsyncCoalescingSerialQueueTwoSequentialOperations() async throws {
         // Test two operations that don't overlap - both should execute
         actor ExecutionTracker {
             var executedOperations: [String] = []
@@ -332,7 +332,7 @@ class AsyncSerialQueueTests: XCTestCase {
         XCTAssertEqual(OpenFeatureAPI.shared.getEvaluationContext()?.getTargetingKey(), "user2")
     }
 
-    func testAsyncSerialQueueRapidBurstCoalescence() async throws {
+    func testAsyncCoalescingSerialQueueRapidBurstCoalescence() async throws {
         // Test that rapid bursts of many operations get heavily coalesced
         actor ExecutionTracker {
             var executedOperations: [String] = []
@@ -383,7 +383,7 @@ class AsyncSerialQueueTests: XCTestCase {
         )
     }
 
-    func testAsyncSerialQueueOperationsArrivingAfterCompletion() async throws {
+    func testAsyncCoalescingSerialQueueOperationsArrivingAfterCompletion() async throws {
         // Test that operations arriving after the previous one completes still execute
         actor ExecutionTracker {
             var executedOperations: [String] = []
@@ -447,7 +447,7 @@ class AsyncSerialQueueTests: XCTestCase {
         )
     }
 
-    func testAsyncSerialQueueWithErrorHandling() async throws {
+    func testAsyncCoalescingSerialQueueWithErrorHandling() async throws {
         // Test that errors in operations don't break the queue
         actor ExecutionTracker {
             var executedOperations: [String] = []
@@ -531,7 +531,7 @@ class AsyncSerialQueueTests: XCTestCase {
         )
     }
 
-    func testAsyncSerialQueueContinuationResumeCorrectness() async throws {
+    func testAsyncCoalescingSerialQueueContinuationResumeCorrectness() async throws {
         // Test that all callers get resumed correctly, even those whose operations were skipped
         actor CompletionTracker {
             var completedTasks: Set<Int> = []
@@ -582,7 +582,7 @@ class AsyncSerialQueueTests: XCTestCase {
         )
     }
 
-    func testAsyncSerialQueueNoStarvation() async throws {
+    func testAsyncCoalescingSerialQueueNoStarvation() async throws {
         // Test that the queue doesn't cause starvation - operations eventually execute
         actor ExecutionTracker {
             var executedOperations: [String] = []
