@@ -1,63 +1,12 @@
 import Combine
 import Foundation
 
-/// Simple serial async task queue that coalesces operations.
-/// Only the currently running task and at most one pending operation are kept.
-/// Intermediate operations are skipped to avoid queue buildup.
-private actor AsyncSerialQueue {
-    private var currentTask: Task<Void, Never>?
-    private var pendingOperation: (() async -> Void)?
-    private var pendingContinuations: [CheckedContinuation<Void, Never>] = []
-
-    /// Runs the given operation serially. If an operation is already running,
-    /// this operation replaces any previously pending operation (which gets skipped).
-    /// All callers whose operations were replaced will wait for the latest operation to complete.
-    func run(_ operation: @Sendable @escaping () async -> Void) async {
-        await withCheckedContinuation { continuation in
-            // Replace any pending operation with this new one
-            pendingOperation = operation
-            pendingContinuations.append(continuation)
-
-            // If nothing is currently running, start processing
-            if currentTask == nil {
-                processNext()
-            }
-        }
-    }
-
-    private func processNext() {
-        guard let operation = pendingOperation else {
-            // No pending work
-            currentTask = nil
-            return
-        }
-
-        // Clear pending state and capture continuations
-        pendingOperation = nil
-        let continuations = pendingContinuations
-        pendingContinuations = []
-
-        // Start the task
-        currentTask = Task { [weak self] in
-            await operation()
-
-            // Resume all waiting callers
-            for continuation in continuations {
-                continuation.resume()
-            }
-
-            // Process next operation if any arrived while we were running
-            await self?.processNext()
-        }
-    }
-}
-
 /// A global singleton which holds base configuration for the OpenFeature library.
 /// Configuration here will be shared across all ``Client``s.
 public class OpenFeatureAPI {
     private let eventHandler = EventHandler()
     private let stateQueue = DispatchQueue(label: "com.openfeature.state.queue")
-    private let atomicOperationsQueue = AsyncSerialQueue()
+    private let atomicOperationsQueue: AsyncSerialQueue
 
     private(set) var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
     private(set) var evaluationContext: EvaluationContext?
@@ -68,6 +17,9 @@ public class OpenFeatureAPI {
     static public let shared = OpenFeatureAPI()
 
     public init() {
+        // Check for OPENFEATURE_ASQ_VERBOSE environment variable to enable verbose logging
+        let verboseMode = ProcessInfo.processInfo.environment["OPENFEATURE_ASQ_VERBOSE"] != nil
+        atomicOperationsQueue = AsyncSerialQueue(verbose: verboseMode)
     }
 
     /**
