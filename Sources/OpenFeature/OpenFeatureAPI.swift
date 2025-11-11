@@ -5,8 +5,8 @@ import Foundation
 /// Configuration here will be shared across all ``Client``s.
 public class OpenFeatureAPI {
     private let eventHandler = EventHandler()
-    private let stateQueue = DispatchQueue(label: "com.openfeature.state.queue")
-    private let contextQueue: AsyncCoalescingSerialQueue
+    private let stateQueue = DispatchQueue(label: "com.openfeature.state.queue") // Sync queue to change state atomically
+    private let unifiedQueue = AsyncProviderOperationsQueue()  // Queue for provider's initialize and onContextSet operations
 
     private(set) var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
     private(set) var evaluationContext: EvaluationContext?
@@ -16,9 +16,7 @@ public class OpenFeatureAPI {
     /// The ``OpenFeatureAPI`` singleton
     static public let shared = OpenFeatureAPI()
 
-    public init() {
-        contextQueue = AsyncCoalescingSerialQueue()
-    }
+    public init() {}
 
     /**
     Set provider and calls its `initialize` in a background thread.
@@ -55,14 +53,19 @@ public class OpenFeatureAPI {
     }
 
     public func getProvider() -> FeatureProvider? {
-        return self.providerSubject.value
+        return stateQueue.sync {
+            self.providerSubject.value
+        }
     }
 
     public func clearProvider() {
-        // For synchronous API, we need to use the sync queue
-        stateQueue.sync {
-            self.providerSubject.send(nil)
-            self.providerStatus = .notReady
+        Task {
+            await unifiedQueue.run(lastWins: false) { [self] in
+                stateQueue.sync {
+                    self.providerSubject.send(nil)
+                    self.providerStatus = .notReady
+                }
+            }
         }
     }
 
@@ -85,11 +88,15 @@ public class OpenFeatureAPI {
     }
 
     public func getEvaluationContext() -> EvaluationContext? {
-        return self.evaluationContext
+        return stateQueue.sync {
+            self.evaluationContext
+        }
     }
 
     public func getProviderStatus() -> ProviderStatus {
-        return self.providerStatus
+        return stateQueue.sync {
+            self.providerStatus
+        }
     }
 
     public func getProviderMetadata() -> ProviderMetadata? {
@@ -105,11 +112,21 @@ public class OpenFeatureAPI {
     }
 
     public func addHooks(hooks: (any Hook)...) {
-        self.hooks.append(contentsOf: hooks)
+        stateQueue.sync {
+            self.hooks.append(contentsOf: hooks)
+        }
     }
 
     public func clearHooks() {
-        self.hooks.removeAll()
+        stateQueue.sync {
+            self.hooks.removeAll()
+        }
+    }
+
+    internal func getHooks() -> [any Hook] {
+        return stateQueue.sync {
+            self.hooks
+        }
     }
 
     public func observe() -> AnyPublisher<ProviderEvent?, Never> {
@@ -137,7 +154,7 @@ public class OpenFeatureAPI {
     }
 
     private func setProviderInternal(provider: FeatureProvider, initialContext: EvaluationContext? = nil) async {
-        await contextQueue.run { [self] in
+        await unifiedQueue.run(lastWins: false) { [self] in
             // Set initial state atomically
             stateQueue.sync {
                 self.providerStatus = .notReady
@@ -174,7 +191,7 @@ public class OpenFeatureAPI {
     }
 
     private func updateContext(evaluationContext: EvaluationContext) async {
-        await contextQueue.run { [self] in
+        await unifiedQueue.run(lastWins: true) { [self] in
             // Get old context and set new context atomically
             let (oldContext, provider) = stateQueue.sync { () -> (EvaluationContext?, FeatureProvider?) in
                 let oldContext = self.evaluationContext

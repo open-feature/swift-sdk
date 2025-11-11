@@ -3,7 +3,7 @@ import Combine
 @testable import OpenFeature
 
 // swiftlint:disable type_body_length file_length trailing_closure
-class AsyncCoalescingSerialQueueTests: XCTestCase {
+class ProviderOperationsQueueTests: XCTestCase {
     override func setUp() {
         super.setUp()
         OpenFeatureAPI.shared.clearProvider()
@@ -113,7 +113,7 @@ class AsyncCoalescingSerialQueueTests: XCTestCase {
         }
     }
 
-    func testHighFrequencyStateChangesRaceCondition() async throws {
+    func testHighFrequencyStateChangesWithFinalClearProvider() async throws {
         let highFrequencyOperations = 200
         let startTime = Date()
 
@@ -151,27 +151,26 @@ class AsyncCoalescingSerialQueueTests: XCTestCase {
         XCTAssertLessThan(duration, 10.0, "Operations took too long, possible deadlock")
 
         let finalState = OpenFeatureAPI.shared.getState()
+        // Note: Since operations now execute in order and the last operation (i=199, 199%4=3) is clearProvider(),
+        // the final state will have notReady status and nil provider
         XCTAssertTrue(
-            [ProviderStatus.ready].contains(finalState.providerStatus),
+            [ProviderStatus.notReady].contains(finalState.providerStatus),
             "Provider status '\(finalState.providerStatus)' should be in a valid state after high-frequency operations"
         )
-        if finalState.provider != nil && finalState.evaluationContext != nil {
-            let context = finalState.evaluationContext
-            let targetingKey = context?.getTargetingKey() ?? ""
-            XCTAssertTrue(
-                targetingKey.hasPrefix("rapid-user"),
-                "Final targeting key '\(targetingKey)' should be from the rapid operations if context exists"
-            )
+        XCTAssertNil(finalState.provider)
+        let context = finalState.evaluationContext
+        let targetingKey = context?.getTargetingKey() ?? ""
+        XCTAssertTrue(
+            targetingKey.hasPrefix("rapid-user"),
+            "Final targeting key '\(targetingKey)' should be from the rapid operations if context exists"
+        )
 
-            let contextMap = context?.asObjectMap() ?? [:]
-            if contextMap.keys.contains("iteration") {
-                XCTAssertTrue(
-                    contextMap.keys.contains("timestamp"),
-                    "Context with iteration should also have timestamp"
-                )
-            }
-        } else {
-            XCTFail("Provider or Evaluation Context unexpectedly nil")
+        let contextMap = context?.asObjectMap() ?? [:]
+        if contextMap.keys.contains("iteration") {
+            XCTAssertTrue(
+                contextMap.keys.contains("timestamp"),
+                "Context with iteration should also have timestamp"
+            )
         }
     }
 

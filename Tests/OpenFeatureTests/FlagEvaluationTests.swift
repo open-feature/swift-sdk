@@ -26,10 +26,10 @@ final class FlagEvaluationTests: XCTestCase {
 
         OpenFeatureAPI.shared.addHooks(hooks: hook1)
 
-        XCTAssertEqual(OpenFeatureAPI.shared.hooks.count, 1)
+        XCTAssertEqual(OpenFeatureAPI.shared.getHooks().count, 1)
 
         OpenFeatureAPI.shared.addHooks(hooks: hook2)
-        XCTAssertEqual(OpenFeatureAPI.shared.hooks.count, 2)
+        XCTAssertEqual(OpenFeatureAPI.shared.getHooks().count, 2)
     }
 
     func testNamedClient() {

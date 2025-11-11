@@ -117,7 +117,7 @@ extension OpenFeatureClient {
             clientMetadata: self.metadata,
             providerMetadata: provider.metadata)
         hookLock.lock()
-        let mergedHooks = provider.hooks + options.hooks + hooks + openFeatureApi.hooks
+        let mergedHooks = provider.hooks + options.hooks + hooks + openFeatureApi.getHooks()
         hookLock.unlock()
         do {
             hookSupport.beforeHooks(flagValueType: T.flagValueType, hookCtx: hookCtx, hooks: mergedHooks, hints: hints)
