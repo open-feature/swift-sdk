@@ -206,19 +206,30 @@ public class OpenFeatureAPI {
 
     private func updateContext(evaluationContext: EvaluationContext) async {
         await unifiedQueue.run(lastWins: true) { [self] in
-            // Get old context and set new context atomically
+            // Get old context, set new context, and update status atomically
             let (oldContext, provider) = stateQueue.sync { () -> (EvaluationContext?, FeatureProvider?) in
                 let oldContext = self.evaluationContext
                 self.evaluationContext = evaluationContext
-                self.providerStatus = .reconciling
-                return (oldContext, self.providerSubject.value)
+
+                // Only update status if provider is set
+                if let provider = self.providerSubject.value {
+                    self.providerStatus = .reconciling
+                    return (oldContext, provider)
+                }
+
+                return (oldContext, nil)
+            }
+
+            // Early return if no provider is set - nothing to reconcile
+            guard let provider = provider else {
+                return
             }
 
             eventHandler.send(.reconciling(nil))
 
             // Call provider's onContextSet - this entire operation is atomic
             do {
-                try await provider?.onContextSet(
+                try await provider.onContextSet(
                     oldContext: oldContext,
                     newContext: evaluationContext
                 )
