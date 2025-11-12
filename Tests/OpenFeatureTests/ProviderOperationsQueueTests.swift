@@ -136,7 +136,7 @@ class ProviderOperationsQueueTests: XCTestCase {
                     case 2:
                         await OpenFeatureAPI.shared.setProviderAndWait(provider: provider, initialContext: ctx)
                     case 3:
-                        OpenFeatureAPI.shared.clearProvider()
+                        await OpenFeatureAPI.shared.clearProviderAndWait()
                     default:
                         break
                     }
@@ -144,33 +144,40 @@ class ProviderOperationsQueueTests: XCTestCase {
             }
         }
 
-        let endTime = Date()
-        let duration = endTime.timeIntervalSince(startTime)
-
-        // Verify operations completed in reasonable time (no deadlocks)
+        let duration = Date().timeIntervalSince(startTime)
         XCTAssertLessThan(duration, 10.0, "Operations took too long, possible deadlock")
 
+        verifyFinalStateConsistency()
+    }
+
+    private func verifyFinalStateConsistency() {
         let finalState = OpenFeatureAPI.shared.getState()
-        // Note: Since operations now execute in order and the last operation (i=199, 199%4=3) is clearProvider(),
-        // the final state will have notReady status and nil provider
+        // With concurrent execution, the final state is non-deterministic
         XCTAssertTrue(
-            [ProviderStatus.notReady].contains(finalState.providerStatus),
-            "Provider status '\(finalState.providerStatus)' should be in a valid state after high-frequency operations"
-        )
-        XCTAssertNil(finalState.provider)
-        let context = finalState.evaluationContext
-        let targetingKey = context?.getTargetingKey() ?? ""
-        XCTAssertTrue(
-            targetingKey.hasPrefix("rapid-user"),
-            "Final targeting key '\(targetingKey)' should be from the rapid operations if context exists"
+            [ProviderStatus.notReady, ProviderStatus.ready].contains(finalState.providerStatus),
+            "Provider status '\(finalState.providerStatus)' should be valid after high-frequency operations"
         )
 
-        let contextMap = context?.asObjectMap() ?? [:]
-        if contextMap.keys.contains("iteration") {
+        // Verify state consistency
+        if finalState.provider == nil {
+            XCTAssertEqual(finalState.providerStatus, .notReady, "When provider is nil, status should be notReady")
+        }
+        if finalState.provider != nil {
+            XCTAssertEqual(finalState.providerStatus, .ready, "When provider exists, status should be ready")
+        }
+
+        // Verify context if present
+        if let context = finalState.evaluationContext {
+            let targetingKey = context.getTargetingKey()
             XCTAssertTrue(
-                contextMap.keys.contains("timestamp"),
-                "Context with iteration should also have timestamp"
+                targetingKey.hasPrefix("rapid-user"),
+                "Final targeting key '\(targetingKey)' should be from rapid operations"
             )
+
+            let contextMap = context.asObjectMap()
+            if contextMap.keys.contains("iteration") {
+                XCTAssertTrue(contextMap.keys.contains("timestamp"), "Context should have timestamp")
+            }
         }
     }
 

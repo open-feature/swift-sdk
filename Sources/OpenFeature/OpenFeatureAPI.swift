@@ -5,8 +5,10 @@ import Foundation
 /// Configuration here will be shared across all ``Client``s.
 public class OpenFeatureAPI {
     private let eventHandler = EventHandler()
-    private let stateQueue = DispatchQueue(label: "com.openfeature.state.queue") // Sync queue to change state atomically
-    private let unifiedQueue = AsyncProviderOperationsQueue()  // Queue for provider's initialize and onContextSet operations
+    // Sync queue to change state atomically
+    private let stateQueue = DispatchQueue(label: "com.openfeature.state.queue")
+    // Queue for provider's initialize and onContextSet operations
+    private let unifiedQueue = AsyncProviderOperationsQueue()
 
     private(set) var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
     private(set) var evaluationContext: EvaluationContext?
@@ -60,11 +62,23 @@ public class OpenFeatureAPI {
 
     public func clearProvider() {
         Task {
-            await unifiedQueue.run(lastWins: false) { [self] in
-                stateQueue.sync {
-                    self.providerSubject.send(nil)
-                    self.providerStatus = .notReady
-                }
+            await clearProviderInternal()
+        }
+    }
+
+    /**
+    Clear provider.
+    This async function returns when the clear operation is completed.
+    */
+    public func clearProviderAndWait() async {
+        await clearProviderInternal()
+    }
+
+    private func clearProviderInternal() async {
+        await unifiedQueue.run(lastWins: false) { [self] in
+            stateQueue.sync {
+                self.providerSubject.send(nil)
+                self.providerStatus = .notReady
             }
         }
     }
