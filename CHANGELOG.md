@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.5.0](https://github.com/open-feature/swift-sdk/compare/0.4.0...0.5.0) (2025-11-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* add provider event details ([#77](https://github.com/open-feature/swift-sdk/issues/77))
+
+### 🐛 Bug Fixes
+
+* Prevent race condition on updateContext ([#84](https://github.com/open-feature/swift-sdk/issues/84)) ([dd23929](https://github.com/open-feature/swift-sdk/commit/dd239294e127ebf598f38227e4b9a85447576aff))
+
+
+### ✨ New Features
+
+* add multiprovider ([#78](https://github.com/open-feature/swift-sdk/issues/78)) ([869b90a](https://github.com/open-feature/swift-sdk/commit/869b90a7bf0c98368fe5b49f6c852178ba299ad7))
+* add provider event details ([#77](https://github.com/open-feature/swift-sdk/issues/77)) ([56b477e](https://github.com/open-feature/swift-sdk/commit/56b477e69250bc52feab0c9838234843d83b5732))
+* add Tracking API ([#81](https://github.com/open-feature/swift-sdk/issues/81)) ([c14b0cd](https://github.com/open-feature/swift-sdk/commit/c14b0cd6624c04801d16a801e4cf3412d522e4bd))
+* Allow FlagEvaluationDetails to be a public API ([#79](https://github.com/open-feature/swift-sdk/issues/79)) ([0b07a8f](https://github.com/open-feature/swift-sdk/commit/0b07a8ff1e790fe57de4608ff7ae2edaa8fdb48d))
+
+
+### 📚 Documentation
+
+* Update docs with ImmutableContext ([#72](https://github.com/open-feature/swift-sdk/issues/72)) ([28ccd3e](https://github.com/open-feature/swift-sdk/commit/28ccd3e0f71c2a015d507b8fba1fb294770ab74e))
+
 ## [0.4.0](https://github.com/open-feature/swift-sdk/compare/0.3.1...0.4.0) (2025-08-06)
 
 
