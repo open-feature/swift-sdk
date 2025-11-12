@@ -220,3 +220,57 @@ extension OpenFeatureClient {
         throw OpenFeatureError.generalError(message: "Unable to match default value type with flag value type")
     }
 }
+
+// MARK: - Tracking
+
+extension OpenFeatureClient {
+    public func track(key: String) {
+        reportTrack(key: key, context: nil, details: nil)
+    }
+
+    public func track(key: String, context: any EvaluationContext) {
+        reportTrack(key: key, context: context, details: nil)
+    }
+
+    public func track(key: String, details: any TrackingEventDetails) {
+        reportTrack(key: key, context: nil, details: details)
+    }
+
+    public func track(key: String, context: any EvaluationContext, details: any TrackingEventDetails) {
+        reportTrack(key: key, context: context, details: details)
+    }
+
+    private func reportTrack(key: String, context: (any EvaluationContext)?, details: (any TrackingEventDetails)?) {
+        let openFeatureApiState = openFeatureApi.getState()
+        switch openFeatureApiState.providerStatus {
+        case .ready, .reconciling, .stale:
+            do {
+                let provider = openFeatureApiState.provider ?? NoOpProvider()
+                try provider.track(key: key, context: mergeEvaluationContext(context), details: details)
+            } catch {
+                logger.error("Unable to report track event with key \(key) due to exception \(error)")
+            }
+        default:
+            break
+        }
+    }
+}
+
+extension OpenFeatureClient {
+    func mergeEvaluationContext(_ invocationContext: (any EvaluationContext)?) -> (any EvaluationContext)? {
+        let apiContext = OpenFeatureAPI.shared.getEvaluationContext()
+        return mergeContextMaps(apiContext, invocationContext)
+    }
+
+    private func mergeContextMaps(_ contexts: (any EvaluationContext)?...) -> (any EvaluationContext)? {
+        let validContexts = contexts.compactMap { $0 }
+        guard !validContexts.isEmpty else { return nil }
+
+        return validContexts.reduce(ImmutableContext()) { merged, next in
+            let newTargetingKey = next.getTargetingKey()
+            let targetingKey = newTargetingKey.isEmpty ? merged.getTargetingKey() : newTargetingKey
+            let attributes = merged.asMap().merging(next.asMap()) { _, newKey in newKey }
+            return ImmutableContext(targetingKey: targetingKey, structure: ImmutableStructure(attributes: attributes))
+        }
+    }
+}
