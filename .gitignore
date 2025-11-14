@@ -11,3 +11,4 @@ DerivedData/
 .build
 .mockingbird
 project.json
+.cursor/
