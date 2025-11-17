@@ -24,7 +24,7 @@ jobs:
           - platform: tvOS
             destination: "platform=tvOS Simulator,name=Apple TV 4K (3rd generation)"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build and Test on ${{ matrix.platform }}
         run: |
           if [ "${{ matrix.platform }}" = "macOS" ]; then
@@ -38,7 +38,7 @@ jobs:
   SwiftLint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: GitHub Action for SwiftLint
         uses: norio-nomura/action-swiftlint@3.2.1
         with:
