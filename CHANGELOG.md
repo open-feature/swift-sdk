@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/open-feature/swift-sdk/compare/0.5.0...0.5.1) (2025-11-17)
+
+
+### 🧹 Chore
+
+* **deps:** update amannn/action-semantic-pull-request action to v6 ([#75](https://github.com/open-feature/swift-sdk/issues/75)) ([33a25a9](https://github.com/open-feature/swift-sdk/commit/33a25a90d8d02f319919ad6c1cf1bf7b19245c73))
+* update copyright and gitignore ([#88](https://github.com/open-feature/swift-sdk/issues/88)) ([0fc85bd](https://github.com/open-feature/swift-sdk/commit/0fc85bd855eecbbcb67e3a0be67601eb6d0b2945))
+
 ## [0.5.0](https://github.com/open-feature/swift-sdk/compare/0.4.0...0.5.0) (2025-11-12)
 
 
