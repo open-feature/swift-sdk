@@ -24,12 +24,12 @@ jobs:
         run: |
           echo "$RELEASE_PLEASE_OUTPUT"
 
-    # Outputs are namespaced by package when using a manifest in Release Please
+    # Outputs are not namespaced when using simple release type with root path
     outputs:
-      release_created: ${{ steps.release.outputs['OpenFeature--release_created'] }}
+      release_created: ${{ steps.release.outputs.release_created }}
       # Version doesn't include `v` as a prefix. This is undocumented
-      version: ${{ steps.release.outputs['OpenFeature--version'] }}
-      upload_url: ${{ steps.release.outputs['OpenFeature--upload_url'] }}
+      version: ${{ steps.release.outputs.version }}
+      upload_url: ${{ steps.release.outputs.upload_url }}
 
   # Trigger the CocoaPods workflow when a release is created
   cocoapods:
