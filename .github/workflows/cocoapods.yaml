@@ -20,7 +20,8 @@ jobs:
 
   pod-publish:
     needs: pod-lint
-    if: github.event_name == 'release'
+    # Run when triggered by a release event OR when called from release-please workflow
+    if: github.event_name == 'release' || github.event_name == 'workflow_call'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
@@ -32,7 +33,5 @@ jobs:
         env:
           COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
         run: |
-          # Ensure the version in podspec matches the release
-          ./scripts/update_podspec.sh
           # Push the podspec to trunk
           pod trunk push OpenFeature.podspec --allow-warnings --verbose
