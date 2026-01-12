@@ -17,6 +17,8 @@ OpenFeature is an open specification that provides a vendor-agnostic, community-
   s.swift_version = '5.5'
   
   s.source_files = 'Sources/OpenFeature/**/*'
-  
+
+  s.dependency 'Logging', '~> 1.0'
+
   s.frameworks = 'Foundation'
 end 

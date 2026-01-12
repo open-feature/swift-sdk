@@ -2,8 +2,6 @@ import Foundation
 import os
 
 class HookSupport {
-    var logger = Logger()
-
     func beforeHooks<T>(flagValueType: FlagValueType, hookCtx: HookContext<T>, hooks: [any Hook], hints: [String: Any])
     {
         hooks
