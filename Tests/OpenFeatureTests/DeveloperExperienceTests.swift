@@ -4,8 +4,12 @@ import XCTest
 @testable import OpenFeature
 
 final class DeveloperExperienceTests: XCTestCase {
+    override func setUp() async throws {
+        await OpenFeatureAPI.shared.clearProviderAndWait()
+        await OpenFeatureAPI.shared.setEvaluationContextAndWait(evaluationContext: MutableContext())
+    }
+
     func testNoProviderSet() {
-        OpenFeatureAPI.shared.clearProvider()
         let client = OpenFeatureAPI.shared.getClient()
 
         let flagValue = client.getValue(key: "test", defaultValue: "no-op")
@@ -20,26 +24,31 @@ final class DeveloperExperienceTests: XCTestCase {
         XCTAssertFalse(flagValue)
     }
 
-    func testObserveGlobalEvents() {
+    func testObserveGlobalEvents() async {
         let readyExpectation = XCTestExpectation(description: "Ready")
         var eventState = OpenFeatureAPI.shared.observe().sink { event in
             switch event {
             case .ready:
                 readyExpectation.fulfill()
             default:
-                XCTFail("Unexpected event")
+                XCTFail("Unexpected event: \(event.map { String(describing: $0) } ?? "nil")")
             }
         }
         let provider = DoSomethingProvider()
-        OpenFeatureAPI.shared.setProvider(provider: provider)
-        wait(for: [readyExpectation], timeout: 5)
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
+        await fulfillment(of: [readyExpectation], timeout: 5)
 
         // Clearing the Provider shouldn't send further global events from it
         // Dropping the first event, which reflects the current state before clearing
-        eventState = OpenFeatureAPI.shared.observe().dropFirst().sink { _ in
-            XCTFail("Unexpected event")
+        eventState = OpenFeatureAPI.shared.observe().dropFirst().sink { event in
+            XCTFail("Unexpected event after clear: \(event.map { String(describing: $0) } ?? "nil")")
         }
-        OpenFeatureAPI.shared.clearProvider()
+
+        // Wait for the clear operation to complete to avoid race conditions
+        await OpenFeatureAPI.shared.clearProviderAndWait()
+
+        // Initialize the provider directly - this shouldn't emit events through the API
+        // since the provider is no longer set in the API
         provider.initialize(initialContext: MutableContext(attributes: ["Test": Value.string("Test")]))
         XCTAssertNotNil(eventState)
     }
