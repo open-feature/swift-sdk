@@ -15,7 +15,7 @@ jobs:
       matrix:
         platform: [iOS, macOS, watchOS, tvOS]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build and Test on ${{ matrix.platform }}
         run: |
           if [ "${{ matrix.platform }}" = "macOS" ]; then
@@ -35,7 +35,7 @@ jobs:
   SwiftLint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: GitHub Action for SwiftLint
         uses: norio-nomura/action-swiftlint@3.2.1
         with:
