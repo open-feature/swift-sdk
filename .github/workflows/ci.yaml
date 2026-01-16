@@ -28,6 +28,7 @@ jobs:
 
             xcodebuild test \
               -scheme OpenFeature \
+              -parallel-testing-enabled NO \
               -destination "id=$SIMULATOR"
           fi
 
