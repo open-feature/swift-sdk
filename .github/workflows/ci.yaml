@@ -14,15 +14,6 @@ jobs:
     strategy:
       matrix:
         platform: [iOS, macOS, watchOS, tvOS]
-        include:
-          - platform: iOS
-            destination: "platform=iOS Simulator,name=iPhone 16"
-          - platform: macOS
-            destination: "platform=macOS"
-          - platform: watchOS
-            destination: "platform=watchOS Simulator,name=Apple Watch Series 10 (42mm)"
-          - platform: tvOS
-            destination: "platform=tvOS Simulator,name=Apple TV 4K (3rd generation)"
     steps:
       - uses: actions/checkout@v4
       - name: Build and Test on ${{ matrix.platform }}
@@ -30,9 +21,14 @@ jobs:
           if [ "${{ matrix.platform }}" = "macOS" ]; then
             swift test
           else
+            SIMULATOR=$(xcrun simctl list devices available -j | \
+              python3 .github/scripts/find-simulator.py ${{ matrix.platform }})
+
+            echo "Using simulator: $SIMULATOR"
+
             xcodebuild test \
               -scheme OpenFeature \
-              -destination "${{ matrix.destination }}"
+              -destination "id=$SIMULATOR"
           fi
 
   SwiftLint:
