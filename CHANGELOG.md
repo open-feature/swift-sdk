@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.5.1](https://github.com/open-feature/swift-sdk/compare/0.5.0...0.5.1) (2026-01-16)
+
+
+### 🐛 Bug Fixes
+
+* **ci:** use dynamic simulator discovery instead of hardcoded device names ([#103](https://github.com/open-feature/swift-sdk/issues/103)) ([bbb6487](https://github.com/open-feature/swift-sdk/commit/bbb6487ec2def7fc2e3900c4d08442ce29ec65fd))
+* enable CocoaPods publishing by correcting release-please workflow outputs ([#92](https://github.com/open-feature/swift-sdk/issues/92)) ([09ca50a](https://github.com/open-feature/swift-sdk/commit/09ca50af82b51b433891fc4f25c8fee5fbf31336))
+
+
+### 🧹 Chore
+
+* **deps:** update amannn/action-semantic-pull-request action to v6 ([#75](https://github.com/open-feature/swift-sdk/issues/75)) ([33a25a9](https://github.com/open-feature/swift-sdk/commit/33a25a90d8d02f319919ad6c1cf1bf7b19245c73))
+* update copyright and gitignore ([#88](https://github.com/open-feature/swift-sdk/issues/88)) ([0fc85bd](https://github.com/open-feature/swift-sdk/commit/0fc85bd855eecbbcb67e3a0be67601eb6d0b2945))
+* update readme features ([#102](https://github.com/open-feature/swift-sdk/issues/102)) ([559b45a](https://github.com/open-feature/swift-sdk/commit/559b45a97b2dc7249305423354b66f570935e3fb))
+
 ## [0.5.0](https://github.com/open-feature/swift-sdk/compare/0.4.0...0.5.0) (2025-11-12)
 
 
