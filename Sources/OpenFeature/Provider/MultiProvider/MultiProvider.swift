@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import Logging
 
 /// A provider that combines multiple providers into a single provider.
 public class MultiProvider: FeatureProvider {
@@ -51,17 +52,53 @@ public class MultiProvider: FeatureProvider {
     public func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?) throws
         -> ProviderEvaluation<Bool>
     {
+        return try getBooleanEvaluation(key: key, defaultValue: defaultValue, context: context, logger: nil)
+    }
+
+    public func getStringEvaluation(key: String, defaultValue: String, context: EvaluationContext?) throws
+        -> ProviderEvaluation<String>
+    {
+        return try getStringEvaluation(key: key, defaultValue: defaultValue, context: context, logger: nil)
+    }
+
+    public func getIntegerEvaluation(key: String, defaultValue: Int64, context: EvaluationContext?) throws
+        -> ProviderEvaluation<Int64>
+    {
+        return try getIntegerEvaluation(key: key, defaultValue: defaultValue, context: context, logger: nil)
+    }
+
+    public func getDoubleEvaluation(key: String, defaultValue: Double, context: EvaluationContext?) throws
+        -> ProviderEvaluation<Double>
+    {
+        return try getDoubleEvaluation(key: key, defaultValue: defaultValue, context: context, logger: nil)
+    }
+
+    public func getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?) throws
+        -> ProviderEvaluation<Value>
+    {
+        return try getObjectEvaluation(key: key, defaultValue: defaultValue, context: context, logger: nil)
+    }
+
+    // Logger-enabled methods - canonical implementations
+    public func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?, logger: Logger?)
+        throws
+        -> ProviderEvaluation<Bool>
+    {
         return try strategy.evaluate(
             providers: providers,
             key: key,
             defaultValue: defaultValue,
             evaluationContext: context
         ) { provider in
-            provider.getBooleanEvaluation(key:defaultValue:context:)
+            { (key: String, defaultValue: Bool, context: EvaluationContext?) throws -> ProviderEvaluation<Bool> in
+                try provider.getBooleanEvaluation(
+                    key: key, defaultValue: defaultValue, context: context, logger: logger)
+            }
         }
     }
 
-    public func getStringEvaluation(key: String, defaultValue: String, context: EvaluationContext?) throws
+    public func getStringEvaluation(key: String, defaultValue: String, context: EvaluationContext?, logger: Logger?)
+        throws
         -> ProviderEvaluation<String>
     {
         return try strategy.evaluate(
@@ -70,11 +107,14 @@ public class MultiProvider: FeatureProvider {
             defaultValue: defaultValue,
             evaluationContext: context
         ) { provider in
-            provider.getStringEvaluation(key:defaultValue:context:)
+            { (key: String, defaultValue: String, context: EvaluationContext?) throws -> ProviderEvaluation<String> in
+                try provider.getStringEvaluation(key: key, defaultValue: defaultValue, context: context, logger: logger)
+            }
         }
     }
 
-    public func getIntegerEvaluation(key: String, defaultValue: Int64, context: EvaluationContext?) throws
+    public func getIntegerEvaluation(key: String, defaultValue: Int64, context: EvaluationContext?, logger: Logger?)
+        throws
         -> ProviderEvaluation<Int64>
     {
         return try strategy.evaluate(
@@ -83,11 +123,15 @@ public class MultiProvider: FeatureProvider {
             defaultValue: defaultValue,
             evaluationContext: context
         ) { provider in
-            provider.getIntegerEvaluation(key:defaultValue:context:)
+            { (key: String, defaultValue: Int64, context: EvaluationContext?) throws -> ProviderEvaluation<Int64> in
+                try provider.getIntegerEvaluation(
+                    key: key, defaultValue: defaultValue, context: context, logger: logger)
+            }
         }
     }
 
-    public func getDoubleEvaluation(key: String, defaultValue: Double, context: EvaluationContext?) throws
+    public func getDoubleEvaluation(key: String, defaultValue: Double, context: EvaluationContext?, logger: Logger?)
+        throws
         -> ProviderEvaluation<Double>
     {
         return try strategy.evaluate(
@@ -96,11 +140,14 @@ public class MultiProvider: FeatureProvider {
             defaultValue: defaultValue,
             evaluationContext: context
         ) { provider in
-            provider.getDoubleEvaluation(key:defaultValue:context:)
+            { (key: String, defaultValue: Double, context: EvaluationContext?) throws -> ProviderEvaluation<Double> in
+                try provider.getDoubleEvaluation(key: key, defaultValue: defaultValue, context: context, logger: logger)
+            }
         }
     }
 
-    public func getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?) throws
+    public func getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?, logger: Logger?)
+        throws
         -> ProviderEvaluation<Value>
     {
         return try strategy.evaluate(
@@ -109,7 +156,9 @@ public class MultiProvider: FeatureProvider {
             defaultValue: defaultValue,
             evaluationContext: context
         ) { provider in
-            provider.getObjectEvaluation(key:defaultValue:context:)
+            { (key: String, defaultValue: Value, context: EvaluationContext?) throws -> ProviderEvaluation<Value> in
+                try provider.getObjectEvaluation(key: key, defaultValue: defaultValue, context: context, logger: logger)
+            }
         }
     }
 

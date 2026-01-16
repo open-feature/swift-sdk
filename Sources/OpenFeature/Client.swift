@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 
 /// Interface used to resolve flags of varying types.
 public protocol Client: Features, Tracking {
@@ -11,4 +12,7 @@ public protocol Client: Features, Tracking {
     /// Hooks are run in the order they're added in the before stage. They are run in reverse order for all
     /// other stages.
     func addHooks(_ hooks: any Hook...)
+
+    /// Sets the logger for this client.
+    func setLogger(_ logger: Logger?)
 }
