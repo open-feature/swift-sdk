@@ -427,7 +427,7 @@ class ProviderOperationsQueueTests: XCTestCase {
         await OpenFeatureAPI.shared.setEvaluationContextAndWait(evaluationContext: ctx1)
 
         // Wait a bit to ensure first operation is completely done
-        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        try await Task.sleep(nanoseconds: 500_000_000) // 500ms
 
         // Now submit several operations that arrive after the queue is idle
         async let task2: Void = {
@@ -438,7 +438,7 @@ class ProviderOperationsQueueTests: XCTestCase {
             await OpenFeatureAPI.shared.setEvaluationContextAndWait(evaluationContext: ctx2)
         }()
 
-        try await Task.sleep(nanoseconds: 5_000_000) // 5ms
+        try await Task.sleep(nanoseconds: 500_000_000) // 500ms
 
         async let task3: Void = {
             let ctx3 = ImmutableContext(
