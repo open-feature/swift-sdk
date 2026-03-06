@@ -258,6 +258,67 @@ final class MultiProviderTests: XCTestCase {
         XCTAssertTrue(receivedEvents.contains(mockEvent1))
         XCTAssertTrue(receivedEvents.contains(mockEvent2))
     }
+
+    func testTrackWithMultipleProviders_CallsAllProviders() throws {
+        let provider1 = "Provider1"
+        let provider2 = "Provider2"
+        let provider3 = "Provider3"
+        
+        var calledProviders: [String] = []
+        let mockProvider1 = MultiProviderTestHelpers.mockTrackingProvider(name: provider1) { _, _, _ in
+            calledProviders.append(provider1)
+        }
+        
+        let mockProvider2 = MultiProviderTestHelpers.mockTrackingProvider(name: provider2) { _, _, _ in
+            calledProviders.append(provider2)
+        }
+        
+        let mockProvider3 = MultiProviderTestHelpers.mockTrackingProvider(name: provider3) { a, b, c in
+            calledProviders.append(provider3)
+        }
+        
+        let multiProvider = MultiProvider(providers: [mockProvider1, mockProvider2, mockProvider3])
+        
+        try multiProvider.track(key: "test-event", context: nil as EvaluationContext?, details: nil as TrackingEventDetails?)
+
+        let expectedProviders = [provider1, provider2, provider3]
+
+        XCTAssertEqual(calledProviders, expectedProviders, "Providers called do not match expected providers")
+    }
+
+    func testTrackWithMultipleProviders_AggregatesErrorsWithProviderNames() throws {
+        let mockProvider1 = MultiProviderTestHelpers.mockTrackingProvider(name: "AnalyticsProvider") { _, _, _ in
+            throw OpenFeatureError.generalError(message: "Analytics service unavailable")
+        }
+        
+        let mockProvider2 = MultiProviderTestHelpers.mockTrackingProvider(name: "MetricsProvider") { _, _, _ in
+            throw OpenFeatureError.generalError(message: "Metrics endpoint failed")
+        }
+        
+        let mockProvider3 = MultiProviderTestHelpers.mockTrackingProvider(name: "SuccessfulProvider") { _, _, _ in
+        }
+        
+        let multiProvider = MultiProvider(providers: [mockProvider1, mockProvider2, mockProvider3])
+        
+        do {
+            try multiProvider.track(key: "test-event", context: nil as EvaluationContext?, details: nil as TrackingEventDetails?)
+            XCTFail("Expected track to throw an error")
+        } catch let error as OpenFeatureError {
+            guard case .generalError(let message) = error else {
+                XCTFail("Expected generalError with aggregated message")
+                return
+            }
+
+            XCTAssertTrue(message.contains("One or more providers failed during track call"))
+            XCTAssertTrue(message.contains("AnalyticsProvider"))
+            XCTAssertTrue(message.contains("Analytics service unavailable"))
+            XCTAssertTrue(message.contains("MetricsProvider"))
+            XCTAssertTrue(message.contains("Metrics endpoint failed"))
+            XCTAssertFalse(message.contains("SuccessfulProvider"))
+        } catch {
+            XCTFail("Expected OpenFeatureError, got \(error)")
+        }
+    }
 }
 
 enum MultiProviderTestHelpers {
@@ -313,5 +374,14 @@ enum MultiProviderTestHelpers {
                 return ProviderEvaluation(value: values.mockProviderObjectValue)
             }
         )
+    }
+
+    static func mockTrackingProvider(
+        name: String,
+        track: @escaping (String, EvaluationContext?, TrackingEventDetails?) throws -> Void
+    ) -> MockProvider {
+        let provider = MockProvider(track: track)
+        provider.metadata = MockProvider.MockProviderMetadata(name: name)
+        return provider
     }
 }

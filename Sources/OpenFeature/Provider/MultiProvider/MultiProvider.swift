@@ -162,6 +162,33 @@ public class MultiProvider: FeatureProvider {
         }
     }
 
+    public func track(key: String, context: (any EvaluationContext)?, details: (any TrackingEventDetails)?) throws {
+        var trackingErrors: [(String, Error)] = []
+        for provider in providers {
+            do {
+                try provider.track(key: key, context: context, details: details)
+            } catch {
+                let providerName = provider.metadata.name ?? "Provider"
+                trackingErrors.append((providerName, error))
+            }
+        }
+
+        if !trackingErrors.isEmpty {
+            let errorDetails = trackingErrors
+                .map { name, error in
+                    guard let error = error as? OpenFeatureError else {
+                        return "\(name): \(error.localizedDescription)"
+                    }
+                    return "\(name): \(error.description)"
+                }
+                .joined(separator: "\n")
+
+            let message = "One or more providers failed during track call: \(errorDetails)"
+            throw OpenFeatureError.generalError(message: message)
+        }
+    }
+
+
     public func observe() -> AnyPublisher<ProviderEvent?, Never> {
         return Publishers.MergeMany(providers.map { $0.observe() }).eraseToAnyPublisher()
     }
