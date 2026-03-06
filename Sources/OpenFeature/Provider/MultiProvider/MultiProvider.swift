@@ -163,13 +163,13 @@ public class MultiProvider: FeatureProvider {
     }
 
     public func track(key: String, context: (any EvaluationContext)?, details: (any TrackingEventDetails)?) throws {
-        var trackingErrors: [(String, Error)] = []
-        for provider in providers {
+        let trackingErrors = providers.compactMap { provider -> (String, Error)? in
             do {
                 try provider.track(key: key, context: context, details: details)
+                return nil
             } catch {
                 let providerName = provider.metadata.name ?? "Provider"
-                trackingErrors.append((providerName, error))
+                return (providerName, error)
             }
         }
 
