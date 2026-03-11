@@ -1,10 +1,10 @@
-// swiftlint:disable file_length
 import Combine
 import Logging
 import XCTest
 
 @testable import OpenFeature
 
+// swiftlint:disable type_body_length file_length
 final class MultiProviderTests: XCTestCase {
     func testEvaluationWithMultipleProvidersDefaultStrategy_MultipleTypes() throws {
         // Test first provider missing flag results in second provider being evaluated
@@ -265,23 +265,27 @@ final class MultiProviderTests: XCTestCase {
         let provider1 = "Provider1"
         let provider2 = "Provider2"
         let provider3 = "Provider3"
-        
+
         var calledProviders: [String] = []
         let mockProvider1 = MultiProviderTestHelpers.mockTrackingProvider(name: provider1) { _, _, _ in
             calledProviders.append(provider1)
         }
-        
+
         let mockProvider2 = MultiProviderTestHelpers.mockTrackingProvider(name: provider2) { _, _, _ in
             calledProviders.append(provider2)
         }
-        
+
         let mockProvider3 = MultiProviderTestHelpers.mockTrackingProvider(name: provider3) { _, _, _ in
             calledProviders.append(provider3)
         }
-        
+
         let multiProvider = MultiProvider(providers: [mockProvider1, mockProvider2, mockProvider3])
-        
-        try multiProvider.track(key: "test-event", context: nil as EvaluationContext?, details: nil as TrackingEventDetails?)
+
+        try multiProvider.track(
+            key: "test-event",
+            context: nil,
+            details: nil
+        )
 
         let expectedProviders = [provider1, provider2, provider3]
 
@@ -314,8 +318,8 @@ final class MultiProviderTests: XCTestCase {
 
         try multiProvider.track(
             key: "test-event",
-            context: nil as EvaluationContext?,
-            details: nil as TrackingEventDetails?
+            context: nil,
+            details: nil
         )
 
         XCTAssertEqual(
@@ -426,3 +430,4 @@ class CapturingLogHandler: LogHandler {
         messages.append(LogEntry(level: level, message: message.description))
     }
 }
+// swiftlint:enable type_body_length file_length
