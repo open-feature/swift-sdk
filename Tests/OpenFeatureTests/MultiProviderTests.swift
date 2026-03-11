@@ -1,4 +1,6 @@
+// swiftlint:disable file_length
 import Combine
+import Logging
 import XCTest
 
 @testable import OpenFeature
@@ -273,7 +275,7 @@ final class MultiProviderTests: XCTestCase {
             calledProviders.append(provider2)
         }
         
-        let mockProvider3 = MultiProviderTestHelpers.mockTrackingProvider(name: provider3) { a, b, c in
+        let mockProvider3 = MultiProviderTestHelpers.mockTrackingProvider(name: provider3) { _, _, _ in
             calledProviders.append(provider3)
         }
         
@@ -286,38 +288,48 @@ final class MultiProviderTests: XCTestCase {
         XCTAssertEqual(calledProviders, expectedProviders, "Providers called do not match expected providers")
     }
 
-    func testTrackWithMultipleProviders_AggregatesErrorsWithProviderNames() throws {
+    func testTrackWithMultipleProviders_LogsErrorsAndContinues() throws {
+        var calledProviders: [String] = []
+        let logHandler = CapturingLogHandler()
+        let logger = Logger(label: "test.track") { _ in logHandler }
+
         let mockProvider1 = MultiProviderTestHelpers.mockTrackingProvider(name: "AnalyticsProvider") { _, _, _ in
+            calledProviders.append("AnalyticsProvider")
             throw OpenFeatureError.generalError(message: "Analytics service unavailable")
         }
-        
+
         let mockProvider2 = MultiProviderTestHelpers.mockTrackingProvider(name: "MetricsProvider") { _, _, _ in
+            calledProviders.append("MetricsProvider")
             throw OpenFeatureError.generalError(message: "Metrics endpoint failed")
         }
-        
-        let mockProvider3 = MultiProviderTestHelpers.mockTrackingProvider(name: "SuccessfulProvider") { _, _, _ in
-        }
-        
-        let multiProvider = MultiProvider(providers: [mockProvider1, mockProvider2, mockProvider3])
-        
-        do {
-            try multiProvider.track(key: "test-event", context: nil as EvaluationContext?, details: nil as TrackingEventDetails?)
-            XCTFail("Expected track to throw an error")
-        } catch let error as OpenFeatureError {
-            guard case .generalError(let message) = error else {
-                XCTFail("Expected generalError with aggregated message")
-                return
-            }
 
-            XCTAssertTrue(message.contains("One or more providers failed during track call"))
-            XCTAssertTrue(message.contains("AnalyticsProvider"))
-            XCTAssertTrue(message.contains("Analytics service unavailable"))
-            XCTAssertTrue(message.contains("MetricsProvider"))
-            XCTAssertTrue(message.contains("Metrics endpoint failed"))
-            XCTAssertFalse(message.contains("SuccessfulProvider"))
-        } catch {
-            XCTFail("Expected OpenFeatureError, got \(error)")
+        let mockProvider3 = MultiProviderTestHelpers.mockTrackingProvider(name: "SuccessfulProvider") { _, _, _ in
+            calledProviders.append("SuccessfulProvider")
         }
+
+        let multiProvider = MultiProvider(
+            providers: [mockProvider1, mockProvider2, mockProvider3],
+            logger: logger
+        )
+
+        try multiProvider.track(
+            key: "test-event",
+            context: nil as EvaluationContext?,
+            details: nil as TrackingEventDetails?
+        )
+
+        XCTAssertEqual(
+            calledProviders,
+            ["AnalyticsProvider", "MetricsProvider", "SuccessfulProvider"],
+            "All providers should be called even if some throw errors"
+        )
+
+        let errorMessages = logHandler.messages.filter { $0.level == .error }.map { $0.message }
+        XCTAssertEqual(errorMessages.count, 2, "Should log exactly two errors")
+        XCTAssertTrue(errorMessages[0].contains("AnalyticsProvider"))
+        XCTAssertTrue(errorMessages[0].contains("Analytics service unavailable"))
+        XCTAssertTrue(errorMessages[1].contains("MetricsProvider"))
+        XCTAssertTrue(errorMessages[1].contains("Metrics endpoint failed"))
     }
 }
 
@@ -383,5 +395,34 @@ enum MultiProviderTestHelpers {
         let provider = MockProvider(track: track)
         provider.metadata = MockProvider.MockProviderMetadata(name: name)
         return provider
+    }
+}
+
+class CapturingLogHandler: LogHandler {
+    struct LogEntry {
+        let level: Logger.Level
+        let message: String
+    }
+
+    var messages: [LogEntry] = []
+    var metadata: Logger.Metadata = [:]
+    var logLevel: Logger.Level = .trace
+
+    subscript(metadataKey key: String) -> Logger.Metadata.Value? {
+        get { metadata[key] }
+        set { metadata[key] = newValue }
+    }
+
+    // swiftlint:disable:next function_parameter_count
+    func log(
+        level: Logger.Level,
+        message: Logger.Message,
+        metadata: Logger.Metadata?,
+        source: String,
+        file: String,
+        function: String,
+        line: UInt
+    ) {
+        messages.append(LogEntry(level: level, message: message.description))
     }
 }

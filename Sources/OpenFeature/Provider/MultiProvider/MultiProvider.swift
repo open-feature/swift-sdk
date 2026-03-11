@@ -13,6 +13,7 @@ public class MultiProvider: FeatureProvider {
 
     private let providers: [FeatureProvider]
     private let strategy: Strategy
+    private let logger: Logger?
 
     /// Initialize a MultiProvider with a list of providers and a strategy.
     /// - Parameters:
@@ -20,10 +21,12 @@ public class MultiProvider: FeatureProvider {
     ///   - strategy: A strategy to evaluate the providers. Defaults to FirstMatchStrategy.
     public init(
         providers: [FeatureProvider],
-        strategy: Strategy = FirstMatchStrategy()
+        strategy: Strategy = FirstMatchStrategy(),
+        logger: Logger? = nil
     ) {
         self.providers = providers
         self.strategy = strategy
+        self.logger = logger
         metadata = MultiProviderMetadata(providers: providers)
     }
 
@@ -163,28 +166,15 @@ public class MultiProvider: FeatureProvider {
     }
 
     public func track(key: String, context: (any EvaluationContext)?, details: (any TrackingEventDetails)?) throws {
-        let trackingErrors = providers.compactMap { provider -> (String, Error)? in
+        for provider in providers {
             do {
                 try provider.track(key: key, context: context, details: details)
-                return nil
             } catch {
                 let providerName = provider.metadata.name ?? "Provider"
-                return (providerName, error)
+                logger?.error(
+                    "Error tracking event \"\(key)\" with provider \"\(providerName)\": \(error)"
+                )
             }
-        }
-
-        if !trackingErrors.isEmpty {
-            let errorDetails = trackingErrors
-                .map { name, error in
-                    guard let error = error as? OpenFeatureError else {
-                        return "\(name): \(error.localizedDescription)"
-                    }
-                    return "\(name): \(error.description)"
-                }
-                .joined(separator: "\n")
-
-            let message = "One or more providers failed during track call: \(errorDetails)"
-            throw OpenFeatureError.generalError(message: message)
         }
     }
 
