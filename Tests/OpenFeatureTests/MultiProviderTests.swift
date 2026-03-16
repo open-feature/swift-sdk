@@ -3,9 +3,10 @@ import XCTest
 
 @testable import OpenFeature
 
-final class MultiProviderTests: XCTestCase {
+// MARK: - Strategy Evaluation Tests
+
+final class MultiProviderStrategyTests: XCTestCase {
     func testEvaluationWithMultipleProvidersDefaultStrategy_MultipleTypes() throws {
-        // Test first provider missing flag results in second provider being evaluated
         let mockKey = "testKey"
         let mockProviderBoolValue = true
         let mockProviderStringValue = "testString"
@@ -13,9 +14,7 @@ final class MultiProviderTests: XCTestCase {
         let mockProviderDoubleValue: Double = 1.0
         let mockProviderObjectValue = Value.structure(["testKey": Value.string("testValue")])
         let mockError = OpenFeatureError.flagNotFoundError(key: mockKey)
-        // First provider doesn't have the flag and test using all types
         let mockProvider1 = MultiProviderTestHelpers.mockThrowingProvider(error: mockError)
-        // Second provider has the flag and test using all types
         let mockProvider2 = MultiProviderTestHelpers.mockTestProvider(
             values: MultiProviderTestHelpers.MockValues(
                 mockKey: mockKey,
@@ -27,7 +26,6 @@ final class MultiProviderTests: XCTestCase {
             )
         )
         let multiProvider = MultiProvider(providers: [mockProvider1, mockProvider2])
-        // Expect the second provider's value to be returned
         let boolResult = try multiProvider.getBooleanEvaluation(
             key: mockKey, defaultValue: false, context: MutableContext())
         XCTAssertEqual(boolResult.value, mockProviderBoolValue)
@@ -226,6 +224,95 @@ final class MultiProviderTests: XCTestCase {
         XCTAssertEqual(result.value, defaultValue)
     }
 
+    func testComparisonStrategyReturnsFallbackOnMismatchAndCallsCallback() throws {
+        let provider1 = MockProvider(
+            getBooleanEvaluation: { _, _, _ in
+                ProviderEvaluation(value: true)
+            }
+        )
+        provider1.metadata = NamedProviderMetadata(name: "provider")
+
+        let provider2 = MockProvider(
+            getBooleanEvaluation: { _, _, _ in
+                ProviderEvaluation(value: false)
+            }
+        )
+        provider2.metadata = NamedProviderMetadata(name: "provider")
+
+        var mismatchResults: [ComparisonStrategyResolutionResult] = []
+        let multiProvider = MultiProvider(
+            providers: [provider1, provider2],
+            strategy: ComparisonStrategy(
+                fallbackProvider: provider2,
+                onMismatch: { mismatchResults = $0 }
+            )
+        )
+
+        let result = try multiProvider.getBooleanEvaluation(
+            key: "test-key",
+            defaultValue: false,
+            context: nil
+        )
+
+        XCTAssertFalse(result.value)
+        XCTAssertEqual(mismatchResults.map(\.providerName), ["provider-1", "provider-2"])
+        XCTAssertEqual((mismatchResults[0].details as? ProviderEvaluation<Bool>)?.value, true)
+        XCTAssertEqual((mismatchResults[1].details as? ProviderEvaluation<Bool>)?.value, false)
+    }
+
+    func testComparisonStrategyCollectsProviderErrors() {
+        let provider1 = MockProvider(
+            getBooleanEvaluation: { _, _, _ in
+                throw OpenFeatureError.generalError(message: "provider1 failure")
+            }
+        )
+        provider1.metadata = NamedProviderMetadata(name: "provider")
+
+        let provider2 = MockProvider(
+            getBooleanEvaluation: { _, defaultValue, _ in
+                ProviderEvaluation(
+                    value: defaultValue,
+                    errorCode: .flagNotFound,
+                    errorMessage: "missing flag"
+                )
+            }
+        )
+        provider2.metadata = NamedProviderMetadata(name: "provider")
+
+        let multiProvider = MultiProvider(
+            providers: [provider1, provider2],
+            strategy: ComparisonStrategy(fallbackProvider: provider1)
+        )
+
+        XCTAssertThrowsError(
+            try multiProvider.getBooleanEvaluation(
+                key: "test-key",
+                defaultValue: false,
+                context: nil
+            )
+        ) { error in
+            guard let comparisonError = error as? ComparisonStrategyError else {
+                XCTFail("Unexpected error type \(error)")
+                return
+            }
+
+            guard case .providerErrors(let results) = comparisonError else {
+                XCTFail("Expected providerErrors")
+                return
+            }
+
+            XCTAssertEqual(results.count, 2)
+            XCTAssertEqual(results.map(\.providerName), ["provider-1", "provider-2"])
+            XCTAssertNotNil(results[0].error)
+            XCTAssertEqual(results[1].errorCode, .flagNotFound)
+            XCTAssertEqual(results[1].errorMessage, "missing flag")
+        }
+    }
+}
+
+// MARK: - Feature Tests (Events, Hooks, Tracking, Lifecycle)
+
+final class MultiProviderFeatureTests: XCTestCase {
     func testObserveWithMultipleProviders() {
         let provider1Events = PassthroughSubject<ProviderEvent?, Never>()
         let provider2Events = PassthroughSubject<ProviderEvent?, Never>()
@@ -411,91 +498,6 @@ final class MultiProviderTests: XCTestCase {
         observation.cancel()
     }
 
-    func testComparisonStrategyReturnsFallbackOnMismatchAndCallsCallback() throws {
-        let provider1 = MockProvider(
-            getBooleanEvaluation: { _, _, _ in
-                ProviderEvaluation(value: true)
-            }
-        )
-        provider1.metadata = NamedProviderMetadata(name: "provider")
-
-        let provider2 = MockProvider(
-            getBooleanEvaluation: { _, _, _ in
-                ProviderEvaluation(value: false)
-            }
-        )
-        provider2.metadata = NamedProviderMetadata(name: "provider")
-
-        var mismatchResults: [ComparisonStrategyResolutionResult] = []
-        let multiProvider = MultiProvider(
-            providers: [provider1, provider2],
-            strategy: ComparisonStrategy(
-                fallbackProvider: provider2,
-                onMismatch: { mismatchResults = $0 }
-            )
-        )
-
-        let result = try multiProvider.getBooleanEvaluation(
-            key: "test-key",
-            defaultValue: false,
-            context: nil
-        )
-
-        XCTAssertFalse(result.value)
-        XCTAssertEqual(mismatchResults.map(\.providerName), ["provider-1", "provider-2"])
-        XCTAssertEqual((mismatchResults[0].details as? ProviderEvaluation<Bool>)?.value, true)
-        XCTAssertEqual((mismatchResults[1].details as? ProviderEvaluation<Bool>)?.value, false)
-    }
-
-    func testComparisonStrategyCollectsProviderErrors() {
-        let provider1 = MockProvider(
-            getBooleanEvaluation: { _, _, _ in
-                throw OpenFeatureError.generalError(message: "provider1 failure")
-            }
-        )
-        provider1.metadata = NamedProviderMetadata(name: "provider")
-
-        let provider2 = MockProvider(
-            getBooleanEvaluation: { _, defaultValue, _ in
-                ProviderEvaluation(
-                    value: defaultValue,
-                    errorCode: .flagNotFound,
-                    errorMessage: "missing flag"
-                )
-            }
-        )
-        provider2.metadata = NamedProviderMetadata(name: "provider")
-
-        let multiProvider = MultiProvider(
-            providers: [provider1, provider2],
-            strategy: ComparisonStrategy(fallbackProvider: provider1)
-        )
-
-        XCTAssertThrowsError(
-            try multiProvider.getBooleanEvaluation(
-                key: "test-key",
-                defaultValue: false,
-                context: nil
-            )
-        ) { error in
-            guard let comparisonError = error as? ComparisonStrategyError else {
-                XCTFail("Unexpected error type \(error)")
-                return
-            }
-
-            guard case .providerErrors(let results) = comparisonError else {
-                XCTFail("Expected providerErrors")
-                return
-            }
-
-            XCTAssertEqual(results.count, 2)
-            XCTAssertEqual(results.map(\.providerName), ["provider-1", "provider-2"])
-            XCTAssertNotNil(results[0].error)
-            XCTAssertEqual(results[1].errorCode, .flagNotFound)
-            XCTAssertEqual(results[1].errorMessage, "missing flag")
-        }
-    }
-
     func testInitializeCollectsAllErrorsAndInitializesAllProviders() async {
         var provider1Initialized = false
         var provider2Initialized = false
@@ -524,12 +526,9 @@ final class MultiProviderTests: XCTestCase {
             try await multiProvider.initialize(initialContext: nil)
             XCTFail("Expected to throw")
         } catch let error as MultiProviderAggregateError {
-            // All providers should have been initialized despite provider2 failing
             XCTAssertTrue(provider1Initialized)
             XCTAssertTrue(provider2Initialized)
             XCTAssertTrue(provider3Initialized)
-
-            // Only provider2 should be in the error list
             XCTAssertEqual(error.providerErrors.count, 1)
             XCTAssertTrue(error.providerErrors[0].error is OpenFeatureError)
         } catch {
@@ -559,6 +558,8 @@ final class MultiProviderTests: XCTestCase {
         )
     }
 }
+
+// MARK: - Test Helpers
 
 enum MultiProviderTestHelpers {
     static func mockThrowingProvider(error: OpenFeatureError) -> MockProvider {
@@ -649,7 +650,11 @@ private final class ContextMutatingHook: Hook {
         errorCalled += 1
     }
 
-    func finally<HookValue>(ctx: HookContext<HookValue>, details: FlagEvaluationDetails<HookValue>, hints: [String: Any]) {
+    func finally<HookValue>(
+        ctx: HookContext<HookValue>,
+        details: FlagEvaluationDetails<HookValue>,
+        hints: [String: Any]
+    ) {
         finallyCalled += 1
     }
 }
@@ -673,7 +678,11 @@ private final class HookContextCapturingHook: Hook {
     func error<HookValue>(ctx: HookContext<HookValue>, error: Error, hints: [String: Any]) {
     }
 
-    func finally<HookValue>(ctx: HookContext<HookValue>, details: FlagEvaluationDetails<HookValue>, hints: [String: Any]) {
+    func finally<HookValue>(
+        ctx: HookContext<HookValue>,
+        details: FlagEvaluationDetails<HookValue>,
+        hints: [String: Any]
+    ) {
     }
 }
 
