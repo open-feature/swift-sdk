@@ -1,10 +1,72 @@
 import Combine
 import Foundation
 
-// MARK: - Event Aggregation & Status Tracking
-extension MultiProvider {
-    func subscribeToProviderEvents() {
-        providerSubscriptions = childProviders.map { childProvider in
+/// Tracks individual child provider statuses, computes an aggregate status,
+/// and emits aggregate events only when the overall status transitions.
+/// Matches the JS SDK's `StatusTracker` pattern.
+class MultiProviderStatusTracker {
+    private let stateLock = NSLock()
+    private let eventSubject: PassthroughSubject<ProviderEvent?, Never>
+    private var providerStatuses: [String: ProviderStatus]
+    private var lastAggregateStatus: ProviderStatus = .notReady
+    private var subscriptions: [AnyCancellable] = []
+
+    init(
+        childProviders: [ChildProviderRecord],
+        eventSubject: PassthroughSubject<ProviderEvent?, Never>
+    ) {
+        self.eventSubject = eventSubject
+        self.providerStatuses = Dictionary(
+            uniqueKeysWithValues: childProviders.map { ($0.name, .notReady) }
+        )
+        subscribeToProviderEvents(childProviders: childProviders)
+    }
+
+    deinit {
+        subscriptions.forEach { $0.cancel() }
+    }
+
+    func updateStatus(providerName: String, status: ProviderStatus) {
+        stateLock.withLock {
+            providerStatuses[providerName] = status
+            lastAggregateStatus = aggregateProviderStatus()
+        }
+    }
+
+    func setAllReconciling(childProviders: [ChildProviderRecord]) {
+        stateLock.withLock {
+            childProviders.forEach {
+                providerStatuses[$0.name] = .reconciling
+            }
+        }
+    }
+
+    func statusForError(_ error: Error) -> ProviderStatus {
+        switch error {
+        case OpenFeatureError.providerFatalError:
+            return .fatal
+        default:
+            return .error
+        }
+    }
+
+    func activeChildProviders(from childProviders: [ChildProviderRecord]) -> [ChildProviderRecord] {
+        stateLock.withLock {
+            childProviders.filter { childProvider in
+                switch providerStatuses[childProvider.name] ?? .notReady {
+                case .ready, .reconciling, .stale:
+                    return true
+                case .notReady, .error, .fatal:
+                    return false
+                }
+            }
+        }
+    }
+
+    // MARK: - Private
+
+    private func subscribeToProviderEvents(childProviders: [ChildProviderRecord]) {
+        subscriptions = childProviders.map { childProvider in
             childProvider.provider.observe().sink { [weak self] event in
                 self?.handleProviderEvent(providerName: childProvider.name, event: event)
             }
@@ -57,22 +119,6 @@ extension MultiProvider {
         }
     }
 
-    func updateProviderStatus(providerName: String, status: ProviderStatus) {
-        stateLock.withLock {
-            providerStatuses[providerName] = status
-            lastAggregateStatus = aggregateProviderStatus()
-        }
-    }
-
-    func providerStatus(for error: Error) -> ProviderStatus {
-        switch error {
-        case OpenFeatureError.providerFatalError:
-            return .fatal
-        default:
-            return .error
-        }
-    }
-
     private func aggregateProviderStatus() -> ProviderStatus {
         providerStatuses.values.max(by: {
             statusPriority(for: $0) < statusPriority(for: $1)
@@ -96,7 +142,10 @@ extension MultiProvider {
         }
     }
 
-    private func providerEvent(for status: ProviderStatus, details: ProviderEventDetails?) -> ProviderEvent? {
+    private func providerEvent(
+        for status: ProviderStatus,
+        details: ProviderEventDetails?
+    ) -> ProviderEvent? {
         switch status {
         case .ready:
             return .ready(details)
@@ -117,19 +166,6 @@ extension MultiProvider {
             return .reconciling(details)
         case .notReady:
             return nil
-        }
-    }
-
-    func activeChildProviders() -> [ChildProviderRecord] {
-        stateLock.withLock {
-            childProviders.filter { childProvider in
-                switch providerStatuses[childProvider.name] ?? .notReady {
-                case .ready, .reconciling, .stale:
-                    return true
-                case .notReady, .error, .fatal:
-                    return false
-                }
-            }
         }
     }
 }

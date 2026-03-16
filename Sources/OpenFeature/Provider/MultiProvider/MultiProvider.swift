@@ -52,12 +52,9 @@ public class MultiProvider: FeatureProvider {
     let childProviders: [ChildProviderRecord]
     let strategy: Strategy
     let hookSupport = HookSupport()
-    let stateLock = NSLock()
     let eventSubject = PassthroughSubject<ProviderEvent?, Never>()
     let logger = Logger(label: "dev.openfeature.multiprovider")
-    var providerStatuses: [String: ProviderStatus]
-    var providerSubscriptions: [AnyCancellable] = []
-    var lastAggregateStatus: ProviderStatus = .notReady
+    let statusTracker: MultiProviderStatusTracker
 
     /// Initialize a MultiProvider with a list of providers and a strategy.
     /// - Parameters:
@@ -73,20 +70,14 @@ public class MultiProvider: FeatureProvider {
         self.providers = providers
         self.childProviders = childProviders
         self.strategy = strategy
-        self.providerStatuses = Dictionary(
-            uniqueKeysWithValues: childProviders.map { ($0.name, .notReady) }
+        self.statusTracker = MultiProviderStatusTracker(
+            childProviders: childProviders,
+            eventSubject: eventSubject
         )
         metadata = MultiProviderMetadata(providers: childProviders)
-        subscribeToProviderEvents()
-    }
-
-    deinit {
-        providerSubscriptions.forEach { $0.cancel() }
     }
 
     public func initialize(initialContext: EvaluationContext?) async throws {
-        // Use non-throwing task group to ensure all providers get a chance to initialize,
-        // matching the JS SDK's Promise.allSettled pattern.
         let errors: [(providerName: String, error: Error)] = await withTaskGroup(
             of: (String, Error?).self
         ) { group in
@@ -94,25 +85,26 @@ public class MultiProvider: FeatureProvider {
                 group.addTask {
                     do {
                         try await childProvider.provider.initialize(initialContext: initialContext)
-                        self.updateProviderStatus(providerName: childProvider.name, status: .ready)
+                        self.statusTracker.updateStatus(
+                            providerName: childProvider.name, status: .ready)
                         return (childProvider.name, nil)
                     } catch {
-                        self.updateProviderStatus(
+                        self.statusTracker.updateStatus(
                             providerName: childProvider.name,
-                            status: self.providerStatus(for: error)
+                            status: self.statusTracker.statusForError(error)
                         )
                         return (childProvider.name, error)
                     }
                 }
             }
 
-            var collected: [(String, Error?)] = []
-            for await result in group {
-                collected.append(result)
+            var errors: [(providerName: String, error: Error)] = []
+            for await (name, error) in group {
+                if let error {
+                    errors.append((providerName: name, error: error))
+                }
             }
-            return collected.compactMap { name, error in
-                error.map { (providerName: name, error: $0) }
-            }
+            return errors
         }
 
         if !errors.isEmpty {
@@ -124,14 +116,8 @@ public class MultiProvider: FeatureProvider {
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) async throws {
-        stateLock.withLock {
-            childProviders.forEach {
-                providerStatuses[$0.name] = .reconciling
-            }
-        }
+        statusTracker.setAllReconciling(childProviders: childProviders)
 
-        // Use non-throwing task group to ensure all providers get a chance to handle context change,
-        // matching the JS SDK's Promise.allSettled pattern.
         let errors: [(providerName: String, error: Error)] = await withTaskGroup(
             of: (String, Error?).self
         ) { group in
@@ -140,25 +126,26 @@ public class MultiProvider: FeatureProvider {
                     do {
                         try await childProvider.provider.onContextSet(
                             oldContext: oldContext, newContext: newContext)
-                        self.updateProviderStatus(providerName: childProvider.name, status: .ready)
+                        self.statusTracker.updateStatus(
+                            providerName: childProvider.name, status: .ready)
                         return (childProvider.name, nil)
                     } catch {
-                        self.updateProviderStatus(
+                        self.statusTracker.updateStatus(
                             providerName: childProvider.name,
-                            status: self.providerStatus(for: error)
+                            status: self.statusTracker.statusForError(error)
                         )
                         return (childProvider.name, error)
                     }
                 }
             }
 
-            var collected: [(String, Error?)] = []
-            for await result in group {
-                collected.append(result)
+            var errors: [(providerName: String, error: Error)] = []
+            for await (name, error) in group {
+                if let error {
+                    errors.append((providerName: name, error: error))
+                }
             }
-            return collected.compactMap { name, error in
-                error.map { (providerName: name, error: $0) }
-            }
+            return errors
         }
 
         if !errors.isEmpty {
@@ -171,7 +158,7 @@ public class MultiProvider: FeatureProvider {
         defaultValue: Bool,
         context: EvaluationContext?
     ) throws -> ProviderEvaluation<Bool> {
-        return try getBooleanEvaluation(
+        try getBooleanEvaluation(
             key: key, defaultValue: defaultValue, context: context, logger: nil)
     }
 
@@ -180,7 +167,7 @@ public class MultiProvider: FeatureProvider {
         defaultValue: String,
         context: EvaluationContext?
     ) throws -> ProviderEvaluation<String> {
-        return try getStringEvaluation(
+        try getStringEvaluation(
             key: key, defaultValue: defaultValue, context: context, logger: nil)
     }
 
@@ -189,7 +176,7 @@ public class MultiProvider: FeatureProvider {
         defaultValue: Int64,
         context: EvaluationContext?
     ) throws -> ProviderEvaluation<Int64> {
-        return try getIntegerEvaluation(
+        try getIntegerEvaluation(
             key: key, defaultValue: defaultValue, context: context, logger: nil)
     }
 
@@ -198,7 +185,7 @@ public class MultiProvider: FeatureProvider {
         defaultValue: Double,
         context: EvaluationContext?
     ) throws -> ProviderEvaluation<Double> {
-        return try getDoubleEvaluation(
+        try getDoubleEvaluation(
             key: key, defaultValue: defaultValue, context: context, logger: nil)
     }
 
@@ -207,7 +194,7 @@ public class MultiProvider: FeatureProvider {
         defaultValue: Value,
         context: EvaluationContext?
     ) throws -> ProviderEvaluation<Value> {
-        return try getObjectEvaluation(
+        try getObjectEvaluation(
             key: key, defaultValue: defaultValue, context: context, logger: nil)
     }
 
@@ -220,7 +207,7 @@ public class MultiProvider: FeatureProvider {
         context: (any EvaluationContext)?,
         details: (any TrackingEventDetails)?
     ) throws {
-        for childProvider in activeChildProviders() {
+        for childProvider in statusTracker.activeChildProviders(from: childProviders) {
             do {
                 try childProvider.provider.track(key: key, context: context, details: details)
             } catch {
