@@ -142,6 +142,7 @@ extension OpenFeatureClient {
                 context: context,
                 defaultValue: defaultValue,
                 provider: provider,
+                hookHints: hints,
                 logger: resolvedLogger)
             details = FlagEvaluationDetails<T>.from(providerEval: providerEval, flagKey: key)
             try hookSupport.afterHooks(
@@ -170,77 +171,85 @@ extension OpenFeatureClient {
         context: EvaluationContext?,
         defaultValue: V,
         provider: FeatureProvider,
+        hookHints: [String: Any],
         logger: Logger?
     ) throws -> ProviderEvaluation<V> {
-        switch V.flagValueType {
-        case .boolean:
-            guard let defaultValue = defaultValue as? Bool else {
-                break
+        let hookExecutionContext = ProviderHookExecutionContext(
+            clientMetadata: metadata,
+            hints: hookHints
+        )
+
+        return try ProviderHookExecutionContextStorage.$current.withValue(hookExecutionContext) {
+            switch V.flagValueType {
+            case .boolean:
+                guard let defaultValue = defaultValue as? Bool else {
+                    break
+                }
+
+                if let evaluation = try provider.getBooleanEvaluation(
+                    key: key,
+                    defaultValue: defaultValue,
+                    context: context,
+                    logger: logger) as? ProviderEvaluation<V>
+                {
+                    return evaluation
+                }
+            case .string:
+                guard let defaultValue = defaultValue as? String else {
+                    break
+                }
+
+                if let evaluation = try provider.getStringEvaluation(
+                    key: key,
+                    defaultValue: defaultValue,
+                    context: context,
+                    logger: logger) as? ProviderEvaluation<V>
+                {
+                    return evaluation
+                }
+            case .integer:
+                guard let defaultValue = defaultValue as? Int64 else {
+                    break
+                }
+
+                if let evaluation = try provider.getIntegerEvaluation(
+                    key: key,
+                    defaultValue: defaultValue,
+                    context: context,
+                    logger: logger) as? ProviderEvaluation<V>
+                {
+                    return evaluation
+                }
+            case .double:
+                guard let defaultValue = defaultValue as? Double else {
+                    break
+                }
+
+                if let evaluation = try provider.getDoubleEvaluation(
+                    key: key,
+                    defaultValue: defaultValue,
+                    context: context,
+                    logger: logger) as? ProviderEvaluation<V>
+                {
+                    return evaluation
+                }
+            case .object:
+                guard let defaultValue = defaultValue as? Value else {
+                    break
+                }
+
+                if let evaluation = try provider.getObjectEvaluation(
+                    key: key,
+                    defaultValue: defaultValue,
+                    context: context,
+                    logger: logger) as? ProviderEvaluation<V>
+                {
+                    return evaluation
+                }
             }
 
-            if let evaluation = try provider.getBooleanEvaluation(
-                key: key,
-                defaultValue: defaultValue,
-                context: context,
-                logger: logger) as? ProviderEvaluation<V>
-            {
-                return evaluation
-            }
-        case .string:
-            guard let defaultValue = defaultValue as? String else {
-                break
-            }
-
-            if let evaluation = try provider.getStringEvaluation(
-                key: key,
-                defaultValue: defaultValue,
-                context: context,
-                logger: logger) as? ProviderEvaluation<V>
-            {
-                return evaluation
-            }
-        case .integer:
-            guard let defaultValue = defaultValue as? Int64 else {
-                break
-            }
-
-            if let evaluation = try provider.getIntegerEvaluation(
-                key: key,
-                defaultValue: defaultValue,
-                context: context,
-                logger: logger) as? ProviderEvaluation<V>
-            {
-                return evaluation
-            }
-        case .double:
-            guard let defaultValue = defaultValue as? Double else {
-                break
-            }
-
-            if let evaluation = try provider.getDoubleEvaluation(
-                key: key,
-                defaultValue: defaultValue,
-                context: context,
-                logger: logger) as? ProviderEvaluation<V>
-            {
-                return evaluation
-            }
-        case .object:
-            guard let defaultValue = defaultValue as? Value else {
-                break
-            }
-
-            if let evaluation = try provider.getObjectEvaluation(
-                key: key,
-                defaultValue: defaultValue,
-                context: context,
-                logger: logger) as? ProviderEvaluation<V>
-            {
-                return evaluation
-            }
+            throw OpenFeatureError.generalError(message: "Unable to match default value type with flag value type")
         }
-
-        throw OpenFeatureError.generalError(message: "Unable to match default value type with flag value type")
     }
 }
 
