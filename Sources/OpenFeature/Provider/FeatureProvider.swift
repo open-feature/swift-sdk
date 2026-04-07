@@ -3,17 +3,94 @@ import Foundation
 import Logging
 
 /// The interface implemented by upstream flag providers to resolve flags for their service.
+///
+/// Providers are responsible for managing their own ``status`` and for emitting events
+/// according to the OpenFeature specification. The easiest way to satisfy both
+/// requirements is to delegate to ``ProviderStatusTracker``:
+///
+/// ```swift
+/// final class MyProvider: FeatureProvider {
+///     private let statusTracker = ProviderStatusTracker()
+///
+///     // Delegate status and event publishing to the tracker
+///     var status: ProviderStatus { statusTracker.status }
+///     func observe() -> AnyPublisher<ProviderEvent, Never> { statusTracker.observe() }
+///
+///     func initialize(initialContext: EvaluationContext?) -> Future<Void, Never> {
+///         Future { promise in
+///             // Emit any non-.notReady event before resolving.
+///             // .ready and .error are the most common outcomes.
+///             self.statusTracker.send(.ready(nil))
+///             promise(.success(()))
+///         }
+///     }
+///
+///     func onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) -> Future<Void, Never> {
+///         Future { promise in
+///             // If no work is needed, resolve immediately (no events required).
+///             // If reconciliation is required:
+///             //   self.statusTracker.send(.reconciling(nil))
+///             //   ... re-evaluate with new context ...
+///             //   self.statusTracker.send(.contextChanged(nil))  // or .error(nil) on failure
+///             //   promise(.success(()))
+///             promise(.success(()))
+///         }
+///     }
+///
+///     // ... flag evaluation methods ...
+/// }
+/// ```
+///
+/// ``ProviderStatusTracker`` automatically keeps `status` in sync with emitted events,
+/// handles thread safety, and replays the current status to new subscribers.
 public protocol FeatureProvider: EventPublisher {
     var hooks: [any Hook] { get }
     var metadata: ProviderMetadata { get }
+
+    /// The current lifecycle status of the provider.
+    ///
+    /// The provider is solely responsible for keeping this value up to date.
+    /// It must be `.notReady` before `initialize` is called, and must reflect
+    /// the most recently emitted event at all times per the OpenFeature specification.
+    ///
+    /// This property must be **thread-safe**: the SDK may read it concurrently
+    /// from flag evaluation paths on any thread.
+    ///
+    /// The recommended way to satisfy these requirements is to use
+    /// ``ProviderStatusTracker`` and expose its `status` property directly.
     var status: ProviderStatus { get }
 
-    /// Called by OpenFeatureAPI whenever the new Provider is registered.
-    /// Providers report errors/status via event emission (e.g. `.ready`, `.error`).
+    /// Called by OpenFeatureAPI when the provider is first registered.
+    ///
+    /// Perform any asynchronous initialisation work (e.g. fetching initial flag
+    /// configuration, establishing a streaming connection) inside this method.
+    ///
+    /// **Required status transition:** emit at least one event before the returned
+    /// `Future` resolves, so that `status` transitions away from `.notReady`. The
+    /// most common outcomes are `.ready` on success and `.error` on failure, but
+    /// any non-`.notReady` status is valid.
+    ///
+    /// Resolve the `Future` only after emitting the event ensures that callers
+    /// of `setProviderAndWait` see the correct status immediately.
+    ///
+    /// Note: `initialize` is called exactly once, when the provider is registered.
+    /// The SDK never calls it again, regardless of the resulting status.
     func initialize(initialContext: EvaluationContext?) -> Future<Void, Never>
 
-    /// Called by OpenFeatureAPI whenever a new EvaluationContext is set by the application.
-    /// Providers report errors/status via event emission (e.g. `.contextChanged`, `.error`).
+    /// Called by OpenFeatureAPI whenever the active `EvaluationContext` changes.
+    ///
+    /// Two valid approaches:
+    /// 1. **No work needed** — resolve the `Future` immediately without emitting any event.
+    /// 2. **Reconciliation required** — emit `.reconciling` first, perform the work, then
+    ///    emit `.contextChanged` on success or `.error` on failure, and resolve the `Future`.
+    ///
+    /// **Concurrency note:** lifecycle calls are serialized — this method is not called
+    /// again until the previous call to `initialize` or `onContextSet` has returned (i.e.
+    /// the `Future` has been created and returned). However, the SDK does **not** wait for
+    /// the returned `Future` to resolve before dispatching the next call. This means
+    /// `onContextSet` may be called while a previous lifecycle `Future` is still doing
+    /// async work. Providers that perform async reconciliation should handle this
+    /// gracefully, e.g. by cancelling any in-flight work when a new call arrives.
     func onContextSet(
         oldContext: EvaluationContext?,
         newContext: EvaluationContext,

@@ -1,34 +1,70 @@
 import Combine
 import Foundation
 
-/// ProviderStatusTracker processes events to update provider status,
-/// and publishes events for downstream subscribers.
+/// Processes ``ProviderEvent``s emitted by a provider, updates ``status`` accordingly,
+/// and republishes events to subscribers.
 ///
-/// ## Locking Strategy
+/// ## Event to status mapping
 ///
-/// - `serializationLock`: Serializes event handling via `send()` and
-///   protects the critical initial subscription window (reading current
-///   status + installing sink atomically).
+/// | Event                                          | Resulting status |
+/// |------------------------------------------------|------------------|
+/// | `.ready`                                       | `.ready`         |
+/// | `.error` (recoverable)                         | `.error`         |
+/// | `.error(errorCode: .providerFatal)`            | `.fatal`         |
+/// | `.stale`                                       | `.stale`         |
+/// | `.reconciling`                                 | `.reconciling`   |
+/// | `.contextChanged`                              | `.ready`         |
+/// | `.configurationChanged`                        | *(no change)*    |
 ///
-/// - Per-subscription locks: Each `TrackerSubscription` has its own lock
-///   to manage its state (demand, subscriber, cancellation). This provides
-///   isolation between subscriptions and reduces lock contention.
+/// ## Status replay
 ///
-/// ProviderStatusTracker uses a private `TrackerPublisher` instead of
-/// exposing `downstreamEvents` directly because each subscriber needs to:
+/// New subscribers automatically receive one synthetic event reflecting the current
+/// status, eliminating the race between subscribing and the first live event.
+/// No replay is emitted while the provider is in the `.notReady` state.
 ///
-/// 1. replay an initial event derived from the current status, and
-/// 2. atomically transition from that replay snapshot to live event
-///    streaming.
+/// ## Recommended usage
 ///
-/// The custom publisher performs replay and sink installation under
-/// `serializationLock`, preventing races where a subscriber could
-/// miss an event between reading current status and attaching to the
-/// live stream.
+/// ```swift
+/// final class MyProvider: FeatureProvider {
+///     private let statusTracker = ProviderStatusTracker()
+///
+///     var status: ProviderStatus { statusTracker.status }
+///     func observe() -> AnyPublisher<ProviderEvent, Never> { statusTracker.observe() }
+///
+///     func initialize(initialContext: EvaluationContext?) -> Future<Void, Never> {
+///         Future { promise in
+///             // ... do some work ...
+///             self.statusTracker.send(.ready(nil))
+///             promise(.success(()))
+///         }
+///     }
+///
+///     func onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) -> Future<Void, Never> {
+///         Future { promise in
+///             self.statusTracker.send(.reconciling(nil))
+///             // ... do some work ...
+///             self.statusTracker.send(.contextChanged(nil))  // or .error(nil)
+///             promise(.success(()))
+///         }
+///     }
+/// }
+/// ```
 public final class ProviderStatusTracker: EventSender, EventPublisher, @unchecked Sendable {
-    // Serializes event handling and subscription setup. Used only in
-    // send() and during the critical window of initial subscription
-    // (currentStatusEvent + downstreamEvents.sink).
+    // MARK: - Locking strategy
+    //
+    // serializationLock: serializes event handling via send() and protects the critical
+    // initial subscription window (reading current status + installing sink atomically),
+    // preventing races where a subscriber could miss an event between reading the current
+    // status and attaching to the live stream.
+    //
+    // Per-subscription locks: each TrackerSubscription has its own lock to manage its
+    // state (demand, subscriber, cancellation), providing isolation between subscriptions
+    // and reducing lock contention.
+    //
+    // A private TrackerPublisher is used instead of exposing downstreamEvents directly
+    // because each subscriber needs to (1) receive a replay event derived from the current
+    // status, and (2) atomically transition from that snapshot to live streaming. Both
+    // steps happen under serializationLock.
     private let serializationLock = NSLock()
 
     public init() {}
