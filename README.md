@@ -37,10 +37,10 @@
 ### Requirements
 
 This SDK supports the following Apple platforms:
-- **iOS 14+**
-- **macOS 11+**
-- **watchOS 7+**
-- **tvOS 14+**
+- **iOS 15+**
+- **macOS 12+**
+- **watchOS 8+**
+- **tvOS 15+**
 
 The SDK is built with Swift 5.5+ and uses only Foundation and Combine frameworks, making it suitable for all Apple platform contexts including mobile, desktop, wearable, and TV applications.
 
