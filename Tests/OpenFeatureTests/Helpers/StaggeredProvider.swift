@@ -4,7 +4,8 @@ import OpenFeature
 
 class StaggeredProvider: FeatureProvider {
     public static let name = "Something"
-    private let eventHandler = EventHandler()
+    private let statusTracker = ProviderStatusTracker()
+    var status: ProviderStatus { statusTracker.status }
     private let onContextSetSemaphore: DispatchSemaphore?
     public var activeContext: EvaluationContext = MutableContext()
 
@@ -12,14 +13,26 @@ class StaggeredProvider: FeatureProvider {
         self.onContextSetSemaphore = onContextSetSemaphore
     }
 
-    func onContextSet(oldContext: OpenFeature.EvaluationContext?, newContext: OpenFeature.EvaluationContext) {
-        onContextSetSemaphore?.wait()
-        activeContext = newContext
+    func onContextSet(
+        oldContext: EvaluationContext?,
+        newContext: EvaluationContext
+    ) -> Future<Void, Never> {
+        return Future { promise in
+            self.statusTracker.send(.reconciling(nil))
+            self.onContextSetSemaphore?.wait()
+            self.activeContext = newContext
+            self.statusTracker.send(.contextChanged(nil))
+            promise(.success(()))
+        }
     }
 
-    func initialize(initialContext: OpenFeature.EvaluationContext?) {
-        if let initialContext {
-            activeContext = initialContext
+    func initialize(initialContext: EvaluationContext?) -> Future<Void, Never> {
+        return Future { promise in
+            if let initialContext {
+                self.activeContext = initialContext
+            }
+            self.statusTracker.send(.ready(nil))
+            promise(.success(()))
         }
     }
 
@@ -67,8 +80,8 @@ class StaggeredProvider: FeatureProvider {
         return ProviderEvaluation(value: .null, flagMetadata: DoSomethingProvider.flagMetadataMap)
     }
 
-    func observe() -> AnyPublisher<ProviderEvent?, Never> {
-        eventHandler.observe()
+    func observe() -> AnyPublisher<ProviderEvent, Never> {
+        statusTracker.observe()
     }
 
     public struct DoMetadata: ProviderMetadata {

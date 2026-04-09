@@ -31,7 +31,7 @@ final class DeveloperExperienceTests: XCTestCase {
             case .ready:
                 readyExpectation.fulfill()
             default:
-                XCTFail("Unexpected event: \(event.map { String(describing: $0) } ?? "nil")")
+                XCTFail("Unexpected event: \(String(describing: event))")
             }
         }
         let provider = DoSomethingProvider()
@@ -41,7 +41,7 @@ final class DeveloperExperienceTests: XCTestCase {
         // Clearing the Provider shouldn't send further global events from it
         // Dropping the first event, which reflects the current state before clearing
         eventState = OpenFeatureAPI.shared.observe().dropFirst().sink { event in
-            XCTFail("Unexpected event after clear: \(event.map { String(describing: $0) } ?? "nil")")
+            XCTFail("Unexpected event after clear: \(String(describing: event))")
         }
 
         // Wait for the clear operation to complete to avoid race conditions
@@ -49,7 +49,10 @@ final class DeveloperExperienceTests: XCTestCase {
 
         // Initialize the provider directly - this shouldn't emit events through the API
         // since the provider is no longer set in the API
-        provider.initialize(initialContext: MutableContext(attributes: ["Test": Value.string("Test")]))
+        _ = provider.initialize(initialContext: MutableContext(attributes: ["Test": Value.string("Test")])).sink(
+            receiveCompletion: { _ in },
+            receiveValue: { _ in }
+        )
         XCTAssertNotNil(eventState)
     }
 
@@ -192,13 +195,13 @@ final class DeveloperExperienceTests: XCTestCase {
         let details = client.getDetails(key: "test", defaultValue: false)
 
         XCTAssertEqual(details.errorCode, .providerFatal)
-        XCTAssertEqual(details.errorMessage, "A fatal error occurred in the provider: unknown")
+        XCTAssertEqual(details.errorMessage, "A fatal error occurred in the provider: Provider is in fatal state")
         XCTAssertEqual(details.reason, Reason.error.rawValue)
     }
 
     func testMultiProviderObserveEvents() async {
-        let mockEvent1Subject = CurrentValueSubject<ProviderEvent?, Never>(nil)
-        let mockEvent2Subject = CurrentValueSubject<ProviderEvent?, Never>(nil)
+        let mockEvent1Subject = PassthroughSubject<ProviderEvent, Never>()
+        let mockEvent2Subject = PassthroughSubject<ProviderEvent, Never>()
         // Create test providers that can emit events
         let eventEmittingProvider1 = MockProvider(
             initialize: { _ in mockEvent1Subject.send(.ready(nil)) },
@@ -220,7 +223,6 @@ final class DeveloperExperienceTests: XCTestCase {
         var receivedEvents: [ProviderEvent] = []
         // Observe events from MultiProvider
         let observer = multiProvider.observe().sink { event in
-            guard let event = event else { return }
             receivedEvents.append(event)
 
             switch event {

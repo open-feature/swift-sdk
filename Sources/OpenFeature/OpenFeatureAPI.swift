@@ -5,15 +5,16 @@ import Logging
 /// A global singleton which holds base configuration for the OpenFeature library.
 /// Configuration here will be shared across all ``Client``s.
 public class OpenFeatureAPI {
-    private let eventHandler = EventHandler()
     // Sync queue to change state atomically
     private let stateQueue = DispatchQueue(label: "com.openfeature.state.queue")
-    // Queue for provider's initialize and onContextSet operations
-    private let unifiedQueue = AsyncProviderOperationsQueue()
+    // Serial queue on which provider lifecycle calls (initialize, onContextSet) are executed.
+    // Keeping them off stateQueue prevents long-running provider I/O from blocking state reads.
+    private let providerLifecycleQueue = DispatchQueue(label: "com.openfeature.provider-lifecycle")
+    // Queue on which api.observe() subscribers are invoked; avoids deadlock when handlers call back into the API.
+    private let eventHandlerQueue = DispatchQueue(label: "com.openfeature.event-handlers")
 
     private(set) var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
     private(set) var evaluationContext: EvaluationContext?
-    private(set) var providerStatus: ProviderStatus = .notReady
     private(set) var hooks: [any Hook] = []
     private var logger: Logger?
 
@@ -27,9 +28,7 @@ public class OpenFeatureAPI {
     Readiness can be determined from `getState` or listening for `ready` event.
     */
     public func setProvider(provider: FeatureProvider, initialContext: EvaluationContext?) {
-        Task {
-            await self.setProviderInternal(provider: provider, initialContext: initialContext)
-        }
+        _ = setProviderInternal(provider: provider, initialContext: initialContext)
     }
 
     /**
@@ -37,7 +36,7 @@ public class OpenFeatureAPI {
     This async function returns when the `initialize` from the provider is completed.
     */
     public func setProviderAndWait(provider: FeatureProvider, initialContext: EvaluationContext?) async {
-        await self.setProviderInternal(provider: provider, initialContext: initialContext)
+        await setProviderInternal(provider: provider, initialContext: initialContext).value
     }
 
     /**
@@ -63,9 +62,7 @@ public class OpenFeatureAPI {
     }
 
     public func clearProvider() {
-        Task {
-            await clearProviderInternal()
-        }
+        clearProviderInternal()
     }
 
     /**
@@ -73,15 +70,12 @@ public class OpenFeatureAPI {
     This async function returns when the clear operation is completed.
     */
     public func clearProviderAndWait() async {
-        await clearProviderInternal()
+        clearProviderInternal()
     }
 
-    private func clearProviderInternal() async {
-        await unifiedQueue.run(lastWins: false) { [self] in
-            stateQueue.sync {
-                self.providerSubject.send(nil)
-                self.providerStatus = .notReady
-            }
+    private func clearProviderInternal() {
+        return stateQueue.sync {
+            self.providerSubject.send(nil)
         }
     }
 
@@ -90,9 +84,7 @@ public class OpenFeatureAPI {
     Readiness can be determined from `getState` or listening for `contextChanged` event.
     */
     public func setEvaluationContext(evaluationContext: EvaluationContext) {
-        Task {
-            await self.updateContext(evaluationContext: evaluationContext)
-        }
+        _ = updateContext(evaluationContext: evaluationContext)
     }
 
     /**
@@ -100,7 +92,7 @@ public class OpenFeatureAPI {
     This async function returns when the `onContextSet` from the provider is completed.
     */
     public func setEvaluationContextAndWait(evaluationContext: EvaluationContext) async {
-        await updateContext(evaluationContext: evaluationContext)
+        await updateContext(evaluationContext: evaluationContext).value
     }
 
     public func getEvaluationContext() -> EvaluationContext? {
@@ -111,12 +103,14 @@ public class OpenFeatureAPI {
 
     public func getProviderStatus() -> ProviderStatus {
         return stateQueue.sync {
-            self.providerStatus
+            self.providerSubject.value?.status ?? .notReady
         }
     }
 
     public func getProviderMetadata() -> ProviderMetadata? {
-        return self.getProvider()?.metadata
+        return stateQueue.sync {
+            self.providerSubject.value?.metadata
+        }
     }
 
     public func getClient() -> Client {
@@ -157,19 +151,16 @@ public class OpenFeatureAPI {
         }
     }
 
-    public func observe() -> AnyPublisher<ProviderEvent?, Never> {
-        return providerSubject.map { provider in
-            if let provider = provider {
-                return provider.observe()
-                    .merge(with: self.eventHandler.observe())
-                    .eraseToAnyPublisher()
-            } else {
-                return Empty<ProviderEvent?, Never>()
-                    .eraseToAnyPublisher()
-            }
-        }
-        .switchToLatest()
-        .eraseToAnyPublisher()
+    public func observe() -> AnyPublisher<ProviderEvent, Never> {
+        return
+            providerSubject
+            .map { $0?.observe() ?? Empty().eraseToAnyPublisher() }
+            .switchToLatest()
+            // providerSubject is updated on stateQueue, so we need to receive on a different queue.
+            // Otherwise, handlers are called while stateQueue is already locked, which would deadlock
+            // if the handler calls back into the API.
+            .receive(on: eventHandlerQueue)
+            .eraseToAnyPublisher()
     }
 
     internal func getState() -> OpenFeatureState {
@@ -177,92 +168,65 @@ public class OpenFeatureAPI {
             OpenFeatureState(
                 provider: providerSubject.value,
                 evaluationContext: evaluationContext,
-                providerStatus: providerStatus)
+                hooks: hooks,
+                logger: logger
+            )
         }
     }
 
-    private func setProviderInternal(provider: FeatureProvider, initialContext: EvaluationContext? = nil) async {
-        await unifiedQueue.run(lastWins: false) { [self] in
-            // Set initial state atomically
-            stateQueue.sync {
-                self.providerStatus = .notReady
-                self.providerSubject.send(provider)
-                if let initialContext = initialContext {
-                    self.evaluationContext = initialContext
-                }
+    /// Updates state atomically on stateQueue, then runs the provider's `initialize` on
+    /// providerLifecycleQueue.
+    /// Returns a Future that resolves when `initialize` completes.
+    private func setProviderInternal(provider: FeatureProvider, initialContext: EvaluationContext? = nil)
+        -> Future<Void, Never>
+    {
+        return stateQueue.sync {
+            self.providerSubject.send(provider)
+            if let initialContext = initialContext {
+                self.evaluationContext = initialContext
             }
+            return self.runLifecycle {
+                provider.initialize(initialContext: initialContext)
+            }
+        }
+    }
 
-            // Initialize provider - this entire operation is atomic
-            do {
-                try await provider.initialize(initialContext: initialContext)
-                stateQueue.sync {
-                    self.providerStatus = .ready
-                }
-                self.eventHandler.send(.ready(nil))
-            } catch {
-                stateQueue.sync {
-                    switch error {
-                    case OpenFeatureError.providerFatalError(_):
-                        self.providerStatus = .fatal
-                    default:
-                        self.providerStatus = .error
+    /// Updates state atomically on stateQueue, then runs the provider's `onContextSet` on
+    /// providerLifecycleQueue.
+    /// Returns a Future that resolves when `onContextSet` completes.
+    private func updateContext(evaluationContext: EvaluationContext) -> Future<Void, Never> {
+        return stateQueue.sync {
+            let oldContext = self.evaluationContext
+            self.evaluationContext = evaluationContext
+            guard let provider = self.providerSubject.value else {
+                return Future { $0(.success(())) }
+            }
+            return self.runLifecycle {
+                provider.onContextSet(oldContext: oldContext, newContext: evaluationContext)
+            }
+        }
+    }
+
+    /// Dispatches `work` to providerLifecycleQueue and returns a Future that resolves when it
+    /// completes. `work` is a closure so that the provider Future is created on the lifecycle
+    /// queue rather than the caller's queue.
+    private func runLifecycle(_ work: @escaping () -> Future<Void, Never>) -> Future<Void, Never> {
+        return Future { resolve in
+            self.providerLifecycleQueue.async {
+                var cancelable: AnyCancellable?
+                cancelable = work()
+                    .sink { _ in
+                        withExtendedLifetime(cancelable) {}
+                        resolve(.success(()))
                     }
-                }
-                switch error {
-                case OpenFeatureError.providerFatalError(let message):
-                    self.eventHandler.send(.error(ProviderEventDetails(message: message, errorCode: .providerFatal)))
-                default:
-                    self.eventHandler.send(.error(ProviderEventDetails(message: error.localizedDescription)))
-                }
             }
         }
     }
 
-    private func updateContext(evaluationContext: EvaluationContext) async {
-        await unifiedQueue.run(lastWins: true) { [self] in
-            // Get old context, set new context, and update status atomically
-            let (oldContext, provider) = stateQueue.sync { () -> (EvaluationContext?, FeatureProvider?) in
-                let oldContext = self.evaluationContext
-                self.evaluationContext = evaluationContext
-
-                // Only update status if provider is set
-                if let provider = self.providerSubject.value {
-                    self.providerStatus = .reconciling
-                    return (oldContext, provider)
-                }
-
-                return (oldContext, nil)
-            }
-
-            // Early return if no provider is set - nothing to reconcile
-            guard let provider = provider else {
-                return
-            }
-
-            eventHandler.send(.reconciling(nil))
-
-            // Call provider's onContextSet - this entire operation is atomic
-            do {
-                try await provider.onContextSet(
-                    oldContext: oldContext,
-                    newContext: evaluationContext
-                )
-                stateQueue.sync {
-                    self.providerStatus = .ready
-                }
-                eventHandler.send(.contextChanged(nil))
-            } catch {
-                stateQueue.sync {
-                    self.providerStatus = .error
-                }
-                eventHandler.send(.error(ProviderEventDetails(message: error.localizedDescription)))
-            }
-        }
-    }
-
-    struct OpenFeatureState {
+    internal struct OpenFeatureState {
         let provider: FeatureProvider?
         let evaluationContext: EvaluationContext?
-        let providerStatus: ProviderStatus
+        let hooks: [any Hook]
+        let logger: Logger?
     }
 }

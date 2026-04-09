@@ -4,7 +4,6 @@ import Foundation
 /// A ``FeatureProvider`` that simply returns the default values passed to it.
 class NoOpProvider: FeatureProvider {
     public static let passedInDefault = "Passed in default"
-    private let eventHandler = EventHandler()
 
     public enum Mode {
         case normal
@@ -14,10 +13,22 @@ class NoOpProvider: FeatureProvider {
     var metadata: ProviderMetadata = NoOpMetadata(name: "No-op provider")
     var hooks: [any Hook] = []
 
-    func onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) {
+    private let statusTracker = ProviderStatusTracker()
+    var status: ProviderStatus { statusTracker.status }
+    func observe() -> AnyPublisher<ProviderEvent, Never> {
+        return statusTracker.observe()
     }
 
-    func initialize(initialContext: EvaluationContext?) {
+    func initialize(initialContext: EvaluationContext?) -> Future<Void, Never> {
+        statusTracker.send(.ready(nil))
+        return Future { $0(.success(())) }
+    }
+
+    func onContextSet(
+        oldContext: EvaluationContext?,
+        newContext: EvaluationContext
+    ) -> Future<Void, Never> {
+        return Future { $0(.success(())) }
     }
 
     func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?) throws
@@ -63,10 +74,6 @@ class NoOpProvider: FeatureProvider {
     {
         return ProviderEvaluation(
             value: defaultValue, variant: NoOpProvider.passedInDefault, reason: Reason.defaultReason.rawValue)
-    }
-
-    func observe() -> AnyPublisher<ProviderEvent?, Never> {
-        return eventHandler.observe()
     }
 }
 

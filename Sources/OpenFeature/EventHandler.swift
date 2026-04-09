@@ -2,24 +2,24 @@ import Combine
 import Foundation
 
 public class EventHandler: EventSender, EventPublisher {
-    private let lastSentEvent = PassthroughSubject<ProviderEvent?, Never>()
+    private let events = PassthroughSubject<ProviderEvent, Never>()
 
     public init() {
     }
 
-    public func observe() -> AnyPublisher<ProviderEvent?, Never> {
-        return lastSentEvent.eraseToAnyPublisher()
+    public func observe() -> AnyPublisher<ProviderEvent, Never> {
+        return events.eraseToAnyPublisher()
     }
 
     public func send(
         _ event: ProviderEvent
     ) {
-        lastSentEvent.send(event)
+        events.send(event)
     }
 }
 
 public protocol EventPublisher {
-    func observe() -> AnyPublisher<ProviderEvent?, Never>
+    func observe() -> AnyPublisher<ProviderEvent, Never>
 }
 
 public protocol EventSender {

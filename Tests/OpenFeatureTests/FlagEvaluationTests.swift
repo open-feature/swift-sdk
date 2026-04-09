@@ -50,26 +50,10 @@ final class FlagEvaluationTests: XCTestCase {
         XCTAssertEqual(client.hooks.count, 2)
     }
 
-    func testSimpleFlagEvaluation() {
+    func testSimpleFlagEvaluation() async {
         let provider = DoSomethingProvider()
-        let readyExpectation = XCTestExpectation(description: "Ready")
-        let errorExpectation = XCTestExpectation(description: "Error")
-        let staleExpectation = XCTestExpectation(description: "Stale")
-        let eventState = OpenFeatureAPI.shared.observe().sink { event in
-            switch event {
-            case .ready:
-                readyExpectation.fulfill()
-            case .error:
-                errorExpectation.fulfill()
-            case .stale:
-                staleExpectation.fulfill()
-            default:
-                XCTFail("Unexpected event")
-            }
-        }
 
-        OpenFeatureAPI.shared.setProvider(provider: provider)
-        wait(for: [readyExpectation], timeout: 5)
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
         let client = OpenFeatureAPI.shared.getClient()
         let key = "key"
         XCTAssertEqual(client.getValue(key: key, defaultValue: false), true)
@@ -102,23 +86,12 @@ final class FlagEvaluationTests: XCTestCase {
         XCTAssertEqual(value, .null)
         value = client.getValue(key: key, defaultValue: .structure([:]), options: FlagEvaluationOptions())
         XCTAssertEqual(value, .null)
-        XCTAssertNotNil(eventState)
     }
 
     func testDetailedFlagEvaluation() async {
         let provider = DoSomethingProvider()
-        let readyExpectation = XCTestExpectation(description: "Ready")
-        let eventState = OpenFeatureAPI.shared.observe().sink { event in
-            switch event {
-            case .ready:
-                readyExpectation.fulfill()
-            default:
-                XCTFail("Unexpected event")
-            }
-        }
 
-        OpenFeatureAPI.shared.setProvider(provider: provider)
-        await fulfillment(of: [readyExpectation], timeout: 5)
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
         let client = OpenFeatureAPI.shared.getClient()
         let key = "key"
         let booleanDetails = FlagEvaluationDetails(
@@ -162,23 +135,12 @@ final class FlagEvaluationTests: XCTestCase {
             client.getDetails(
                 key: key, defaultValue: .structure([:]), options: FlagEvaluationOptions()),
             objectDetails)
-        XCTAssertNotNil(eventState)
     }
 
     func testHooksAreFired() async {
         let provider = NoOpProvider()
-        let readyExpectation = XCTestExpectation(description: "Ready")
-        let eventState = OpenFeatureAPI.shared.observe().sink { event in
-            switch event {
-            case .ready:
-                readyExpectation.fulfill()
-            default:
-                XCTFail("Unexpected event")
-            }
-        }
 
-        OpenFeatureAPI.shared.setProvider(provider: provider)
-        await fulfillment(of: [readyExpectation], timeout: 5)
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
 
         let client = OpenFeatureAPI.shared.getClient()
 
@@ -193,7 +155,6 @@ final class FlagEvaluationTests: XCTestCase {
 
         XCTAssertEqual(clientHook.beforeCalled, 1)
         XCTAssertEqual(invocationHook.beforeCalled, 1)
-        XCTAssertNotNil(eventState)
     }
 
     func testBrokenProvider() {

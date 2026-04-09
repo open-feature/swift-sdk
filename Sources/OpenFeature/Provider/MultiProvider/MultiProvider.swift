@@ -15,6 +15,9 @@ public class MultiProvider: FeatureProvider {
     private let strategy: Strategy
     private let logger: Logger?
 
+    private let statusTracker = ProviderStatusTracker()
+    public var status: ProviderStatus { statusTracker.status }
+
     /// Initialize a MultiProvider with a list of providers and a strategy.
     /// - Parameters:
     ///   - providers: A list of providers to evaluate.
@@ -30,25 +33,27 @@ public class MultiProvider: FeatureProvider {
         metadata = MultiProviderMetadata(providers: providers)
     }
 
-    public func initialize(initialContext: EvaluationContext?) async throws {
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            for provider in providers {
-                group.addTask {
-                    try await provider.initialize(initialContext: initialContext)
-                }
+    public func initialize(initialContext: EvaluationContext?) -> Future<Void, Never> {
+        let futures = providers.map { $0.initialize(initialContext: initialContext) }
+        return Future { promise in
+            afterAll(futures) {
+                self.updateStatus()
+                promise(.success(()))
             }
-            try await group.waitForAll()
         }
     }
 
-    public func onContextSet(oldContext: EvaluationContext?, newContext: EvaluationContext) async throws {
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            for provider in providers {
-                group.addTask {
-                    try await provider.onContextSet(oldContext: oldContext, newContext: newContext)
-                }
+    public func onContextSet(
+        oldContext: EvaluationContext?,
+        newContext: EvaluationContext
+    ) -> Future<Void, Never> {
+        let futures = providers.map { $0.onContextSet(oldContext: oldContext, newContext: newContext) }
+        return Future { promise in
+            self.statusTracker.send(.reconciling())
+            afterAll(futures) {
+                self.updateStatus()
+                promise(.success(()))
             }
-            try await group.waitForAll()
         }
     }
 
@@ -165,6 +170,22 @@ public class MultiProvider: FeatureProvider {
         }
     }
 
+    private func updateStatus() {
+        let event: ProviderEvent? =
+            switch (statusTracker.status, strategy.status(providers: providers)) {
+            case (_, .notReady): nil  // no "not ready" event to emit
+            case (.reconciling, .ready): .contextChanged()
+            case (_, .ready): .ready()
+            case (_, .error): .error()
+            case (_, .fatal): .error(ProviderEventDetails(errorCode: ErrorCode.providerFatal))
+            case (_, .stale): .stale()
+            case (_, .reconciling): .reconciling()
+            }
+        if let event {
+            statusTracker.send(event)
+        }
+    }
+
     public func track(key: String, context: (any EvaluationContext)?, details: (any TrackingEventDetails)?) throws {
         for provider in providers {
             do {
@@ -178,9 +199,9 @@ public class MultiProvider: FeatureProvider {
         }
     }
 
-
-    public func observe() -> AnyPublisher<ProviderEvent?, Never> {
-        return Publishers.MergeMany(providers.map { $0.observe() }).eraseToAnyPublisher()
+    public func observe() -> AnyPublisher<ProviderEvent, Never> {
+        let providerPublishers = providers.map { $0.observe() }
+        return Publishers.MergeMany([statusTracker.observe()] + providerPublishers).eraseToAnyPublisher()
     }
 
     public struct MultiProviderMetadata: ProviderMetadata {
@@ -194,5 +215,27 @@ public class MultiProvider: FeatureProvider {
                 }
                 .joined(separator: ", ")
         }
+    }
+}
+
+/// Waits for all futures to complete, then calls the completion handler.
+private func afterAll(
+    _ futures: [Future<Void, Never>],
+    then completion: @escaping @Sendable () -> Void
+) {
+    let group = DispatchGroup()
+    var cancellables: [AnyCancellable] = []
+
+    for future in futures {
+        group.enter()
+        let cancellable = future.sink { _ in
+            group.leave()
+        }
+        cancellables.append(cancellable)
+    }
+
+    group.notify(queue: .global()) {
+        withExtendedLifetime(cancellables) {}
+        completion()
     }
 }

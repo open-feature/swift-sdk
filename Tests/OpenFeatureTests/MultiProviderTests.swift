@@ -247,9 +247,7 @@ final class MultiProviderTests: XCTestCase {
             multiProvider
             .observe()
             .sink { event in
-                if let event {
-                    receivedEvents.append(event)
-                }
+                receivedEvents.append(event)
                 if receivedEvents.count == mockEvents.count {
                     fulfillment.fulfill()
                 }

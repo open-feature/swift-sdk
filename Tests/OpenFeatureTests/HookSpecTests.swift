@@ -4,6 +4,12 @@ import XCTest
 @testable import OpenFeature
 
 final class HookSpecTests: XCTestCase {
+    override func setUp() async throws {
+        try await super.setUp()
+        await OpenFeatureAPI.shared.clearProviderAndWait()
+        OpenFeatureAPI.shared.clearHooks()
+    }
+
     func testNoErrorHookCalled() {
         let provider = NoOpProvider()
         let readyExpectation = XCTestExpectation(description: "Ready")
