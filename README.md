@@ -42,7 +42,7 @@ This SDK supports the following Apple platforms:
 - **watchOS 8+**
 - **tvOS 15+**
 
-The SDK is built with Swift 5.5+ and uses only Foundation and Combine frameworks, making it suitable for all Apple platform contexts including mobile, desktop, wearable, and TV applications.
+The SDK is built with Swift 5.5+ and uses Foundation, Combine, and the [swift-log](https://github.com/apple/swift-log) Logging package, making it suitable for all Apple platform contexts including mobile, desktop, wearable, and TV applications.
 
 ### Install
 
@@ -80,7 +80,7 @@ and in the target dependencies section add:
 If you manage dependencies through CocoaPods, add the following to your Podfile:
 
 ```ruby
-pod 'OpenFeature', '~> 0.3.0'
+pod 'OpenFeature', '~> 0.5.0'
 ```
 
 Then, run:
@@ -425,7 +425,7 @@ class BooleanHook: Hook {
         // do something
     }
 
-    func finally<HookValue>(ctx: HookContext<HookValue>, hints: [String: Any]) {
+    func finally<HookValue>(ctx: HookContext<HookValue>, details: FlagEvaluationDetails<HookValue>, hints: [String: Any]) {
         // do something
     }
 }
