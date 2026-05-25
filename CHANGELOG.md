@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.6.0](https://github.com/open-feature/swift-sdk/compare/0.5.0...0.6.0) (2026-05-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* move provider status tracking back to provider ([#114](https://github.com/open-feature/swift-sdk/issues/114))
+
+### 🐛 Bug Fixes
+
+* **ci:** use dynamic simulator discovery instead of hardcoded device names ([#103](https://github.com/open-feature/swift-sdk/issues/103)) ([bbb6487](https://github.com/open-feature/swift-sdk/commit/bbb6487ec2def7fc2e3900c4d08442ce29ec65fd))
+* enable CocoaPods publishing by correcting release-please workflow outputs ([#92](https://github.com/open-feature/swift-sdk/issues/92)) ([09ca50a](https://github.com/open-feature/swift-sdk/commit/09ca50af82b51b433891fc4f25c8fee5fbf31336))
+* move provider status tracking back to provider ([#114](https://github.com/open-feature/swift-sdk/issues/114)) ([1c20618](https://github.com/open-feature/swift-sdk/commit/1c206188a231462a4938c52951e97a7cb91792ac))
+
+
+### ✨ New Features
+
+* Add logging support via swift-log ([#95](https://github.com/open-feature/swift-sdk/issues/95)) ([691b086](https://github.com/open-feature/swift-sdk/commit/691b086feb78512f25704218c5a267442d72c217))
+* Add MultiProvider tracking support ([#111](https://github.com/open-feature/swift-sdk/issues/111)) ([9893f5b](https://github.com/open-feature/swift-sdk/commit/9893f5bfcc8e2aea03507233fa57bc5ab5990cd1))
+
+
+### 🧹 Chore
+
+* **deps:** replace google-github-actions/release-please-action action with googleapis/release-please-action v3 ([#83](https://github.com/open-feature/swift-sdk/issues/83)) ([2815888](https://github.com/open-feature/swift-sdk/commit/2815888f22f6e0e8adad0fa80f089bd821210545))
+* **deps:** update amannn/action-semantic-pull-request action to v6 ([#75](https://github.com/open-feature/swift-sdk/issues/75)) ([33a25a9](https://github.com/open-feature/swift-sdk/commit/33a25a90d8d02f319919ad6c1cf1bf7b19245c73))
+* update copyright and gitignore ([#88](https://github.com/open-feature/swift-sdk/issues/88)) ([0fc85bd](https://github.com/open-feature/swift-sdk/commit/0fc85bd855eecbbcb67e3a0be67601eb6d0b2945))
+* update readme features ([#102](https://github.com/open-feature/swift-sdk/issues/102)) ([559b45a](https://github.com/open-feature/swift-sdk/commit/559b45a97b2dc7249305423354b66f570935e3fb))
+
+
+### 📚 Documentation
+
+* fix inaccuracies in README ([#117](https://github.com/open-feature/swift-sdk/issues/117)) ([aeb954f](https://github.com/open-feature/swift-sdk/commit/aeb954f2e4813f5e52df0e10330ee3ad5e79f5e4))
+
 ## [0.5.0](https://github.com/open-feature/swift-sdk/compare/0.4.0...0.5.0) (2025-11-12)
 
 
