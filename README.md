@@ -181,12 +181,14 @@ For example, a flag enhancing the appearance of a UI component might drive user 
 ```swift
 let client = OpenFeatureAPI.shared.getClient()
 
-// Track an event
+// Track an event (uses the stored evaluation context on the client)
 client.track(key: "test")
 
 // Track an event with a numeric value
 client.track(key: "test-value", details: ImmutableTrackingEventDetails(value: 5))
 ```
+
+Set evaluation context via provider initialization or `OpenFeatureAPI.shared.setEvaluationContext(...)` before tracking. This client SDK follows the OpenFeature static-context tracking API and does not accept evaluation context at track invocation time.
 
 Note that some providers may not support tracking; check the documentation for your provider for more information.
 

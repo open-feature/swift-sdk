@@ -33,58 +33,31 @@ final class OpenFeatureClientTests: XCTestCase {
         XCTAssertNotNil(eventState)
     }
 
-    func testMergeEvaluationContext_ApiEmptyAndInvocationNil_ThenEmpty() async {
-        let client = OpenFeatureClient(openFeatureApi: OpenFeatureAPI.shared, name: nil, version: nil)
-        await OpenFeatureAPI.shared.setEvaluationContextAndWait(evaluationContext: ImmutableContext())
-        let result = client.mergeEvaluationContext(nil)
-        XCTAssertTrue(result?.getTargetingKey().isEmpty == true)
-        XCTAssertTrue(result?.keySet().isEmpty == true)
-    }
-
-    func testMergeEvaluationContext_ApiContextAndInvocationNil_ThenApiContext() async {
-        let client = OpenFeatureClient(openFeatureApi: OpenFeatureAPI.shared, name: nil, version: nil)
-        let context = ImmutableContext(
-            targetingKey: "api", structure: ImmutableStructure(attributes: ["bool": .boolean(true)]))
-        await OpenFeatureAPI.shared.setEvaluationContextAndWait(evaluationContext: context)
-        let result = client.mergeEvaluationContext(nil)
-        XCTAssertEqual(result?.getTargetingKey(), context.getTargetingKey())
-        XCTAssertEqual(result?.asMap(), context.asMap())
-    }
-
-    func testMergeEvaluationContext_ApiNilAndInvocationContext_ThenInvocationContext() {
-        let client = OpenFeatureClient(openFeatureApi: OpenFeatureAPI.shared, name: nil, version: nil)
-        let context = ImmutableContext(
-            targetingKey: "invocation", structure: ImmutableStructure(attributes: ["bool": .boolean(true)]))
-        let result = client.mergeEvaluationContext(context)
-        XCTAssertEqual(result?.getTargetingKey(), context.getTargetingKey())
-        XCTAssertEqual(result?.asMap(), context.asMap())
-    }
-
-    func testMergeEvaluationContext_ApiContextAndInvocationContext_ThenMergedContext() async {
-        let client = OpenFeatureClient(openFeatureApi: OpenFeatureAPI.shared, name: nil, version: nil)
-        let apiContext = ImmutableContext(
-            targetingKey: "api",
-            structure: ImmutableStructure(attributes: ["bool": .boolean(true), "num": .integer(1)])
+    func testTrackPassesStoredEvaluationContextToProvider() async {
+        var receivedKey: String?
+        var receivedContext: (any EvaluationContext)?
+        var receivedDetails: (any TrackingEventDetails)?
+        let onTrack = { (key: String, evaluationContext: EvaluationContext?, details: TrackingEventDetails?) in
+            receivedKey = key
+            receivedContext = evaluationContext
+            receivedDetails = details
+        }
+        let storedContext = ImmutableContext(
+            targetingKey: "user-1",
+            structure: ImmutableStructure(attributes: ["plan": .string("premium"), "num": .double(10)])
         )
-        let invocationContext = ImmutableContext(
-            targetingKey: "invocation",
-            structure: ImmutableStructure(attributes: ["bool": .boolean(false), "string": .string("test")])
-        )
-        await OpenFeatureAPI.shared.setEvaluationContextAndWait(evaluationContext: apiContext)
-        let result = client.mergeEvaluationContext(invocationContext)
-        XCTAssertEqual(result?.getTargetingKey(), invocationContext.getTargetingKey())
-        XCTAssertEqual(result?.keySet().count, 3)
-        XCTAssertEqual(result?.getValue(key: "bool"), .boolean(false))
-        XCTAssertEqual(result?.getValue(key: "num"), .integer(1))
-        XCTAssertEqual(result?.getValue(key: "string"), .string("test"))
-    }
+        await OpenFeatureAPI.shared.setProviderAndWait(provider: MockProvider(track: onTrack))
+        await OpenFeatureAPI.shared.setEvaluationContextAndWait(evaluationContext: storedContext)
 
-    func testMergeEvaluationContext_ApiContextAndInvocationContextWithEmptyKey_ThenTargetingKeyNotOverriden() async {
-        let client = OpenFeatureClient(openFeatureApi: OpenFeatureAPI.shared, name: nil, version: nil)
-        let apiContext = ImmutableContext(targetingKey: "api")
-        let invocationContext = ImmutableContext(targetingKey: "")
-        await OpenFeatureAPI.shared.setEvaluationContextAndWait(evaluationContext: apiContext)
-        let result = client.mergeEvaluationContext(invocationContext)
-        XCTAssertEqual(result?.getTargetingKey(), "api")
+        OpenFeatureAPI.shared.getClient().track(
+            key: "test",
+            details: ImmutableTrackingEventDetails(value: 5)
+        )
+
+        XCTAssertEqual(receivedKey, "test")
+        XCTAssertEqual(receivedContext?.getTargetingKey(), storedContext.getTargetingKey())
+        XCTAssertEqual(receivedContext?.getValue(key: "plan"), .string("premium"))
+        XCTAssertEqual(receivedContext?.getValue(key: "num"), .double(10))
+        XCTAssertEqual(receivedDetails?.getValue(), 5)
     }
 }
