@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.0](https://github.com/open-feature/swift-sdk/compare/0.6.0...0.7.0) (2026-08-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* use specification-compliant Reason raw values ([#125](https://github.com/open-feature/swift-sdk/issues/125))
+
+### 🐛 Bug Fixes
+
+* use specification-compliant Reason raw values ([#125](https://github.com/open-feature/swift-sdk/issues/125)) ([ab62ca3](https://github.com/open-feature/swift-sdk/commit/ab62ca34e1995b86bf279b210248e44f5c076a7f))
+
 ## [0.6.0](https://github.com/open-feature/swift-sdk/compare/0.5.0...0.6.0) (2026-08-17)
 
 
