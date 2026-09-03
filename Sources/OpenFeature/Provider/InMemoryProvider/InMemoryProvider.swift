@@ -2,8 +2,6 @@ import Combine
 import Foundation
 
 /// A ``FeatureProvider`` that resolves flags from an in-memory configuration.
-///
-/// See the InMemoryProvider section of the README for usage.
 public final class InMemoryProvider: FeatureProvider, @unchecked Sendable {
     public static let name = "InMemoryProvider"
 
@@ -12,8 +10,8 @@ public final class InMemoryProvider: FeatureProvider, @unchecked Sendable {
 
     private let statusTracker = ProviderStatusTracker()
 
-    /// Never held while emitting an event: `ProviderStatusTracker.send` takes its own lock and
-    /// delivers to subscribers, so a subscriber touching the configuration would deadlock.
+    /// Never held while calling `statusTracker.send`, which delivers to subscribers and could
+    /// deadlock if one of them touches the configuration back.
     private let flagsLock = NSLock()
     private var _flags: [String: InMemoryFlag]
 
@@ -21,9 +19,12 @@ public final class InMemoryProvider: FeatureProvider, @unchecked Sendable {
         self._flags = flags
     }
 
-    /// A snapshot of the current flag configuration.
     public var flags: [String: InMemoryFlag] {
         return flagsLock.withLock { _flags }
+    }
+
+    private func flag(forKey key: String) -> InMemoryFlag? {
+        return flagsLock.withLock { _flags[key] }
     }
 
     public var status: ProviderStatus {
@@ -47,8 +48,7 @@ public final class InMemoryProvider: FeatureProvider, @unchecked Sendable {
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) -> Future<Void, Never> {
-        // No `.reconciling`: nothing is cached per context, so there is no asynchronous work for
-        // it to describe.
+        // No async work happens per context, so there's nothing for `.reconciling` to describe.
         statusTracker.send(.contextChanged(nil))
         return Future { promise in
             promise(.success(()))
@@ -57,26 +57,23 @@ public final class InMemoryProvider: FeatureProvider, @unchecked Sendable {
 
     // MARK: - Configuration
 
-    /// Replaces the entire flag configuration, emitting `.configurationChanged` whose
-    /// `flagsChanged` is the union of all previous and all new flag keys, per the specification.
+    /// Replaces the entire flag configuration. `flagsChanged` is the union of the previous and
+    /// new flag keys, per the specification.
     public func putConfiguration(_ flags: [String: InMemoryFlag]) {
-        let flagsChanged: [String] = flagsLock.withLock {
+        let union: Set<String> = flagsLock.withLock {
             let union = Set(_flags.keys).union(flags.keys)
             _flags = flags
-            return union.sorted()
+            return union
         }
-        send(flagsChanged: flagsChanged, message: "flags changed")
+        send(flagsChanged: union.sorted(), message: "flags changed")
     }
 
-    /// Adds or replaces a single flag, emitting `.configurationChanged` for that key.
     public func updateFlag(key: String, flag: InMemoryFlag) {
         flagsLock.withLock { _flags[key] = flag }
         send(flagsChanged: [key], message: "flag added/updated")
     }
 
-    /// Removes a single flag, emitting `.configurationChanged` for that key.
-    ///
-    /// Nothing is emitted when the flag was not present.
+    /// No event is emitted when the flag was not present.
     public func removeFlag(key: String) {
         let existed = flagsLock.withLock { _flags.removeValue(forKey: key) != nil }
         guard existed else { return }
@@ -118,11 +115,10 @@ public final class InMemoryProvider: FeatureProvider, @unchecked Sendable {
     public func getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?) throws
         -> ProviderEvaluation<Value>
     {
-        // Every variant already is a `Value`, so this never reports a type mismatch.
+        // Every variant is already a `Value`, so this never reports a type mismatch.
         return try resolve(key: key, defaultValue: defaultValue, context: context) { $0 }
     }
 
-    /// - Parameter coerce: returns `nil` when the stored variant holds a different type.
     private func resolve<T>(
         key: String,
         defaultValue: T,
@@ -135,7 +131,7 @@ public final class InMemoryProvider: FeatureProvider, @unchecked Sendable {
             throw OpenFeatureError.providerNotReadyError
         }
 
-        guard let flag = flags[key] else {
+        guard let flag = flag(forKey: key) else {
             throw OpenFeatureError.flagNotFoundError(key: key)
         }
 
