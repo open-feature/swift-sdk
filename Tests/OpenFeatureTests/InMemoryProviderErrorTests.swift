@@ -54,12 +54,12 @@ final class InMemoryProviderErrorTests: XCTestCase {
         }
     }
 
-    func testScalarFlagEvaluatedAsObjectPassesTheVariantThrough() throws {
-        let result = try InMemoryTestFlags.readyProvider().getObjectEvaluation(
-            key: "boolean-flag", defaultValue: .null, context: nil)
+    func testScalarFlagEvaluatedAsObjectThrowsTypeMismatch() {
+        let provider = InMemoryTestFlags.readyProvider()
 
-        XCTAssertEqual(result.value, .boolean(true))
-        XCTAssertEqual(result.reason, "STATIC")
+        assertThrows(.typeMismatch) {
+            _ = try provider.getObjectEvaluation(key: "boolean-flag", defaultValue: .null, context: nil)
+        }
     }
 
     func testEvaluationBeforeInitializeThrowsProviderNotReady() {

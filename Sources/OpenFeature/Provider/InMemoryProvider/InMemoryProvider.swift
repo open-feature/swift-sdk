@@ -115,8 +115,10 @@ public final class InMemoryProvider: FeatureProvider, @unchecked Sendable {
     public func getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?) throws
         -> ProviderEvaluation<Value>
     {
-        // Every variant is already a `Value`, so this never reports a type mismatch.
-        return try resolve(key: key, defaultValue: defaultValue, context: context) { $0 }
+        return try resolve(key: key, defaultValue: defaultValue, context: context) { value in
+            guard case .structure = value else { return nil }
+            return value
+        }
     }
 
     private func resolve<T>(
