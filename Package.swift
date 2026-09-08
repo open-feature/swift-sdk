@@ -17,7 +17,7 @@ let package = Package(
             targets: ["OpenFeature"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-log", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-log", from: "1.15.1"),
     ],
     targets: [
         .target(
