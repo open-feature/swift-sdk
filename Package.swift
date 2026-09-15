@@ -24,6 +24,9 @@ let package = Package(
             name: "OpenFeature",
             dependencies: [
                 .product(name: "Logging", package: "swift-log"),
+            ],
+            resources: [
+                .copy("PrivacyInfo.xcprivacy"),
             ]
         ),
         .testTarget(

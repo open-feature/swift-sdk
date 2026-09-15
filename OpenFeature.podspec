@@ -16,7 +16,8 @@ OpenFeature is an open specification that provides a vendor-agnostic, community-
   s.tvos.deployment_target = '15.0'
   s.swift_version = '5.5'
   
-  s.source_files = 'Sources/OpenFeature/**/*'
+  s.source_files = 'Sources/OpenFeature/**/*.swift'
+  s.resource_bundles = { 'OpenFeature' => ['Sources/OpenFeature/PrivacyInfo.xcprivacy'] }
 
   s.dependency 'Logging', '~> 1.0'
 
