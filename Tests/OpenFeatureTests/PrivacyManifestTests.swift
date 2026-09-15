@@ -9,6 +9,10 @@ import XCTest
 /// tracking, collected data and required-reason API usage. This SDK does none of those,
 /// so the manifest must exist, be bundled as a resource and declare nothing.
 final class PrivacyManifestTests: XCTestCase {
+    /// Loads `PrivacyInfo.xcprivacy` from the package resource bundle and parses it as a plist.
+    ///
+    /// - Returns: The manifest's top-level dictionary.
+    /// - Throws: If the file is not bundled, cannot be read, or is not a plist dictionary.
     private func loadManifest() throws -> [String: Any] {
         let url = try XCTUnwrap(
             Bundle.module.url(forResource: "PrivacyInfo", withExtension: "xcprivacy"),
@@ -19,6 +23,8 @@ final class PrivacyManifestTests: XCTestCase {
         return try XCTUnwrap(plist as? [String: Any], "PrivacyInfo.xcprivacy must be a plist dictionary")
     }
 
+    /// Verifies the manifest is bundled as a resource and contains exactly the four keys
+    /// Apple defines for a privacy manifest.
     func testManifestIsBundled() throws {
         let manifest = try loadManifest()
         XCTAssertEqual(
@@ -32,17 +38,21 @@ final class PrivacyManifestTests: XCTestCase {
         )
     }
 
+    /// Verifies the manifest declares that the SDK does not track users and contacts
+    /// no tracking domains.
     func testManifestDeclaresNoTracking() throws {
         let manifest = try loadManifest()
         XCTAssertEqual(manifest["NSPrivacyTracking"] as? Bool, false)
         XCTAssertEqual(try XCTUnwrap(manifest["NSPrivacyTrackingDomains"] as? [Any]).count, 0)
     }
 
+    /// Verifies the manifest declares that the SDK collects no data types.
     func testManifestDeclaresNoCollectedData() throws {
         let manifest = try loadManifest()
         XCTAssertEqual(try XCTUnwrap(manifest["NSPrivacyCollectedDataTypes"] as? [Any]).count, 0)
     }
 
+    /// Verifies the manifest declares that the SDK calls no required-reason APIs.
     func testManifestDeclaresNoRequiredReasonAPIs() throws {
         let manifest = try loadManifest()
         XCTAssertEqual(try XCTUnwrap(manifest["NSPrivacyAccessedAPITypes"] as? [Any]).count, 0)
