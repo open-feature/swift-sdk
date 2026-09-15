@@ -1,5 +1,4 @@
 import Foundation
-import Logging
 
 /// Metadata for when no provider is set
 struct NoProviderMetadata: ProviderMetadata {
@@ -17,7 +16,7 @@ public class OpenFeatureClient: Client {
     // Lock protects concurrent access to hooks and logger
     private let lock = NSLock()
     private(set) public var hooks: [any Hook] = []
-    private var logger: Logger?
+    private var logger: (any OpenFeatureLogger)?
 
     public init(openFeatureApi: OpenFeatureAPI, name: String?, version: String?) {
         self.openFeatureApi = openFeatureApi
@@ -32,7 +31,7 @@ public class OpenFeatureClient: Client {
         lock.unlock()
     }
 
-    public func setLogger(_ logger: Logger?) {
+    public func setLogger(_ logger: (any OpenFeatureLogger)?) {
         lock.lock()
         self.logger = logger
         lock.unlock()
@@ -150,7 +149,7 @@ extension OpenFeatureClient {
         context: EvaluationContext?,
         defaultValue: V,
         provider: FeatureProvider,
-        logger: Logger?
+        logger: (any OpenFeatureLogger)?
     ) throws -> ProviderEvaluation<V> {
         switch V.flagValueType {
         case .boolean:

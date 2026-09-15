@@ -1,5 +1,4 @@
 import Foundation
-import Logging
 
 /// Interface used to resolve flags of varying types.
 public protocol Client: Features, Tracking {
@@ -14,5 +13,5 @@ public protocol Client: Features, Tracking {
     func addHooks(_ hooks: any Hook...)
 
     /// Sets the logger for this client.
-    func setLogger(_ logger: Logger?)
+    func setLogger(_ logger: (any OpenFeatureLogger)?)
 }
