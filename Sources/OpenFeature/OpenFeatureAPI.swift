@@ -1,6 +1,5 @@
 import Combine
 import Foundation
-import Logging
 
 /// A global singleton which holds base configuration for the OpenFeature library.
 /// Configuration here will be shared across all ``Client``s.
@@ -16,7 +15,7 @@ public class OpenFeatureAPI {
     private(set) var providerSubject = CurrentValueSubject<FeatureProvider?, Never>(nil)
     private(set) var evaluationContext: EvaluationContext?
     private(set) var hooks: [any Hook] = []
-    private var logger: Logger?
+    private var logger: (any OpenFeatureLogger)?
 
     /// The ``OpenFeatureAPI`` singleton
     static public let shared = OpenFeatureAPI()
@@ -139,13 +138,13 @@ public class OpenFeatureAPI {
         }
     }
 
-    public func setLogger(_ logger: Logger?) {
+    public func setLogger(_ logger: (any OpenFeatureLogger)?) {
         stateQueue.sync {
             self.logger = logger
         }
     }
 
-    public func getLogger() -> Logger? {
+    public func getLogger() -> (any OpenFeatureLogger)? {
         return stateQueue.sync {
             self.logger
         }
@@ -227,6 +226,6 @@ public class OpenFeatureAPI {
         let provider: FeatureProvider?
         let evaluationContext: EvaluationContext?
         let hooks: [any Hook]
-        let logger: Logger?
+        let logger: (any OpenFeatureLogger)?
     }
 }

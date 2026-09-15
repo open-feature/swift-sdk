@@ -9,16 +9,26 @@ OpenFeature is an open specification that provides a vendor-agnostic, community-
   s.license          = { :type => 'Apache-2.0', :file => 'LICENSE' }
   s.author           = { 'OpenFeature' => 'https://github.com/open-feature' }
   s.source           = { :git => 'https://github.com/open-feature/swift-sdk.git', :tag => s.version.to_s }
-  
+
   s.ios.deployment_target = '15.0'
   s.osx.deployment_target = '12.0'
   s.watchos.deployment_target = '8.0'
   s.tvos.deployment_target = '15.0'
   s.swift_version = '5.5'
-  
-  s.source_files = 'Sources/OpenFeature/**/*'
-
-  s.dependency 'Logging', '~> 1.0'
 
   s.frameworks = 'Foundation'
-end 
+
+  # `pod 'OpenFeature'` installs only the core SDK, which has no third-party dependencies.
+  s.default_subspecs = 'Core'
+
+  s.subspec 'Core' do |core|
+    core.source_files = 'Sources/OpenFeature/**/*.swift'
+  end
+
+  # `pod 'OpenFeature/SwiftLog'` adds a logger backed by swift-log.
+  s.subspec 'SwiftLog' do |swiftlog|
+    swiftlog.source_files = 'Sources/OpenFeatureSwiftLog/**/*.swift'
+    swiftlog.dependency 'OpenFeature/Core'
+    swiftlog.dependency 'Logging', '~> 1.0'
+  end
+end

@@ -1,6 +1,5 @@
 import Combine
 import Foundation
-import Logging
 
 /// A provider that combines multiple providers into a single provider.
 public class MultiProvider: FeatureProvider {
@@ -13,7 +12,7 @@ public class MultiProvider: FeatureProvider {
 
     private let providers: [FeatureProvider]
     private let strategy: Strategy
-    private let logger: Logger?
+    private let logger: (any OpenFeatureLogger)?
 
     private let statusTracker = ProviderStatusTracker()
     public var status: ProviderStatus { statusTracker.status }
@@ -25,7 +24,7 @@ public class MultiProvider: FeatureProvider {
     public init(
         providers: [FeatureProvider],
         strategy: Strategy = FirstMatchStrategy(),
-        logger: Logger? = nil
+        logger: (any OpenFeatureLogger)? = nil
     ) {
         self.providers = providers
         self.strategy = strategy
@@ -88,7 +87,9 @@ public class MultiProvider: FeatureProvider {
     }
 
     // Logger-enabled methods - canonical implementations
-    public func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?, logger: Logger?)
+    public func getBooleanEvaluation(
+        key: String, defaultValue: Bool, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+    )
         throws
         -> ProviderEvaluation<Bool>
     {
@@ -105,7 +106,9 @@ public class MultiProvider: FeatureProvider {
         }
     }
 
-    public func getStringEvaluation(key: String, defaultValue: String, context: EvaluationContext?, logger: Logger?)
+    public func getStringEvaluation(
+        key: String, defaultValue: String, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+    )
         throws
         -> ProviderEvaluation<String>
     {
@@ -121,7 +124,9 @@ public class MultiProvider: FeatureProvider {
         }
     }
 
-    public func getIntegerEvaluation(key: String, defaultValue: Int64, context: EvaluationContext?, logger: Logger?)
+    public func getIntegerEvaluation(
+        key: String, defaultValue: Int64, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+    )
         throws
         -> ProviderEvaluation<Int64>
     {
@@ -138,7 +143,9 @@ public class MultiProvider: FeatureProvider {
         }
     }
 
-    public func getDoubleEvaluation(key: String, defaultValue: Double, context: EvaluationContext?, logger: Logger?)
+    public func getDoubleEvaluation(
+        key: String, defaultValue: Double, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+    )
         throws
         -> ProviderEvaluation<Double>
     {
@@ -154,7 +161,9 @@ public class MultiProvider: FeatureProvider {
         }
     }
 
-    public func getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?, logger: Logger?)
+    public func getObjectEvaluation(
+        key: String, defaultValue: Value, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+    )
         throws
         -> ProviderEvaluation<Value>
     {
