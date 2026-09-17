@@ -116,6 +116,7 @@ Task {
 | ✅     | [Logging](#logging)             | Integrate with popular logging packages.                                                                                            |
 | ❌     | [Domains](#domains)             | Logically bind clients with providers.                                                                                              |
 | ✅     | [MultiProvider](#multiprovider) | Combine multiple providers with configurable evaluation strategies.                                                                 |
+| ✅     | [InMemoryProvider](#inmemoryprovider) | Resolve flags from an in-memory configuration, for demos and testing.                                                         |
 | ✅     | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                   |
 | ❌     | [Shutdown](#shutdown)           | Gracefully clean up a provider during application shutdown.                                                                         |
 | ✅     | [Extending](#extending)         | Extend OpenFeature with custom providers and hooks.                                                                                 |
@@ -315,6 +316,51 @@ let providers = [
     DefaultProvider()
 ]
 let multiProvider = MultiProvider(providers: providers)
+```
+
+### InMemoryProvider
+
+`InMemoryProvider` resolves flags from a configuration you supply, with no network calls and no mocking. It is useful for demos, local development, and for testing hooks, providers, or application code that consumes flags.
+
+```swift
+let provider = InMemoryProvider(flags: [
+    "boolean-flag": InMemoryFlag(
+        variants: ["on": .boolean(true), "off": .boolean(false)],
+        defaultVariant: "on"),
+    "greeting": InMemoryFlag(
+        variants: ["formal": .string("Good evening"), "casual": .string("hi")],
+        defaultVariant: "formal",
+        flagMetadata: ["version": .string("1.0.2")]),
+])
+
+await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
+OpenFeatureAPI.shared.getClient().getBooleanValue(key: "boolean-flag", defaultValue: false)  // true
+```
+
+Targeting is expressed as a callback returning the key of the variant to resolve, or `nil` to fall back to the flag's `defaultVariant`:
+
+```swift
+InMemoryFlag(
+    variants: ["internal": .string("INTERNAL"), "external": .string("EXTERNAL")],
+    defaultVariant: "external",
+    contextEvaluator: { _, context in
+        context?.getValue(key: "customer") == .boolean(false) ? "internal" : nil
+    })
+```
+
+A resolution reports `TARGETING_MATCH` when the callback selects a variant, `DEFAULT` when it returns `nil`, `STATIC` when the flag has no callback, and `DISABLED` for a flag constructed with `disabled: true`. An unknown flag key resolves as `FLAG_NOT_FOUND`, and a variant whose value is not of the requested type as `TYPE_MISMATCH`.
+
+The configuration can be changed after the provider is registered, which emits `PROVIDER_CONFIGURATION_CHANGED`:
+
+```swift
+provider.updateFlag(key: "boolean-flag", flag: InMemoryFlag(
+    variants: ["on": .boolean(true), "off": .boolean(false)],
+    defaultVariant: "off"))
+
+provider.removeFlag(key: "greeting")
+
+// Replaces the whole configuration; the event reports the union of the old and new flag keys.
+provider.putConfiguration(["only-flag": InMemoryFlag(variants: ["on": .boolean(true)], defaultVariant: "on")])
 ```
 
 ### Eventing
