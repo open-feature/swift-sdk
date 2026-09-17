@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.7.0](https://github.com/open-feature/swift-sdk/compare/0.6.0...0.7.0) (2026-09-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* use specification-compliant Reason raw values ([#125](https://github.com/open-feature/swift-sdk/issues/125))
+
+### 🐛 Bug Fixes
+
+* use specification-compliant Reason raw values ([#125](https://github.com/open-feature/swift-sdk/issues/125)) ([ab62ca3](https://github.com/open-feature/swift-sdk/commit/ab62ca34e1995b86bf279b210248e44f5c076a7f))
+
+
+### 🧹 Chore
+
+* **deps:** update actions/checkout action to v7 ([#119](https://github.com/open-feature/swift-sdk/issues/119)) ([0d02e37](https://github.com/open-feature/swift-sdk/commit/0d02e376fa4f83eaa36f7ea8d9db74e334a1d0b4))
+* **deps:** update amannn/action-semantic-pull-request action to v6.1.1 ([#133](https://github.com/open-feature/swift-sdk/issues/133)) ([2f955fe](https://github.com/open-feature/swift-sdk/commit/2f955fec5dfb45cdd234c55cc395a95b86dc39d4))
+* **deps:** update marocchino/sticky-pull-request-comment action to v3 ([#116](https://github.com/open-feature/swift-sdk/issues/116)) ([e7a58e7](https://github.com/open-feature/swift-sdk/commit/e7a58e7919ea363678cc806cfddecfeccf99b096))
+* extend from org renovate config ([#129](https://github.com/open-feature/swift-sdk/issues/129)) ([06aee9a](https://github.com/open-feature/swift-sdk/commit/06aee9ab677bf1acf92604ab6b9e8f39b05b34e7))
+
 ## [0.6.0](https://github.com/open-feature/swift-sdk/compare/0.5.0...0.6.0) (2026-08-17)
 
 
