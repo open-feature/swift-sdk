@@ -1,5 +1,4 @@
 import Combine
-import Logging
 import XCTest
 
 @testable import OpenFeature
@@ -292,8 +291,7 @@ final class MultiProviderTests: XCTestCase {
 
     func testTrackWithMultipleProviders_LogsErrorsAndContinues() throws {
         var calledProviders: [String] = []
-        let logHandler = CapturingLogHandler()
-        let logger = Logger(label: "test.track") { _ in logHandler }
+        let logger = CapturingLogger(name: "test.track")
 
         let mockProvider1 = MultiProviderTestHelpers.mockTrackingProvider(name: "AnalyticsProvider") { _, _, _ in
             calledProviders.append("AnalyticsProvider")
@@ -326,7 +324,7 @@ final class MultiProviderTests: XCTestCase {
             "All providers should be called even if some throw errors"
         )
 
-        let errorMessages = logHandler.messages.filter { $0.level == .error }.map { $0.message }
+        let errorMessages = logger.messages(at: .error)
         XCTAssertEqual(errorMessages.count, 2, "Should log exactly two errors")
         XCTAssertTrue(errorMessages[0].contains("AnalyticsProvider"))
         XCTAssertTrue(errorMessages[0].contains("Analytics service unavailable"))
@@ -400,32 +398,4 @@ enum MultiProviderTestHelpers {
     }
 }
 
-class CapturingLogHandler: LogHandler {
-    struct LogEntry {
-        let level: Logger.Level
-        let message: String
-    }
-
-    var messages: [LogEntry] = []
-    var metadata: Logger.Metadata = [:]
-    var logLevel: Logger.Level = .trace
-
-    subscript(metadataKey key: String) -> Logger.Metadata.Value? {
-        get { metadata[key] }
-        set { metadata[key] = newValue }
-    }
-
-    // swiftlint:disable:next function_parameter_count
-    func log(
-        level: Logger.Level,
-        message: Logger.Message,
-        metadata: Logger.Metadata?,
-        source: String,
-        file: String,
-        function: String,
-        line: UInt
-    ) {
-        messages.append(LogEntry(level: level, message: message.description))
-    }
-}
 // swiftlint:enable type_body_length file_length

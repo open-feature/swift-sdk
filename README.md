@@ -42,7 +42,7 @@ This SDK supports the following Apple platforms:
 - **watchOS 8+**
 - **tvOS 15+**
 
-The SDK is built with Swift 5.5+ and uses Foundation, Combine, and the [swift-log](https://github.com/apple/swift-log) Logging package, making it suitable for all Apple platform contexts including mobile, desktop, wearable, and TV applications.
+The SDK is built with Swift 5.5+ and uses only Foundation and Combine, making it suitable for all Apple platform contexts including mobile, desktop, wearable, and TV applications. It has no third-party dependencies. An optional `OpenFeatureSwiftLog` product integrates with [swift-log](https://github.com/apple/swift-log) for those who use it (see [Logging](#logging)).
 
 ### Install
 
@@ -75,12 +75,23 @@ and in the target dependencies section add:
 .product(name: "OpenFeature", package: "swift-sdk"),
 ```
 
+To log through [swift-log](https://github.com/apple/swift-log), also add the optional bridge product:
+```swift
+.product(name: "OpenFeatureSwiftLog", package: "swift-sdk"),
+```
+
 #### CocoaPods
 
 If you manage dependencies through CocoaPods, add the following to your Podfile:
 
 ```ruby
-pod 'OpenFeature', '~> 0.5.0'
+pod 'OpenFeature', '~> 0.6.0'
+```
+
+To log through [swift-log](https://github.com/apple/swift-log), use the `SwiftLog` subspec instead, which adds the `Logging` pod:
+
+```ruby
+pod 'OpenFeature/SwiftLog', '~> 0.6.0'
 ```
 
 Then, run:
@@ -113,7 +124,7 @@ Task {
 | ✅     | [Targeting](#targeting)         | Contextually-aware flag evaluation using [evaluation context](https://openfeature.dev/docs/reference/concepts/evaluation-context).  |
 | ✅     | [Hooks](#hooks)                 | Add functionality to various stages of the flag evaluation life-cycle.                                                              |
 | ✅     | [Tracking](#tracking)           | Associate user actions with feature flag evaluations.                                                                               |
-| ✅     | [Logging](#logging)             | Integrate with popular logging packages.                                                                                            |
+| ✅     | [Logging](#logging)             | Integrate with popular logging packages or your own logger.                                                                                            |
 | ❌     | [Domains](#domains)             | Logically bind clients with providers.                                                                                              |
 | ✅     | [MultiProvider](#multiprovider) | Combine multiple providers with configurable evaluation strategies.                                                                 |
 | ✅     | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                   |
@@ -194,7 +205,54 @@ Note that some providers may not support tracking; check the documentation for y
 
 ### Logging
 
-The iOS SDK integrates with [swift-log](https://github.com/apple/swift-log), the standard logging API for Swift. This provides a unified, cross-platform logging interface that works with any swift-log compatible backend.
+The SDK does not depend on any logging framework. It logs through the small `OpenFeatureLogger` protocol, so you can plug in whatever logger your app already uses:
+
+```swift
+public protocol OpenFeatureLogger {
+    func debug(_ message: @autoclosure () -> String)
+    func info(_ message: @autoclosure () -> String)
+    func warning(_ message: @autoclosure () -> String)
+    func error(_ message: @autoclosure () -> String)
+}
+```
+
+Messages are autoclosures, so string interpolation only runs if your implementation emits the message. Implementations may be called from any thread and must be thread-safe.
+
+#### Bring your own logger
+
+Conform your logger to `OpenFeatureLogger`. For example, with Apple's unified logging:
+
+```swift
+import OpenFeature
+import os
+
+struct OSLogOpenFeatureLogger: OpenFeatureLogger {
+    private let logger = os.Logger(subsystem: "com.example.app", category: "openfeature")
+
+    func debug(_ message: @autoclosure () -> String) { logger.debug("\(message())") }
+    func info(_ message: @autoclosure () -> String) { logger.info("\(message())") }
+    func warning(_ message: @autoclosure () -> String) { logger.warning("\(message())") }
+    func error(_ message: @autoclosure () -> String) { logger.error("\(message())") }
+}
+```
+
+#### Using swift-log
+
+If you use [swift-log](https://github.com/apple/swift-log), the optional `OpenFeatureSwiftLog` product (or the `OpenFeature/SwiftLog` CocoaPods subspec) ships a ready-made `SwiftLogLogger` that forwards to a swift-log `Logger`:
+
+```swift
+import Logging
+import OpenFeature
+import OpenFeatureSwiftLog  // Swift Package Manager only, see note below
+
+let logger = SwiftLogLogger(Logger(label: "com.example.app.openfeature"))
+// or simply: SwiftLogLogger(label: "com.example.app.openfeature")
+OpenFeatureAPI.shared.setLogger(logger)
+```
+
+> **CocoaPods note:** the `OpenFeature/SwiftLog` subspec compiles `SwiftLogLogger` into the `OpenFeature` module itself and does not create an `OpenFeatureSwiftLog` module. CocoaPods users should omit `import OpenFeatureSwiftLog` and import only `OpenFeature`.
+
+The core `OpenFeature` product never links swift-log; only apps that add `OpenFeatureSwiftLog` do.
 
 #### Configure Logger
 
@@ -202,31 +260,43 @@ You can configure logging at three levels, with each level taking precedence ove
 
 **1. Global (API-level)** - affects all flag evaluations:
 ```swift
-import Logging
-
-let logger = Logger(label: "com.example.app.openfeature")
-OpenFeatureAPI.shared.setLogger(logger)
+OpenFeatureAPI.shared.setLogger(OSLogOpenFeatureLogger())
 ```
 
 **2. Client-level** - affects all evaluations from a specific client:
 ```swift
 let client = OpenFeatureAPI.shared.getClient()
-let logger = Logger(label: "com.example.app.flags")
-client.setLogger(logger)
+client.setLogger(OSLogOpenFeatureLogger())
 ```
 
 **3. Evaluation-level** - affects a single flag evaluation:
 ```swift
-let logger = Logger(label: "com.example.app.critical-flag")
-let options = FlagEvaluationOptions(logger: logger)
+let options = FlagEvaluationOptions(logger: OSLogOpenFeatureLogger())
 let value = client.getBooleanValue(key: "my-flag", defaultValue: false, options: options)
 ```
 
 #### Provider Support
 
-Providers can optionally use the logger for debugging and diagnostics. The logger is passed to providers during flag evaluation, allowing them to log relevant information.
+Providers can optionally use the logger for debugging and diagnostics. The resolved `OpenFeatureLogger` is passed to providers during flag evaluation through the `logger:` parameter of the evaluation methods, allowing them to log relevant information without depending on any logging framework.
 
 If no logger is configured, logging is disabled. The logger is completely optional for both SDK users and provider authors.
+
+##### Migrating providers from swift-log (0.6.x)
+
+In 0.6.x the logger-aware `FeatureProvider` methods took a swift-log `Logger?`. They now take `(any OpenFeatureLogger)?`. A provider that still declares the old signature will compile, because the method simply stops matching the protocol requirement, but the SDK will call the default implementation instead and **the provider's logging silently stops**. Update all five logger-aware methods:
+
+```swift
+// Before (0.6.x)
+func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?, logger: Logger?) throws
+    -> ProviderEvaluation<Bool>
+
+// After
+func getBooleanEvaluation(
+    key: String, defaultValue: Bool, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+) throws -> ProviderEvaluation<Bool>
+```
+
+Apply the same change to `getStringEvaluation`, `getIntegerEvaluation`, `getDoubleEvaluation` and `getObjectEvaluation`. Inside the method, `logger?.debug(...)`, `logger?.info(...)`, `logger?.warning(...)` and `logger?.error(...)` keep working unchanged. Providers that only implement the plain evaluation methods (without `logger:`) need no changes. Drop the `import Logging` if the provider no longer uses swift-log directly.
 
 ### Domains
 

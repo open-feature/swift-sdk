@@ -1,6 +1,5 @@
 import Combine
 import Foundation
-import Logging
 import XCTest
 
 @testable import OpenFeature
@@ -19,11 +18,15 @@ final class LoggerTests: XCTestCase {
         try await super.tearDown()
     }
 
+    private func name(of logger: (any OpenFeatureLogger)?) -> String? {
+        (logger as? CapturingLogger)?.name
+    }
+
     // MARK: - Logger Hierarchy Tests
 
     func testAPILevelLogger() async throws {
         // Given: Logger set at API level
-        let logger = Logger(label: "test.api")
+        let logger = CapturingLogger(name: "test.api")
         api?.setLogger(logger)
 
         // When: Getting logger from API
@@ -31,12 +34,12 @@ final class LoggerTests: XCTestCase {
 
         // Then: Logger should be available
         XCTAssertNotNil(retrievedLogger)
-        XCTAssertEqual(retrievedLogger?.label, "test.api")
+        XCTAssertEqual(name(of: retrievedLogger), "test.api")
     }
 
     func testClientLevelLogger() async throws {
         // Given: Client with its own logger
-        let logger = Logger(label: "test.client")
+        let logger = CapturingLogger(name: "test.client")
         let provider = LoggerCapturingProvider()
         await api?.setProviderAndWait(provider: provider)
 
@@ -50,14 +53,14 @@ final class LoggerTests: XCTestCase {
 
         // Then: Evaluations should use the client's logger
         _ = client.getBooleanValue(key: "test-flag", defaultValue: false)
-        XCTAssertEqual(provider.capturedLogger?.label, "test.client")
+        XCTAssertEqual(name(of: provider.capturedLogger), "test.client")
     }
 
     func testLoggerHierarchyEvaluationOverridesClient() async throws {
         // Given: API logger, Client logger, and Evaluation logger
-        let apiLogger = Logger(label: "test.api")
-        let clientLogger = Logger(label: "test.client")
-        let evalLogger = Logger(label: "test.eval")
+        let apiLogger = CapturingLogger(name: "test.api")
+        let clientLogger = CapturingLogger(name: "test.client")
+        let evalLogger = CapturingLogger(name: "test.eval")
 
         api?.setLogger(apiLogger)
 
@@ -75,13 +78,13 @@ final class LoggerTests: XCTestCase {
         _ = client.getBooleanValue(key: "test-flag", defaultValue: false, options: options)
 
         // Then: Provider should receive evaluation logger (highest priority)
-        XCTAssertEqual(provider.capturedLogger?.label, "test.eval")
+        XCTAssertEqual(name(of: provider.capturedLogger), "test.eval")
     }
 
     func testLoggerHierarchyClientOverridesAPI() async throws {
         // Given: API logger and Client logger
-        let apiLogger = Logger(label: "test.api")
-        let clientLogger = Logger(label: "test.client")
+        let apiLogger = CapturingLogger(name: "test.api")
+        let clientLogger = CapturingLogger(name: "test.client")
 
         api?.setLogger(apiLogger)
 
@@ -98,12 +101,12 @@ final class LoggerTests: XCTestCase {
         _ = client.getBooleanValue(key: "test-flag", defaultValue: false)
 
         // Then: Provider should receive client logger (overrides API)
-        XCTAssertEqual(provider.capturedLogger?.label, "test.client")
+        XCTAssertEqual(name(of: provider.capturedLogger), "test.client")
     }
 
     func testLoggerHierarchyAPIAsDefault() async throws {
         // Given: Only API logger
-        let apiLogger = Logger(label: "test.api")
+        let apiLogger = CapturingLogger(name: "test.api")
         api?.setLogger(apiLogger)
 
         let provider = LoggerCapturingProvider()
@@ -118,7 +121,7 @@ final class LoggerTests: XCTestCase {
         _ = client.getBooleanValue(key: "test-flag", defaultValue: false)
 
         // Then: Provider should receive API logger
-        XCTAssertEqual(provider.capturedLogger?.label, "test.api")
+        XCTAssertEqual(name(of: provider.capturedLogger), "test.api")
     }
 
     func testNoLoggerProvided() async throws {
@@ -145,7 +148,7 @@ final class LoggerTests: XCTestCase {
         let provider = LoggerCapturingProvider()
         await api?.setProviderAndWait(provider: provider)
 
-        let logger = Logger(label: "test.provider")
+        let logger = CapturingLogger(name: "test.provider")
         api?.setLogger(logger)
 
         guard let client = api?.getClient() else {
@@ -155,19 +158,19 @@ final class LoggerTests: XCTestCase {
 
         // When: Evaluating different flag types
         _ = client.getBooleanValue(key: "bool-flag", defaultValue: false)
-        XCTAssertEqual(provider.capturedLogger?.label, "test.provider")
+        XCTAssertEqual(name(of: provider.capturedLogger), "test.provider")
 
         _ = client.getStringValue(key: "string-flag", defaultValue: "default")
-        XCTAssertEqual(provider.capturedLogger?.label, "test.provider")
+        XCTAssertEqual(name(of: provider.capturedLogger), "test.provider")
 
         _ = client.getIntegerValue(key: "int-flag", defaultValue: 0)
-        XCTAssertEqual(provider.capturedLogger?.label, "test.provider")
+        XCTAssertEqual(name(of: provider.capturedLogger), "test.provider")
 
         _ = client.getDoubleValue(key: "double-flag", defaultValue: 0.0)
-        XCTAssertEqual(provider.capturedLogger?.label, "test.provider")
+        XCTAssertEqual(name(of: provider.capturedLogger), "test.provider")
 
         _ = client.getObjectValue(key: "object-flag", defaultValue: .null)
-        XCTAssertEqual(provider.capturedLogger?.label, "test.provider")
+        XCTAssertEqual(name(of: provider.capturedLogger), "test.provider")
     }
 
     func testDefaultProtocolExtensionWorks() async throws {
@@ -175,7 +178,7 @@ final class LoggerTests: XCTestCase {
         let provider = MockProvider()
         await api?.setProviderAndWait(provider: provider)
 
-        let logger = Logger(label: "test.default")
+        let logger = CapturingLogger(name: "test.default")
         api?.setLogger(logger)
 
         guard let client = api?.getClient() else {
@@ -240,7 +243,7 @@ final class LoggerTests: XCTestCase {
         let provider = NoOpProvider()
         await api?.setProviderAndWait(provider: provider)
 
-        let logger = Logger(label: "test.noop")
+        let logger = CapturingLogger(name: "test.noop")
         api?.setLogger(logger)
 
         guard let client = api?.getClient() else {
@@ -256,6 +259,28 @@ final class LoggerTests: XCTestCase {
         XCTAssertTrue(true)
     }
 
+    func testEvaluationErrorIsLoggedAtErrorLevel() async throws {
+        // Given: A provider that throws, and an API-level logger
+        let provider = ThrowingProvider()
+        await api?.setProviderAndWait(provider: provider)
+
+        let logger = CapturingLogger(name: "test.error")
+        api?.setLogger(logger)
+
+        guard let client = api?.getClient() else {
+            XCTFail("Failed to get client")
+            return
+        }
+
+        // When: Evaluating a flag that fails
+        _ = client.getBooleanValue(key: "failing-flag", defaultValue: false)
+
+        // Then: The failure is reported through the logger
+        let errors = logger.messages(at: .error)
+        XCTAssertEqual(errors.count, 1)
+        XCTAssertTrue(errors[0].contains("failing-flag"))
+    }
+
     func testMultiProviderPassesLoggerToChildren() async throws {
         // Given: MultiProvider with child providers
         let child1 = LoggerCapturingProvider()
@@ -264,7 +289,7 @@ final class LoggerTests: XCTestCase {
 
         await api?.setProviderAndWait(provider: multiProvider)
 
-        let logger = Logger(label: "test.multi")
+        let logger = CapturingLogger(name: "test.multi")
         api?.setLogger(logger)
 
         guard let client = api?.getClient() else {
@@ -276,14 +301,14 @@ final class LoggerTests: XCTestCase {
         _ = client.getBooleanValue(key: "test-flag", defaultValue: false)
 
         // Then: Child provider should have received the logger
-        XCTAssertEqual(child1.capturedLogger?.label, "test.multi")
+        XCTAssertEqual(name(of: child1.capturedLogger), "test.multi")
     }
 
     // MARK: - Edge Cases
 
     func testSettingNilLoggerClearsLogger() async throws {
         // Given: Logger initially set
-        let logger = Logger(label: "test.clear")
+        let logger = CapturingLogger(name: "test.clear")
         api?.setLogger(logger)
         XCTAssertNotNil(api?.getLogger())
 
@@ -299,7 +324,7 @@ final class LoggerTests: XCTestCase {
         let provider = LoggerCapturingProvider()
         await api?.setProviderAndWait(provider: provider)
 
-        let logger = Logger(label: "test.persist")
+        let logger = CapturingLogger(name: "test.persist")
         api?.setLogger(logger)
 
         guard let client = api?.getClient() else {
@@ -309,99 +334,14 @@ final class LoggerTests: XCTestCase {
 
         // When: Multiple evaluations
         _ = client.getBooleanValue(key: "flag1", defaultValue: false)
-        XCTAssertEqual(provider.capturedLogger?.label, "test.persist")
+        XCTAssertEqual(name(of: provider.capturedLogger), "test.persist")
 
         _ = client.getBooleanValue(key: "flag2", defaultValue: false)
-        XCTAssertEqual(provider.capturedLogger?.label, "test.persist")
+        XCTAssertEqual(name(of: provider.capturedLogger), "test.persist")
 
         _ = client.getStringValue(key: "flag3", defaultValue: "")
 
         // Then: Logger should be consistent across all evaluations
-        XCTAssertEqual(provider.capturedLogger?.label, "test.persist")
+        XCTAssertEqual(name(of: provider.capturedLogger), "test.persist")
     }
-}
-
-// MARK: - Test Helpers
-
-/// A provider that captures the logger it receives for testing
-class LoggerCapturingProvider: FeatureProvider {
-    var hooks: [any Hook] = []
-    var metadata: ProviderMetadata = TestMetadata()
-    var capturedLogger: Logger?
-
-    private let statusTracker = ProviderStatusTracker()
-    var status: ProviderStatus { statusTracker.status }
-    func observe() -> AnyPublisher<ProviderEvent, Never> { statusTracker.observe() }
-
-    func initialize(initialContext: EvaluationContext?) -> Future<Void, Never> {
-        Future { promise in
-            self.statusTracker.send(.ready(nil))
-            promise(.success(()))
-        }
-    }
-
-    func onContextSet(
-        oldContext: EvaluationContext?,
-        newContext: EvaluationContext
-    ) -> Future<Void, Never> {
-        Future { $0(.success(())) }
-    }
-
-    func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?) throws
-        -> ProviderEvaluation<Bool>
-    { ProviderEvaluation(value: defaultValue) }
-
-    func getStringEvaluation(key: String, defaultValue: String, context: EvaluationContext?) throws
-        -> ProviderEvaluation<String>
-    { ProviderEvaluation(value: defaultValue) }
-
-    func getIntegerEvaluation(key: String, defaultValue: Int64, context: EvaluationContext?) throws
-        -> ProviderEvaluation<Int64>
-    { ProviderEvaluation(value: defaultValue) }
-
-    func getDoubleEvaluation(key: String, defaultValue: Double, context: EvaluationContext?) throws
-        -> ProviderEvaluation<Double>
-    { ProviderEvaluation(value: defaultValue) }
-
-    func getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?) throws
-        -> ProviderEvaluation<Value>
-    { ProviderEvaluation(value: defaultValue) }
-
-    // Logger-enabled overrides that capture the logger
-    func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?, logger: Logger?) throws
-        -> ProviderEvaluation<Bool>
-    {
-        capturedLogger = logger
-        return try getBooleanEvaluation(key: key, defaultValue: defaultValue, context: context)
-    }
-
-    func getStringEvaluation(key: String, defaultValue: String, context: EvaluationContext?, logger: Logger?) throws
-        -> ProviderEvaluation<String>
-    {
-        capturedLogger = logger
-        return try getStringEvaluation(key: key, defaultValue: defaultValue, context: context)
-    }
-
-    func getIntegerEvaluation(key: String, defaultValue: Int64, context: EvaluationContext?, logger: Logger?) throws
-        -> ProviderEvaluation<Int64>
-    {
-        capturedLogger = logger
-        return try getIntegerEvaluation(key: key, defaultValue: defaultValue, context: context)
-    }
-
-    func getDoubleEvaluation(key: String, defaultValue: Double, context: EvaluationContext?, logger: Logger?) throws
-        -> ProviderEvaluation<Double>
-    {
-        capturedLogger = logger
-        return try getDoubleEvaluation(key: key, defaultValue: defaultValue, context: context)
-    }
-
-    func getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?, logger: Logger?) throws
-        -> ProviderEvaluation<Value>
-    {
-        capturedLogger = logger
-        return try getObjectEvaluation(key: key, defaultValue: defaultValue, context: context)
-    }
-
-    struct TestMetadata: ProviderMetadata { var name: String? = "LoggerCapturingProvider" }
 }
