@@ -3,6 +3,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
 name: Run Release Please
 jobs:
   release-please:
@@ -10,13 +14,10 @@ jobs:
 
     # Release-please creates a PR that tracks all changes
     steps:
-      - uses: googleapis/release-please-action@v3
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
         id: release
         with:
-          release-type: simple
-          command: manifest
-          token: ${{secrets.GITHUB_TOKEN}}
-          default-branch: main
+          token: ${{secrets.RELEASE_PLEASE_ACTION_TOKEN}}
 
       - name: Dump Release Please Output
         env:
@@ -26,7 +27,7 @@ jobs:
 
     # Outputs are not namespaced when using simple release type with root path
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
+      release_created: ${{ steps.release.outputs.releases_created }}
       # Version doesn't include `v` as a prefix. This is undocumented
       version: ${{ steps.release.outputs.version }}
       upload_url: ${{ steps.release.outputs.upload_url }}
