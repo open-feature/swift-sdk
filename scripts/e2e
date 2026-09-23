@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Runs the OpenFeature specification's shared Gherkin suite against InMemoryProvider.
+#
+# The feature file is copied rather than symlinked: `swift test` copies the symlink itself while
+# Xcode follows it, so a symlink would pass locally and crash in CI.
+
+set -euo pipefail
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+root_dir=$(cd "$script_dir/.." && pwd)
+features_dir="$root_dir/e2e/Tests/OpenFeatureE2ETests/Features"
+source_feature="$root_dir/spec/specification/assets/gherkin/evaluation.feature"
+
+git -C "$root_dir" submodule update --init spec
+
+if [ ! -f "$source_feature" ]; then
+  echo "error: $source_feature is missing. Is the 'spec' submodule initialised?" >&2
+  exit 1
+fi
+
+# Only evaluation.feature: CucumberSwift enumerates the directory recursively and fails every
+# step it has no expression for.
+mkdir -p "$features_dir"
+rm -f "$features_dir"/*.feature
+cp "$source_feature" "$features_dir/evaluation.feature"
+
+cd "$root_dir/e2e"
+swift test "$@"

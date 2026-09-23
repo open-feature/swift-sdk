@@ -32,6 +32,16 @@ jobs:
               -destination "id=$SIMULATOR"
           fi
 
+  E2E:
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The Gherkin suite lives in the open-feature/spec submodule at spec/.
+          submodules: recursive
+      - name: Run the shared Gherkin suite
+        run: ./scripts/e2e
+
   SwiftLint:
     runs-on: ubuntu-latest
     steps:
