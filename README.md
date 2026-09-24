@@ -75,20 +75,6 @@ and in the target dependencies section add:
 .product(name: "OpenFeature", package: "swift-sdk"),
 ```
 
-#### CocoaPods
-
-If you manage dependencies through CocoaPods, add the following to your Podfile:
-
-```ruby
-pod 'OpenFeature', '~> 0.5.0'
-```
-
-Then, run:
-
-```bash
-pod install
-```
-
 ### iOS Usage
 
 ```swift
