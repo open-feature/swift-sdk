@@ -9,8 +9,7 @@
             "versioning": "default",
             "include-v-in-tag": false,
             "extra-files": [
-                "README.md",
-                "OpenFeature.podspec"
+                "README.md"
             ]
         }
     },

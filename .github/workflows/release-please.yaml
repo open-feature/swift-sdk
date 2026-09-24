@@ -24,16 +24,3 @@ jobs:
           RELEASE_PLEASE_OUTPUT: ${{ toJson(steps.release.outputs) }}
         run: |
           echo "$RELEASE_PLEASE_OUTPUT"
-
-    # Outputs are not namespaced when using simple release type with root path
-    outputs:
-      release_created: ${{ steps.release.outputs.releases_created }}
-      # Version doesn't include `v` as a prefix. This is undocumented
-      version: ${{ steps.release.outputs.version }}
-      upload_url: ${{ steps.release.outputs.upload_url }}
-
-  # Trigger the CocoaPods workflow when a release is created
-  cocoapods:
-    needs: release-please
-    if: ${{ fromJSON(needs.release-please.outputs.release_created || false) }}
-    uses: ./.github/workflows/cocoapods.yaml
