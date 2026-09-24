@@ -9,6 +9,8 @@ enum InMemoryTestFlags {
         "imagesPerPage": .integer(100),
     ])
 
+    static let listVariant: Value = .list([.string("a"), .integer(1), .boolean(true)])
+
     static let metadata: FlagMetadata = [
         "string": .string("1.0.2"),
         "integer": .integer(2),
@@ -37,6 +39,12 @@ enum InMemoryTestFlags {
             "object-flag": InMemoryFlag(
                 variants: ["empty": .structure([:]), "template": templateVariant],
                 defaultVariant: "template"),
+            "list-flag": InMemoryFlag(
+                variants: ["items": listVariant],
+                defaultVariant: "items"),
+            "null-flag": InMemoryFlag(
+                variants: ["nothing": .null],
+                defaultVariant: "nothing"),
             "metadata-flag": InMemoryFlag(
                 variants: ["on": .boolean(true), "off": .boolean(false)],
                 defaultVariant: "on",

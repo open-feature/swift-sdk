@@ -116,8 +116,10 @@ public final class InMemoryProvider: FeatureProvider, @unchecked Sendable {
         -> ProviderEvaluation<Value>
     {
         return try resolve(key: key, defaultValue: defaultValue, context: context) { value in
-            guard case .structure = value else { return nil }
-            return value
+            switch value {
+            case .structure, .list: return value
+            default: return nil
+            }
         }
     }
 

@@ -57,6 +57,15 @@ final class InMemoryProviderTests: XCTestCase {
         XCTAssertEqual(result.reason, "STATIC")
     }
 
+    func testObjectEvaluationResolvesListVariant() throws {
+        let result = try InMemoryTestFlags.readyProvider().getObjectEvaluation(
+            key: "list-flag", defaultValue: .null, context: nil)
+
+        XCTAssertEqual(result.value, InMemoryTestFlags.listVariant)
+        XCTAssertEqual(result.variant, "items")
+        XCTAssertEqual(result.reason, "STATIC")
+    }
+
     func testEvaluationCarriesFlagMetadata() throws {
         let result = try InMemoryTestFlags.readyProvider().getBooleanEvaluation(
             key: "metadata-flag", defaultValue: false, context: nil)

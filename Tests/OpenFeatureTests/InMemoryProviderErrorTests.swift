@@ -62,6 +62,14 @@ final class InMemoryProviderErrorTests: XCTestCase {
         }
     }
 
+    func testNullVariantEvaluatedAsObjectThrowsTypeMismatch() {
+        let provider = InMemoryTestFlags.readyProvider()
+
+        assertThrows(.typeMismatch) {
+            _ = try provider.getObjectEvaluation(key: "null-flag", defaultValue: .null, context: nil)
+        }
+    }
+
     func testEvaluationBeforeInitializeThrowsProviderNotReady() {
         let provider = InMemoryProvider(flags: InMemoryTestFlags.all())
         XCTAssertEqual(provider.status, .notReady)
