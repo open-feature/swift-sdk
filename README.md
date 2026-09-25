@@ -231,19 +231,17 @@ struct OSLogOpenFeatureLogger: OpenFeatureLogger {
 
 #### Using swift-log
 
-If you use [swift-log](https://github.com/apple/swift-log), the optional `OpenFeatureSwiftLog` product (or the `OpenFeature/SwiftLog` CocoaPods subspec) ships a ready-made `SwiftLogLogger` that forwards to a swift-log `Logger`:
+If you use [swift-log](https://github.com/apple/swift-log), the optional `OpenFeatureSwiftLog` product ships a ready-made `SwiftLogLogger` that forwards to a swift-log `Logger`:
 
 ```swift
 import Logging
 import OpenFeature
-import OpenFeatureSwiftLog  // Swift Package Manager only, see note below
+import OpenFeatureSwiftLog
 
 let logger = SwiftLogLogger(Logger(label: "com.example.app.openfeature"))
 // or simply: SwiftLogLogger(label: "com.example.app.openfeature")
 OpenFeatureAPI.shared.setLogger(logger)
 ```
-
-> **CocoaPods note:** the `OpenFeature/SwiftLog` subspec compiles `SwiftLogLogger` into the `OpenFeature` module itself and does not create an `OpenFeatureSwiftLog` module. CocoaPods users should omit `import OpenFeatureSwiftLog` and import only `OpenFeature`.
 
 The core `OpenFeature` product never links swift-log; only apps that add `OpenFeatureSwiftLog` do.
 
@@ -289,7 +287,7 @@ func getBooleanEvaluation(
 ) throws -> ProviderEvaluation<Bool>
 ```
 
-Apply the same change to `getStringEvaluation`, `getIntegerEvaluation`, `getDoubleEvaluation` and `getObjectEvaluation`. Inside the method, `logger?.debug(...)`, `logger?.info(...)`, `logger?.warning(...)` and `logger?.error(...)` keep working unchanged. Providers that only implement the plain evaluation methods (without `logger:`) need no changes. Drop the `import Logging` if the provider no longer uses swift-log directly.
+Apply the same change to `getStringEvaluation`, `getIntegerEvaluation`, `getDoubleEvaluation` and `getObjectEvaluation`. Inside the method, `logger?.debug(...)`, `logger?.info(...)`, `logger?.warning(...)` and `logger?.error(...)` calls that pass only a message keep working unchanged. `OpenFeatureLogger` takes just a message, so swift-log-specific arguments such as `metadata:` or `source:` no longer compile; fold that information into the message, and replace `trace`, `notice` or `critical` calls with the nearest of the four levels. Providers that only implement the plain evaluation methods (without `logger:`) need no changes. Drop the `import Logging` if the provider no longer uses swift-log directly.
 
 ### Domains
 

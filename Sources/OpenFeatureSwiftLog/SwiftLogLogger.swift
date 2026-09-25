@@ -1,11 +1,6 @@
 import Foundation
 import Logging
-
-// When built as a CocoaPods subspec this file is compiled into the `OpenFeature` module itself,
-// so the import is only needed (and only valid) under Swift Package Manager.
-#if SWIFT_PACKAGE
-    import OpenFeature
-#endif
+import OpenFeature
 
 /// An ``OpenFeatureLogger`` that forwards every message to a
 /// [swift-log](https://github.com/apple/swift-log) `Logger`.
@@ -13,15 +8,14 @@ import Logging
 /// ```swift
 /// import Logging
 /// import OpenFeature
-/// import OpenFeatureSwiftLog  // Swift Package Manager only, see below
+/// import OpenFeatureSwiftLog
 ///
 /// let logger = Logger(label: "com.example.app.openfeature")
 /// OpenFeatureAPI.shared.setLogger(SwiftLogLogger(logger))
 /// ```
 ///
-/// With Swift Package Manager this type lives in the separate `OpenFeatureSwiftLog` product.
-/// With CocoaPods (`pod 'OpenFeature/SwiftLog'`) it is compiled into the `OpenFeature` module
-/// itself, so omit `import OpenFeatureSwiftLog` and import only `OpenFeature`.
+/// This type lives in the optional `OpenFeatureSwiftLog` product, so the core `OpenFeature`
+/// product does not depend on swift-log.
 public struct SwiftLogLogger: OpenFeatureLogger {
     /// The underlying swift-log logger.
     public let logger: Logging.Logger
