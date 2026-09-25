@@ -101,7 +101,7 @@ The manifest declares that the SDK:
 * does not collect any data types on its own,
 * does not call any [required reason APIs](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api).
 
-The SDK is an abstraction layer, it holds the evaluation context and tracking events your app supplies and hands them to the configured provider, but never persists or transmits them itself. Any data collection, tracking or required-reason API usage happens in the provider (or hook) you install. Third-party providers and hooks are responsible for declaring that in their own privacy manifest, so check the manifest of each one you use. Your app's own manifest only needs to cover collection performed by your app's code, including any custom providers or hooks you write yourself.
+The SDK is an abstraction layer, it holds the evaluation context and tracking events your app supplies and hands them to the configured provider, but never persists or transmits them itself. Any data collection, tracking or required-reason API usage happens in the provider (or hook) you install. Third-party providers and hooks are responsible for declaring that in their own privacy manifest, so check the manifest of each one you use. Your app's own manifest must cover data collection, tracking, and required-reason API use by your app's code, including any custom providers or hooks you write yourself.
 
 ## 🌟 Features
 
