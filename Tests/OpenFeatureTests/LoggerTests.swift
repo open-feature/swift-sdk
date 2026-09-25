@@ -263,7 +263,7 @@ final class LoggerTests: XCTestCase {
             return
         }
 
-        // When: Evaluating (NoOpProvider logs at debug level)
+        // When: Evaluating
         _ = client.getBooleanValue(key: "test-flag", defaultValue: false)
 
         // Then: Evaluation should succeed (logger usage is internal)
@@ -271,8 +271,9 @@ final class LoggerTests: XCTestCase {
         XCTAssertTrue(true)
     }
 
-    /// A provider error during evaluation is logged once at error level, mentioning the flag key.
-    func testEvaluationErrorIsLoggedAtErrorLevel() async throws {
+    /// A provider error during evaluation is reported in the evaluation details, not logged by the client
+    /// (spec 1.4.11: the client SHOULD NOT write log messages on the evaluation path).
+    func testEvaluationErrorIsNotLoggedByClient() async throws {
         // Given: A provider that throws, and an API-level logger
         let provider = ThrowingProvider()
         await api?.setProviderAndWait(provider: provider)
@@ -286,12 +287,12 @@ final class LoggerTests: XCTestCase {
         }
 
         // When: Evaluating a flag that fails
-        _ = client.getBooleanValue(key: "failing-flag", defaultValue: false)
+        let details = client.getBooleanDetails(key: "failing-flag", defaultValue: false)
 
-        // Then: The failure is reported through the logger
-        let errors = logger.messages(at: .error)
-        XCTAssertEqual(errors.count, 1)
-        XCTAssertTrue(errors[0].contains("failing-flag"))
+        // Then: The failure is reported through the evaluation details, and nothing is logged
+        XCTAssertEqual(details.reason, Reason.error.rawValue)
+        XCTAssertNotNil(details.errorCode)
+        XCTAssertTrue(logger.entries.isEmpty)
     }
 
     /// MultiProvider forwards the resolved logger to its child providers.

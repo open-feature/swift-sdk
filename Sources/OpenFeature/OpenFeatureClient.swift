@@ -130,7 +130,6 @@ extension OpenFeatureClient {
                 hooks: mergedHooks,
                 hints: hints)
         } catch {
-            resolvedLogger?.error("Unable to correctly evaluate flag with key \(key) due to exception \(error)")
             if let error = error as? OpenFeatureError {
                 details.errorCode = error.errorCode()
             } else {
