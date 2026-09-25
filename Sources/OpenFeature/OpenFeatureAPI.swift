@@ -138,12 +138,17 @@ public class OpenFeatureAPI {
         }
     }
 
+    /// Sets the global logger.
+    ///
+    /// This logger is used for flag evaluations unless a client or ``FlagEvaluationOptions`` provides its own.
+    /// - Parameter logger: The logger handed to providers during flag evaluation, or `nil` to clear it.
     public func setLogger(_ logger: (any OpenFeatureLogger)?) {
         stateQueue.sync {
             self.logger = logger
         }
     }
 
+    /// Returns the global logger set with ``setLogger(_:)``, or `nil` if none is set.
     public func getLogger() -> (any OpenFeatureLogger)? {
         return stateQueue.sync {
             self.logger
@@ -222,6 +227,7 @@ public class OpenFeatureAPI {
         }
     }
 
+    /// A consistent snapshot of the API state, read atomically for a single flag evaluation.
     internal struct OpenFeatureState {
         let provider: FeatureProvider?
         let evaluationContext: EvaluationContext?

@@ -4,13 +4,16 @@ import OpenFeature
 import OpenFeatureSwiftLog
 import XCTest
 
+/// Tests for the ``SwiftLogLogger`` bridge between ``OpenFeatureLogger`` and swift-log.
 final class SwiftLogLoggerTests: XCTestCase {
+    /// Returns a ``SwiftLogLogger`` whose swift-log logger writes to the returned capturing handler.
     private func makeLogger() -> (SwiftLogLogger, CapturingLogHandler) {
         let handler = CapturingLogHandler()
         let logger = Logger(label: "test.swiftlog") { _ in handler }
         return (SwiftLogLogger(logger), handler)
     }
 
+    /// Each ``OpenFeatureLogger`` level maps to the same swift-log level with the message unchanged.
     func testForwardsEachLevelToSwiftLog() {
         let (logger, handler) = makeLogger()
 
@@ -30,6 +33,7 @@ final class SwiftLogLoggerTests: XCTestCase {
         )
     }
 
+    /// The message autoclosure is not evaluated when swift-log filters out the level.
     func testMessageIsNotEvaluatedBelowLogLevel() {
         let (logger, handler) = makeLogger()
         handler.logLevel = .error
@@ -45,12 +49,14 @@ final class SwiftLogLoggerTests: XCTestCase {
         XCTAssertTrue(handler.entries.isEmpty)
     }
 
+    /// `init(label:)` creates a swift-log logger with that label.
     func testLabelInitializerWrapsSwiftLogLogger() {
         let logger = SwiftLogLogger(label: "com.example.openfeature")
 
         XCTAssertEqual(logger.logger.label, "com.example.openfeature")
     }
 
+    /// A ``SwiftLogLogger`` can be set on and read back from ``OpenFeatureAPI``.
     func testCanBeInstalledOnOpenFeatureAPI() {
         let api = OpenFeatureAPI()
         let (logger, _) = makeLogger()
@@ -63,6 +69,7 @@ final class SwiftLogLoggerTests: XCTestCase {
 
 /// A swift-log handler that records what reaches it.
 final class CapturingLogHandler: LogHandler {
+    /// A single recorded log call.
     struct Entry: Equatable {
         let level: Logger.Level
         let message: String
@@ -71,6 +78,7 @@ final class CapturingLogHandler: LogHandler {
     private let lock = NSLock()
     private var storage: [Entry] = []
 
+    /// All recorded log calls, in order.
     var entries: [Entry] {
         lock.withLock { storage }
     }
@@ -78,11 +86,13 @@ final class CapturingLogHandler: LogHandler {
     var metadata: Logger.Metadata = [:]
     var logLevel: Logger.Level = .trace
 
+    /// Reads or writes a metadata value.
     subscript(metadataKey key: String) -> Logger.Metadata.Value? {
         get { metadata[key] }
         set { metadata[key] = newValue }
     }
 
+    /// Records the level and message; other parameters are ignored.
     // swiftlint:disable:next function_parameter_count
     func log(
         level: Logger.Level,

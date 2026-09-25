@@ -211,11 +211,13 @@ public protocol FeatureProvider: EventPublisher {
 }
 
 extension FeatureProvider {
+    /// Default implementation that ignores tracking events.
     public func track(key: String, context: (any EvaluationContext)?, details: (any TrackingEventDetails)?) throws {
         // Default to no-op
     }
 
-    // Default implementations for logger-enabled methods that delegate to original methods
+    /// Default implementation that ignores `logger` and delegates to
+    /// ``getBooleanEvaluation(key:defaultValue:context:)``.
     public func getBooleanEvaluation(
         key: String, defaultValue: Bool, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
     )
@@ -225,6 +227,8 @@ extension FeatureProvider {
         return try getBooleanEvaluation(key: key, defaultValue: defaultValue, context: context)
     }
 
+    /// Default implementation that ignores `logger` and delegates to
+    /// ``getStringEvaluation(key:defaultValue:context:)``.
     public func getStringEvaluation(
         key: String, defaultValue: String, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
     )
@@ -234,6 +238,8 @@ extension FeatureProvider {
         return try getStringEvaluation(key: key, defaultValue: defaultValue, context: context)
     }
 
+    /// Default implementation that ignores `logger` and delegates to
+    /// ``getIntegerEvaluation(key:defaultValue:context:)``.
     public func getIntegerEvaluation(
         key: String, defaultValue: Int64, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
     )
@@ -243,6 +249,8 @@ extension FeatureProvider {
         return try getIntegerEvaluation(key: key, defaultValue: defaultValue, context: context)
     }
 
+    /// Default implementation that ignores `logger` and delegates to
+    /// ``getDoubleEvaluation(key:defaultValue:context:)``.
     public func getDoubleEvaluation(
         key: String, defaultValue: Double, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
     )
@@ -252,6 +260,8 @@ extension FeatureProvider {
         return try getDoubleEvaluation(key: key, defaultValue: defaultValue, context: context)
     }
 
+    /// Default implementation that ignores `logger` and delegates to
+    /// ``getObjectEvaluation(key:defaultValue:context:)``.
     public func getObjectEvaluation(
         key: String, defaultValue: Value, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
     )

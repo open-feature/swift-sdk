@@ -289,6 +289,7 @@ final class MultiProviderTests: XCTestCase {
         XCTAssertEqual(calledProviders, expectedProviders, "Providers called do not match expected providers")
     }
 
+    /// A tracking error from one provider is logged at error level and the remaining providers are still called.
     func testTrackWithMultipleProviders_LogsErrorsAndContinues() throws {
         var calledProviders: [String] = []
         let logger = CapturingLogger(name: "test.track")

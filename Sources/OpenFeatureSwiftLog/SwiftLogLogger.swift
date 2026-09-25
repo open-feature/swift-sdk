@@ -36,18 +36,30 @@ public struct SwiftLogLogger: OpenFeatureLogger {
         self.logger = Logging.Logger(label: label)
     }
 
+    /// Forwards `message` to the wrapped logger at `.debug` level.
+    ///
+    /// The message is only evaluated if the wrapped logger's level allows `.debug`.
     public func debug(_ message: @autoclosure () -> String) {
         logger.debug("\(message())")
     }
 
+    /// Forwards `message` to the wrapped logger at `.info` level.
+    ///
+    /// The message is only evaluated if the wrapped logger's level allows `.info`.
     public func info(_ message: @autoclosure () -> String) {
         logger.info("\(message())")
     }
 
+    /// Forwards `message` to the wrapped logger at `.warning` level.
+    ///
+    /// The message is only evaluated if the wrapped logger's level allows `.warning`.
     public func warning(_ message: @autoclosure () -> String) {
         logger.warning("\(message())")
     }
 
+    /// Forwards `message` to the wrapped logger at `.error` level.
+    ///
+    /// The message is only evaluated if the wrapped logger's level allows `.error`.
     public func error(_ message: @autoclosure () -> String) {
         logger.error("\(message())")
     }

@@ -31,6 +31,9 @@ public class OpenFeatureClient: Client {
         lock.unlock()
     }
 
+    /// Sets the logger for this client, overriding the API-level logger.
+    /// - Parameter logger: The logger handed to providers during flag evaluation, or `nil` to fall back to the
+    ///   API-level logger.
     public func setLogger(_ logger: (any OpenFeatureLogger)?) {
         lock.lock()
         self.logger = logger
@@ -143,6 +146,16 @@ extension OpenFeatureClient {
         return details
     }
 
+    /// Dispatches the evaluation to the provider method matching the flag value type.
+    /// - Parameters:
+    ///   - key: The flag key.
+    ///   - context: The merged evaluation context.
+    ///   - defaultValue: The value returned when the flag cannot be resolved.
+    ///   - provider: The provider to evaluate against.
+    ///   - logger: The resolved logger (evaluation, client or API level) to hand to the provider.
+    /// - Returns: The provider's evaluation.
+    /// - Throws: Any error thrown by the provider, or ``OpenFeatureError/generalError(message:)`` when the
+    ///   provider returns a value of an unexpected type.
     // swiftlint:disable:next cyclomatic_complexity
     private func createProviderEvaluation<V: AllowedFlagValueType>(
         key: String,

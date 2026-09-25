@@ -13,5 +13,9 @@ public protocol Client: Features, Tracking {
     func addHooks(_ hooks: any Hook...)
 
     /// Sets the logger for this client.
+    ///
+    /// A client logger takes precedence over the API-level logger and is overridden by a logger passed in
+    /// ``FlagEvaluationOptions``. Pass `nil` to fall back to the API-level logger.
+    /// - Parameter logger: The logger handed to providers during flag evaluation, or `nil` to clear it.
     func setLogger(_ logger: (any OpenFeatureLogger)?)
 }

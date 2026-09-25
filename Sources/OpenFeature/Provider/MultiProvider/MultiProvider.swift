@@ -21,6 +21,8 @@ public class MultiProvider: FeatureProvider {
     /// - Parameters:
     ///   - providers: A list of providers to evaluate.
     ///   - strategy: A strategy to evaluate the providers. Defaults to FirstMatchStrategy.
+    ///   - logger: Logger used by the MultiProvider itself, e.g. to report errors from child providers while
+    ///     tracking. It is not passed to child providers; they receive the logger resolved for each evaluation.
     public init(
         providers: [FeatureProvider],
         strategy: Strategy = FirstMatchStrategy(),
@@ -86,7 +88,16 @@ public class MultiProvider: FeatureProvider {
         return try getObjectEvaluation(key: key, defaultValue: defaultValue, context: context, logger: nil)
     }
 
-    // Logger-enabled methods - canonical implementations
+    /// Evaluates a boolean flag across the child providers using the configured strategy.
+    ///
+    /// This is the canonical implementation; the logger-less overload delegates here with a `nil` logger.
+    /// - Parameters:
+    ///   - key: The flag key.
+    ///   - defaultValue: The value returned when no provider resolves the flag.
+    ///   - context: The evaluation context.
+    ///   - logger: The logger resolved for this evaluation, forwarded to every child provider.
+    /// - Returns: The evaluation selected by the strategy.
+    /// - Throws: Any error the strategy propagates from the child providers.
     public func getBooleanEvaluation(
         key: String, defaultValue: Bool, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
     )
@@ -106,6 +117,16 @@ public class MultiProvider: FeatureProvider {
         }
     }
 
+    /// Evaluates a string flag across the child providers using the configured strategy.
+    ///
+    /// This is the canonical implementation; the logger-less overload delegates here with a `nil` logger.
+    /// - Parameters:
+    ///   - key: The flag key.
+    ///   - defaultValue: The value returned when no provider resolves the flag.
+    ///   - context: The evaluation context.
+    ///   - logger: The logger resolved for this evaluation, forwarded to every child provider.
+    /// - Returns: The evaluation selected by the strategy.
+    /// - Throws: Any error the strategy propagates from the child providers.
     public func getStringEvaluation(
         key: String, defaultValue: String, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
     )
@@ -124,6 +145,16 @@ public class MultiProvider: FeatureProvider {
         }
     }
 
+    /// Evaluates an integer flag across the child providers using the configured strategy.
+    ///
+    /// This is the canonical implementation; the logger-less overload delegates here with a `nil` logger.
+    /// - Parameters:
+    ///   - key: The flag key.
+    ///   - defaultValue: The value returned when no provider resolves the flag.
+    ///   - context: The evaluation context.
+    ///   - logger: The logger resolved for this evaluation, forwarded to every child provider.
+    /// - Returns: The evaluation selected by the strategy.
+    /// - Throws: Any error the strategy propagates from the child providers.
     public func getIntegerEvaluation(
         key: String, defaultValue: Int64, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
     )
@@ -143,6 +174,16 @@ public class MultiProvider: FeatureProvider {
         }
     }
 
+    /// Evaluates a double flag across the child providers using the configured strategy.
+    ///
+    /// This is the canonical implementation; the logger-less overload delegates here with a `nil` logger.
+    /// - Parameters:
+    ///   - key: The flag key.
+    ///   - defaultValue: The value returned when no provider resolves the flag.
+    ///   - context: The evaluation context.
+    ///   - logger: The logger resolved for this evaluation, forwarded to every child provider.
+    /// - Returns: The evaluation selected by the strategy.
+    /// - Throws: Any error the strategy propagates from the child providers.
     public func getDoubleEvaluation(
         key: String, defaultValue: Double, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
     )
@@ -161,6 +202,16 @@ public class MultiProvider: FeatureProvider {
         }
     }
 
+    /// Evaluates an object flag across the child providers using the configured strategy.
+    ///
+    /// This is the canonical implementation; the logger-less overload delegates here with a `nil` logger.
+    /// - Parameters:
+    ///   - key: The flag key.
+    ///   - defaultValue: The value returned when no provider resolves the flag.
+    ///   - context: The evaluation context.
+    ///   - logger: The logger resolved for this evaluation, forwarded to every child provider.
+    /// - Returns: The evaluation selected by the strategy.
+    /// - Throws: Any error the strategy propagates from the child providers.
     public func getObjectEvaluation(
         key: String, defaultValue: Value, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
     )

@@ -18,12 +18,14 @@ final class LoggerTests: XCTestCase {
         try await super.tearDown()
     }
 
+    /// Returns the name of `logger` if it is a ``CapturingLogger``, otherwise `nil`.
     private func name(of logger: (any OpenFeatureLogger)?) -> String? {
         (logger as? CapturingLogger)?.name
     }
 
     // MARK: - Logger Hierarchy Tests
 
+    /// A logger set on the API can be read back.
     func testAPILevelLogger() async throws {
         // Given: Logger set at API level
         let logger = CapturingLogger(name: "test.api")
@@ -37,6 +39,7 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(name(of: retrievedLogger), "test.api")
     }
 
+    /// A logger set on a client is passed to the provider.
     func testClientLevelLogger() async throws {
         // Given: Client with its own logger
         let logger = CapturingLogger(name: "test.client")
@@ -56,6 +59,7 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(name(of: provider.capturedLogger), "test.client")
     }
 
+    /// An evaluation-level logger takes precedence over client and API loggers.
     func testLoggerHierarchyEvaluationOverridesClient() async throws {
         // Given: API logger, Client logger, and Evaluation logger
         let apiLogger = CapturingLogger(name: "test.api")
@@ -81,6 +85,7 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(name(of: provider.capturedLogger), "test.eval")
     }
 
+    /// A client logger takes precedence over the API logger.
     func testLoggerHierarchyClientOverridesAPI() async throws {
         // Given: API logger and Client logger
         let apiLogger = CapturingLogger(name: "test.api")
@@ -104,6 +109,7 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(name(of: provider.capturedLogger), "test.client")
     }
 
+    /// The API logger is used when neither the client nor the evaluation sets one.
     func testLoggerHierarchyAPIAsDefault() async throws {
         // Given: Only API logger
         let apiLogger = CapturingLogger(name: "test.api")
@@ -124,6 +130,7 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(name(of: provider.capturedLogger), "test.api")
     }
 
+    /// The provider receives `nil` when no logger is set at any level.
     func testNoLoggerProvided() async throws {
         // Given: No loggers set at any level
         let provider = LoggerCapturingProvider()
@@ -143,6 +150,7 @@ final class LoggerTests: XCTestCase {
 
     // MARK: - Provider Integration Tests
 
+    /// The logger reaches the provider for every flag value type.
     func testProviderReceivesLogger() async throws {
         // Given: Provider with logger capturing
         let provider = LoggerCapturingProvider()
@@ -173,6 +181,7 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(name(of: provider.capturedLogger), "test.provider")
     }
 
+    /// A provider implementing only the logger-less methods still evaluates via the default extension.
     func testDefaultProtocolExtensionWorks() async throws {
         // Given: Provider that doesn't implement logger-enabled methods
         let provider = MockProvider()
@@ -195,6 +204,7 @@ final class LoggerTests: XCTestCase {
 
     // MARK: - Backwards Compatibility Tests
 
+    /// Evaluation succeeds when no logger is configured.
     func testEvaluationWithoutLoggerStillWorks() async throws {
         // Given: Provider and client setup without any loggers
         let provider = DoSomethingProvider()
@@ -218,6 +228,7 @@ final class LoggerTests: XCTestCase {
         XCTAssertEqual(doubleResult, 500.0)
     }
 
+    /// Evaluation with options that carry no logger succeeds.
     func testFlagEvaluationOptionsWithoutLogger() async throws {
         // Given: Options without logger
         let provider = DoSomethingProvider()
@@ -238,6 +249,7 @@ final class LoggerTests: XCTestCase {
 
     // MARK: - Logger Usage Tests
 
+    /// Evaluating against the NoOp provider with a logger set succeeds.
     func testNoOpProviderUsesLogger() async throws {
         // Given: NoOpProvider with logger
         let provider = NoOpProvider()
@@ -259,6 +271,7 @@ final class LoggerTests: XCTestCase {
         XCTAssertTrue(true)
     }
 
+    /// A provider error during evaluation is logged once at error level, mentioning the flag key.
     func testEvaluationErrorIsLoggedAtErrorLevel() async throws {
         // Given: A provider that throws, and an API-level logger
         let provider = ThrowingProvider()
@@ -281,6 +294,7 @@ final class LoggerTests: XCTestCase {
         XCTAssertTrue(errors[0].contains("failing-flag"))
     }
 
+    /// MultiProvider forwards the resolved logger to its child providers.
     func testMultiProviderPassesLoggerToChildren() async throws {
         // Given: MultiProvider with child providers
         let child1 = LoggerCapturingProvider()
@@ -306,6 +320,7 @@ final class LoggerTests: XCTestCase {
 
     // MARK: - Edge Cases
 
+    /// Setting a `nil` logger clears a previously set one.
     func testSettingNilLoggerClearsLogger() async throws {
         // Given: Logger initially set
         let logger = CapturingLogger(name: "test.clear")
@@ -319,6 +334,7 @@ final class LoggerTests: XCTestCase {
         XCTAssertNil(api?.getLogger())
     }
 
+    /// The same logger reaches the provider on repeated evaluations.
     func testLoggerPersistsAcrossEvaluations() async throws {
         // Given: Client with logger
         let provider = LoggerCapturingProvider()
