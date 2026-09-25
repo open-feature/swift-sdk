@@ -18,7 +18,7 @@ let package = Package(
     ],
     dependencies: [
         // Keep older toolchains able to resolve a compatible swift-log release.
-        .package(url: "https://github.com/apple/swift-log", from: "1.4.4"),
+        .package(url: "https://github.com/apple/swift-log", from: "1.5.4"),
     ],
     targets: [
         .target(
