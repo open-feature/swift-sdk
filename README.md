@@ -91,6 +91,18 @@ Task {
 }
 ```
 
+### Privacy Manifest
+
+The SDK ships a [privacy manifest](https://developer.apple.com/documentation/bundleresources/privacy-manifest-files) (`PrivacyInfo.xcprivacy`) that Swift Package Manager bundles automatically, so it is picked up by Xcode's privacy report and App Store submission checks.
+
+The manifest declares that the SDK:
+
+* does not track users (`NSPrivacyTracking` is `false`) and contacts no tracking domains,
+* does not collect any data types on its own,
+* does not call any [required reason APIs](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api).
+
+The SDK is an abstraction layer, it holds the evaluation context and tracking events your app supplies and hands them to the configured provider, but never persists or transmits them itself. Any data collection, tracking or required-reason API usage happens in the provider (or hook) you install. Third-party providers and hooks are responsible for declaring that in their own privacy manifest, so check the manifest of each one you use. Your app's own manifest must cover data collection, tracking, and required-reason API use by your app's code, including any custom providers or hooks you write yourself.
+
 ## 🌟 Features
 
 | Status | Features                        | Description                                                                                                                         |
