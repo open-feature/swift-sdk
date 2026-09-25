@@ -1,6 +1,5 @@
 import Combine
 import Foundation
-import Logging
 
 /// The interface implemented by upstream flag providers to resolve flags for their service.
 ///
@@ -148,7 +147,9 @@ public protocol FeatureProvider: EventPublisher {
     /// Override this method to receive and use the logger during flag evaluation.
     /// If not overridden, the default implementation delegates to
     /// ``getBooleanEvaluation(key:defaultValue:context:)``.
-    func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?, logger: Logger?) throws
+    func getBooleanEvaluation(
+        key: String, defaultValue: Bool, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+    ) throws
         -> ProviderEvaluation<
             Bool
         >
@@ -158,7 +159,9 @@ public protocol FeatureProvider: EventPublisher {
     /// Override this method to receive and use the logger during flag evaluation.
     /// If not overridden, the default implementation delegates to
     /// ``getStringEvaluation(key:defaultValue:context:)``.
-    func getStringEvaluation(key: String, defaultValue: String, context: EvaluationContext?, logger: Logger?) throws
+    func getStringEvaluation(
+        key: String, defaultValue: String, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+    ) throws
         -> ProviderEvaluation<
             String
         >
@@ -168,7 +171,9 @@ public protocol FeatureProvider: EventPublisher {
     /// Override this method to receive and use the logger during flag evaluation.
     /// If not overridden, the default implementation delegates to
     /// ``getIntegerEvaluation(key:defaultValue:context:)``.
-    func getIntegerEvaluation(key: String, defaultValue: Int64, context: EvaluationContext?, logger: Logger?) throws
+    func getIntegerEvaluation(
+        key: String, defaultValue: Int64, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+    ) throws
         -> ProviderEvaluation<
             Int64
         >
@@ -178,7 +183,9 @@ public protocol FeatureProvider: EventPublisher {
     /// Override this method to receive and use the logger during flag evaluation.
     /// If not overridden, the default implementation delegates to
     /// ``getDoubleEvaluation(key:defaultValue:context:)``.
-    func getDoubleEvaluation(key: String, defaultValue: Double, context: EvaluationContext?, logger: Logger?) throws
+    func getDoubleEvaluation(
+        key: String, defaultValue: Double, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+    ) throws
         -> ProviderEvaluation<
             Double
         >
@@ -188,7 +195,9 @@ public protocol FeatureProvider: EventPublisher {
     /// Override this method to receive and use the logger during flag evaluation.
     /// If not overridden, the default implementation delegates to
     /// ``getObjectEvaluation(key:defaultValue:context:)``.
-    func getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?, logger: Logger?) throws
+    func getObjectEvaluation(
+        key: String, defaultValue: Value, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+    ) throws
         -> ProviderEvaluation<
             Value
         >
@@ -202,40 +211,60 @@ public protocol FeatureProvider: EventPublisher {
 }
 
 extension FeatureProvider {
+    /// Default implementation that ignores tracking events.
     public func track(key: String, context: (any EvaluationContext)?, details: (any TrackingEventDetails)?) throws {
         // Default to no-op
     }
 
-    // Default implementations for logger-enabled methods that delegate to original methods
-    public func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?, logger: Logger?)
+    /// Default implementation that ignores `logger` and delegates to
+    /// ``getBooleanEvaluation(key:defaultValue:context:)``.
+    public func getBooleanEvaluation(
+        key: String, defaultValue: Bool, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+    )
         throws
         -> ProviderEvaluation<Bool>
     {
         return try getBooleanEvaluation(key: key, defaultValue: defaultValue, context: context)
     }
 
-    public func getStringEvaluation(key: String, defaultValue: String, context: EvaluationContext?, logger: Logger?)
+    /// Default implementation that ignores `logger` and delegates to
+    /// ``getStringEvaluation(key:defaultValue:context:)``.
+    public func getStringEvaluation(
+        key: String, defaultValue: String, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+    )
         throws
         -> ProviderEvaluation<String>
     {
         return try getStringEvaluation(key: key, defaultValue: defaultValue, context: context)
     }
 
-    public func getIntegerEvaluation(key: String, defaultValue: Int64, context: EvaluationContext?, logger: Logger?)
+    /// Default implementation that ignores `logger` and delegates to
+    /// ``getIntegerEvaluation(key:defaultValue:context:)``.
+    public func getIntegerEvaluation(
+        key: String, defaultValue: Int64, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+    )
         throws
         -> ProviderEvaluation<Int64>
     {
         return try getIntegerEvaluation(key: key, defaultValue: defaultValue, context: context)
     }
 
-    public func getDoubleEvaluation(key: String, defaultValue: Double, context: EvaluationContext?, logger: Logger?)
+    /// Default implementation that ignores `logger` and delegates to
+    /// ``getDoubleEvaluation(key:defaultValue:context:)``.
+    public func getDoubleEvaluation(
+        key: String, defaultValue: Double, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+    )
         throws
         -> ProviderEvaluation<Double>
     {
         return try getDoubleEvaluation(key: key, defaultValue: defaultValue, context: context)
     }
 
-    public func getObjectEvaluation(key: String, defaultValue: Value, context: EvaluationContext?, logger: Logger?)
+    /// Default implementation that ignores `logger` and delegates to
+    /// ``getObjectEvaluation(key:defaultValue:context:)``.
+    public func getObjectEvaluation(
+        key: String, defaultValue: Value, context: EvaluationContext?, logger: (any OpenFeatureLogger)?
+    )
         throws
         -> ProviderEvaluation<Value>
     {

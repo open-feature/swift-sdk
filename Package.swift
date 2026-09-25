@@ -12,9 +12,14 @@ let package = Package(
         .tvOS(.v15),
     ],
     products: [
+        // The core SDK. Has no third-party dependencies.
         .library(
             name: "OpenFeature",
             targets: ["OpenFeature"]),
+        // Optional bridge that lets the SDK log through swift-log.
+        .library(
+            name: "OpenFeatureSwiftLog",
+            targets: ["OpenFeatureSwiftLog"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log", from: "1.15.1"),
@@ -22,17 +27,26 @@ let package = Package(
     targets: [
         .target(
             name: "OpenFeature",
-            dependencies: [
-                .product(name: "Logging", package: "swift-log"),
-            ],
             resources: [
                 .copy("PrivacyInfo.xcprivacy"),
+            ]
+        ),
+        .target(
+            name: "OpenFeatureSwiftLog",
+            dependencies: [
+                "OpenFeature",
+                .product(name: "Logging", package: "swift-log"),
             ]
         ),
         .testTarget(
             name: "OpenFeatureTests",
             dependencies: [
                 "OpenFeature",
+            ]),
+        .testTarget(
+            name: "OpenFeatureSwiftLogTests",
+            dependencies: [
+                "OpenFeatureSwiftLog",
                 .product(name: "Logging", package: "swift-log"),
             ]),
     ]
