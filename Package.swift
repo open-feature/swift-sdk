@@ -26,16 +26,16 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "OpenFeature"
+            name: "OpenFeature",
+            resources: [
+                .copy("PrivacyInfo.xcprivacy"),
+            ]
         ),
         .target(
             name: "OpenFeatureSwiftLog",
             dependencies: [
                 "OpenFeature",
                 .product(name: "Logging", package: "swift-log"),
-            ],
-            resources: [
-                .copy("PrivacyInfo.xcprivacy"),
             ]
         ),
         .testTarget(
