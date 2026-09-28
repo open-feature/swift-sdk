@@ -2,5 +2,14 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "github>open-feature/community-tooling"
+  ],
+  "packageRules": [
+    {
+      "description": "Manage swift-log manually to preserve compatibility with older Swift toolchains",
+      "matchManagers": ["swift"],
+      "matchFileNames": ["Package.swift"],
+      "matchPackageNames": ["apple/swift-log"],
+      "enabled": false
+    }
   ]
 }

@@ -22,7 +22,8 @@ let package = Package(
             targets: ["OpenFeatureSwiftLog"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-log", from: "1.15.1"),
+        // Keep older toolchains able to resolve a compatible swift-log release.
+        .package(url: "https://github.com/apple/swift-log", from: "1.5.4"),
     ],
     targets: [
         .target(
