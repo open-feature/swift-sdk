@@ -5,9 +5,48 @@
 
 ### ⚠ BREAKING CHANGES
 
-* swift-log types are no longer part of the public API. `OpenFeatureAPI.setLogger`, `Client.setLogger`, `FlagEvaluationOptions(logger:)` and `MultiProvider(logger:)` now take `(any OpenFeatureLogger)?`, and `getLogger()` returns it. Providers that override the logger-enabled `get*Evaluation(key:defaultValue:context:logger:)` methods must change the parameter type to `(any OpenFeatureLogger)?`. swift-log users should add the `OpenFeatureSwiftLog` product and wrap their logger in `SwiftLogLogger`.
-* remove CocoaPods support ([#137](https://github.com/open-feature/swift-sdk/issues/137))
-* use specification-compliant Reason raw values ([#125](https://github.com/open-feature/swift-sdk/issues/125))
+* swift-log types in the public API have been replaced by `OpenFeatureLogger`. See [logging migration](#logging). ([#131](https://github.com/open-feature/swift-sdk/pull/131))
+* CocoaPods support has been removed. See [CocoaPods migration](#cocoapods). ([#137](https://github.com/open-feature/swift-sdk/issues/137))
+* `Reason.rawValue` now uses specification-compliant values. See [reason migration](#reason-values). ([#125](https://github.com/open-feature/swift-sdk/issues/125))
+
+### Migration instructions
+
+#### Logging
+
+If you use swift-log, add `.product(name: "OpenFeatureSwiftLog", package: "swift-sdk")` to your target and wrap loggers passed to `setLogger`, `FlagEvaluationOptions`, or `MultiProvider`:
+
+```swift
+import OpenFeatureSwiftLog
+OpenFeatureAPI.shared.setLogger(SwiftLogLogger(logger))
+```
+
+`getLogger()` now returns `(any OpenFeatureLogger)?`. Provider authors must change `logger: Logger?` to `logger: (any OpenFeatureLogger)?` in logger-enabled evaluation methods. Old signatures can still compile, but provider logging silently stops. See the [provider migration guide](README.md#migrating-providers-from-swift-log-06x).
+
+#### CocoaPods
+
+Remove `pod 'OpenFeature'` from your Podfile and add the SDK through Swift Package Manager, using version `0.7.0` or later:
+
+```swift
+.package(url: "https://github.com/open-feature/swift-sdk.git", from: "0.7.0")
+```
+
+Add `.product(name: "OpenFeature", package: "swift-sdk")` to your target dependencies. See the [installation instructions](README.md#swift-package-manager).
+
+#### Reason values
+
+The `Reason` case names have not changed, but their raw strings have. Update any comparisons, stored values, or filters that use the old strings:
+
+| Case | 0.6.x | 0.7.0 |
+| --- | --- | --- |
+| `staticReason` | `staticReason` | `STATIC` |
+| `defaultReason` | `defaultReason` | `DEFAULT` |
+| `targetingMatch` | `targetingMatch` | `TARGETING_MATCH` |
+| `split` | `split` | `SPLIT` |
+| `cached` | `cached` | `CACHED` |
+| `disabled` | `disabled` | `DISABLED` |
+| `unknown` | `unknown` | `UNKNOWN` |
+| `stale` | `stale` | `STALE` |
+| `error` | `error` | `ERROR` |
 
 ### 🐛 Bug Fixes
 
@@ -17,6 +56,7 @@
 
 ### ✨ New Features
 
+* add InMemoryProvider for local development and testing ([#126](https://github.com/open-feature/swift-sdk/issues/126)) ([e02448b](https://github.com/open-feature/swift-sdk/commit/e02448b9923126ae2a236f5667d67f8d0b13d933))
 * add privacy manifest ([#130](https://github.com/open-feature/swift-sdk/issues/130)) ([fbf1dd5](https://github.com/open-feature/swift-sdk/commit/fbf1dd534fcf07ab3077801f3d43072b90ef8669))
 * swap swift-log for OpenFeatureLogger ([#131](https://github.com/open-feature/swift-sdk/issues/131)) ([df0977b](https://github.com/open-feature/swift-sdk/commit/df0977b98a9ee18adf8215b913e5bf6281c47056))
 
