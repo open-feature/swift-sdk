@@ -5,10 +5,11 @@
   ],
   "packageRules": [
     {
-      "description": "Preserve the swift-log lower bound for older Swift toolchains",
+      "description": "Manage swift-log manually to preserve compatibility with older Swift toolchains",
       "matchManagers": ["swift"],
+      "matchFileNames": ["Package.swift"],
       "matchPackageNames": ["apple/swift-log"],
-      "rangeStrategy": "replace"
+      "enabled": false
     }
   ]
 }
