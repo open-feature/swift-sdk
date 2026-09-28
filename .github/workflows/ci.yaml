@@ -27,7 +27,7 @@ jobs:
             echo "Using simulator: $SIMULATOR"
 
             xcodebuild test \
-              -scheme OpenFeature \
+              -scheme OpenFeature-Package \
               -parallel-testing-enabled NO \
               -destination "id=$SIMULATOR"
           fi
