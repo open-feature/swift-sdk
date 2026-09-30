@@ -27,7 +27,7 @@ let package = Package(
             resources: [
                 // .copy, not .process: .process flattens directories, and CucumberSwift resolves
                 // features via `bundle.url(forResource: "Features", withExtension: nil)`. The
-                // feature files are gitignored; a committed .gitkeep keeps this path resolvable.
+                // feature files are gitignored; a committed .gitignore keeps this path resolvable.
                 .copy("Features"),
             ]
         ),

@@ -1,15 +1,11 @@
 // swiftlint:disable line_length
 // swift-format-ignore-file
 
-/// Every step in `spec/specification/assets/gherkin/evaluation.feature`.
-///
 /// Patterns must stay `^...$`-anchored: CucumberSwift matches unanchored and lets the last match
 /// win, so `a flag with key "..."` would otherwise also claim `a boolean flag with key "..."`.
 enum EvaluationPatterns {
-    // Background
     static let stableProvider = #"^a stable provider$"#
 
-    // Basic evaluation
     static let booleanValue        = #"^a boolean flag with key "([^"]*)" is evaluated with default value "([^"]*)"$"#
     static let booleanValueResult  = #"^the resolved boolean value should be "([^"]*)"$"#
     static let stringValue         = #"^a string flag with key "([^"]*)" is evaluated with default value "([^"]*)"$"#
@@ -21,7 +17,6 @@ enum EvaluationPatterns {
     static let objectValue         = #"^an object flag with key "([^"]*)" is evaluated with a null default value$"#
     static let objectValueResult   = #"^the resolved object value should be contain fields "([^"]*)", "([^"]*)", and "([^"]*)", with values "([^"]*)", "([^"]*)" and (-?\d+), respectively$"#
 
-    // Detailed evaluation
     static let booleanDetails       = #"^a boolean flag with key "([^"]*)" is evaluated with details and default value "([^"]*)"$"#
     static let booleanDetailsResult = #"^the resolved boolean details value should be "([^"]*)", the variant should be "([^"]*)", and the reason should be "([^"]*)"$"#
     static let stringDetails        = #"^a string flag with key "([^"]*)" is evaluated with details and default value "([^"]*)"$"#
@@ -34,13 +29,11 @@ enum EvaluationPatterns {
     static let objectDetailsResult  = #"^the resolved object details value should be contain fields "([^"]*)", "([^"]*)", and "([^"]*)", with values "([^"]*)", "([^"]*)" and (-?\d+), respectively$"#
     static let variantAndReason     = #"^the variant should be "([^"]*)", and the reason should be "([^"]*)"$"#
 
-    // Context-aware evaluation
     static let contextContainsKeys  = #"^context contains keys "([^"]*)", "([^"]*)", "([^"]*)", "([^"]*)" with values "([^"]*)", "([^"]*)", (-?\d+), "([^"]*)"$"#
     static let untypedFlagValue     = #"^a flag with key "([^"]*)" is evaluated with default value "([^"]*)"$"#
     static let stringResponse       = #"^the resolved string response should be "([^"]*)"$"#
     static let emptyContextValue    = #"^the resolved flag value is "([^"]*)" when the context is empty$"#
 
-    // Errors
     static let missingFlagDetails   = #"^a non-existent string flag with key "([^"]*)" is evaluated with details and a fallback value "([^"]*)"$"#
     static let defaultStringResult  = #"^the default string value should be returned$"#
     static let flagNotFoundReason   = #"^the reason should indicate an error and the error code should indicate a missing flag with "([^"]*)"$"#

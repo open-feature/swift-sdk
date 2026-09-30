@@ -5,9 +5,6 @@ import XCTest
 // CucumberSwift's regex step API is deprecated in favour of Swift `Regex` literals, which require
 // iOS 16 / macOS 13 -- above this SDK's floor. Marking these wrappers and their callers deprecated
 // confines the warning.
-//
-// Patterns must be `String`-typed values, never literals: a literal binds to the
-// `CucumberExpression` overload, because the regex overloads are `@_disfavoredOverload`.
 
 @available(*, deprecated, message: "Wraps CucumberSwift's deprecated regex step API")
 func given(
@@ -39,7 +36,6 @@ func then(
     Then(pattern, callback: body, line: line, file: file)
 }
 
-/// Fails the step rather than trapping if a pattern and its consumer have drifted apart.
 func capture(
     _ matches: [String],
     _ index: Int,

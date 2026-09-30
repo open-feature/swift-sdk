@@ -95,7 +95,6 @@ extension Cucumber {
         then(EvaluationPatterns.objectDetailsResult) { matches, _ in
             GherkinArguments.assertObjectPayload(ScenarioState.current.objectDetails?.value, matches)
         }
-        // An `And` step whose primary keyword is Then, so `then` matches it.
         then(EvaluationPatterns.variantAndReason) { matches, _ in
             guard let details = ScenarioState.current.objectDetails else {
                 XCTFail("no object details captured in this scenario")

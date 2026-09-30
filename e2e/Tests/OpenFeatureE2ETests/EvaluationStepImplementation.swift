@@ -2,12 +2,10 @@ import CucumberSwift
 import Foundation
 import XCTest
 
-/// CucumberSwift entry point.
-///
 /// `shouldRunWith(scenario:tags:)` is deliberately not implemented: `evaluation.feature` is tagged
-/// `@deprecated`, and tag filtering only consults that method when it exists, so implementing it
+/// `@deprecated` and tag filtering only consults that method when it exists, so implementing it
 /// without allowing `deprecated` would silently run zero scenarios.
-extension Cucumber: @retroactive StepImplementation {
+extension Cucumber: CucumberSwift.StepImplementation {
     /// Not `Bundle(for:)`: under SwiftPM the copied resources live in a sibling bundle.
     public var bundle: Bundle { .module }
 

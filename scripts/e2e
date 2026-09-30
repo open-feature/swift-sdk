@@ -1,9 +1,6 @@
 #!/bin/bash
 
 # Runs the OpenFeature specification's shared Gherkin suite against InMemoryProvider.
-#
-# The feature file is copied rather than symlinked: `swift test` copies the symlink itself while
-# Xcode follows it, so a symlink would pass locally and crash in CI.
 
 set -euo pipefail
 

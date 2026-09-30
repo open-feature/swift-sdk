@@ -7,7 +7,6 @@ extension Cucumber {
     @available(*, deprecated, message: "See StepRegistration.swift")
     func registerContextSteps() {
         when(EvaluationPatterns.contextContainsKeys) { matches, _ in
-            // `Client` takes no per-evaluation context, so the context is installed globally.
             let attributes: [String: Value] = [
                 capture(matches, 1): GherkinArguments.boolOrString(capture(matches, 5)),
                 capture(matches, 2): GherkinArguments.boolOrString(capture(matches, 6)),
@@ -20,7 +19,6 @@ extension Cucumber {
             }
         }
 
-        // An `And` step whose primary keyword is When. Untyped in the Gherkin, a string here.
         when(EvaluationPatterns.untypedFlagValue) { matches, _ in
             let state = ScenarioState.current
             state.flagKey = capture(matches, 1)

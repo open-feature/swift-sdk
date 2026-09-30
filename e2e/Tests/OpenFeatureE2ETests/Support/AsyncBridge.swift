@@ -1,8 +1,6 @@
 import Foundation
 import XCTest
 
-/// Runs `async` SDK calls from CucumberSwift's synchronous step closures. `XCTWaiter` rather than
-/// a `DispatchSemaphore`, which would deadlock the moment a provider or hook hopped to the main queue.
 enum AsyncBridge {
     static let defaultTimeout: TimeInterval = 10
 

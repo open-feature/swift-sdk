@@ -7,11 +7,13 @@ extension Cucumber {
     @available(*, deprecated, message: "See StepRegistration.swift")
     func registerLifecycleHooks() {
         BeforeScenario { _ in
-            // Forces every scenario through its Background step.
             ScenarioState.clear()
         }
         AfterScenario { _ in
             OpenFeatureAPI.shared.clearProvider()
+            // The evaluation context is global, so reset it here rather than relying on every
+            // scenario's background step to overwrite it.
+            OpenFeatureAPI.shared.setEvaluationContext(evaluationContext: ImmutableContext())
             ScenarioState.clear()
         }
     }

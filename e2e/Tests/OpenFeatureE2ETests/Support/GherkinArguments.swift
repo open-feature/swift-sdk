@@ -2,7 +2,6 @@ import Foundation
 import OpenFeature
 import XCTest
 
-/// Turns raw capture groups into Swift values, failing the step rather than trapping on bad input.
 enum GherkinArguments {
     static func bool(_ raw: String, file: StaticString = #filePath, line: UInt = #line) -> Bool {
         switch raw.lowercased() {
@@ -32,8 +31,6 @@ enum GherkinArguments {
         return value
     }
 
-    /// The context step quotes its boolean, so `"false"` has to become `.boolean(false)` or the
-    /// `context-aware` targeting rule never matches.
     static func boolOrString(_ raw: String) -> Value {
         switch raw.lowercased() {
         case "true":
@@ -45,7 +42,6 @@ enum GherkinArguments {
         }
     }
 
-    /// The spec names error codes in SCREAMING_SNAKE_CASE while `ErrorCode`'s cases are camelCase.
     static func errorCode(
         _ raw: String,
         file: StaticString = #filePath,

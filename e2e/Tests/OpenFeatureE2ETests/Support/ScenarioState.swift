@@ -2,10 +2,6 @@ import Foundation
 import OpenFeature
 import XCTest
 
-/// Per-scenario state, installed by the `Given a stable provider` background step.
-///
-/// Step closures are registered once on the `Cucumber.shared` singleton and reused by every
-/// scenario, so state captured in `setupSteps()` would leak between scenarios.
 final class ScenarioState {
     private static let lock = NSLock()
     private static var storage: ScenarioState?
@@ -21,8 +17,6 @@ final class ScenarioState {
         lock.withLock { storage = nil }
     }
 
-    /// Reported as a step failure rather than a trap, so a scenario that lost its background
-    /// step does not take the rest of the run down with it.
     static var current: ScenarioState {
         guard let state = lock.withLock({ storage }) else {
             XCTFail("No scenario state: 'Given a stable provider' did not run for this scenario")
