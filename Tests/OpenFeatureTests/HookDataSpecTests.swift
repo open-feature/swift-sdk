@@ -1,4 +1,3 @@
-import Combine
 import Foundation
 import XCTest
 
@@ -108,7 +107,7 @@ final class HookDataSpecTests: XCTestCase {
 
     func testHookDataPersistsThroughErrorAndFinallyStages() {
         let provider = AlwaysBrokenProvider()
-        let eventState = waitForError(from: provider)
+        let eventState = installProviderAndWaitForError(provider)
         let client = OpenFeatureAPI.shared.getClient()
         var errorValue: String?
         var finallyValue: String?
@@ -131,7 +130,7 @@ final class HookDataSpecTests: XCTestCase {
 
     func testHookDataWrittenInErrorIsVisibleInFinally() {
         let provider = AlwaysBrokenProvider()
-        let eventState = waitForError(from: provider)
+        let eventState = installProviderAndWaitForError(provider)
         let client = OpenFeatureAPI.shared.getClient()
         var finallyValue: String?
         let hook = HookDataSpyHook<Bool>(
@@ -229,21 +228,6 @@ final class HookDataSpecTests: XCTestCase {
         XCTAssertEqual(Set(tokensReadInFinally).count, iterations)
         XCTAssertEqual(hook.seenHookData.count, iterations * 3)
         XCTAssertEqual(Set(hook.seenHookData.map { ObjectIdentifier($0) }).count, iterations)
-    }
-
-    // MARK: - Helpers
-
-    /// Installs `provider` and blocks until it reports an error, so the evaluation that follows hits the error path.
-    private func waitForError(from provider: AlwaysBrokenProvider) -> AnyCancellable {
-        let errorExpectation = XCTestExpectation(description: "Error")
-        let eventState = provider.observe().sink { event in
-            if case .error = event {
-                errorExpectation.fulfill()
-            }
-        }
-        OpenFeatureAPI.shared.setProvider(provider: provider)
-        wait(for: [errorExpectation], timeout: 5)
-        return eventState
     }
 }
 
