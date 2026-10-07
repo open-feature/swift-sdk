@@ -539,6 +539,62 @@ class BooleanHook: Hook {
 }
 ```
 
+#### Hook data
+
+Each hook gets its own `hookData` store on the `HookContext`.
+It is created fresh for every evaluation and shared across that hook's `before`, `after`, `error` and `finally` stages, but never with other hooks.
+Use it to carry per-evaluation state (a timer, a span, a correlation ID) from one stage to the next without touching the evaluation context.
+
+`EvaluationTimeHook` measures how long each evaluation takes by storing a timestamp in `before` and reading it back in `finally`:
+
+```swift
+class EvaluationTimeHook: Hook {
+    typealias HookValue = Bool
+
+    func before<HookValue>(ctx: HookContext<HookValue>, hints: [String: Any]) {
+        ctx.hookData["start"] = Date()
+    }
+
+    func finally<HookValue>(ctx: HookContext<HookValue>, details: FlagEvaluationDetails<HookValue>, hints: [String: Any]) {
+        guard let start = ctx.hookData["start"] as? Date else { return }
+        print("\(ctx.flagKey) evaluated in \(Date().timeIntervalSince(start))s")
+    }
+}
+```
+
+`CorrelationIDHook` tags every log line of one evaluation with the same ID, whether it succeeds or fails.
+Because a correlation ID is useful for every flag, it overrides `supportsFlagValueType` to run for all value types rather than only `Bool`:
+
+```swift
+class CorrelationIDHook: Hook {
+    typealias HookValue = Bool
+
+    func supportsFlagValueType(flagValueType: FlagValueType) -> Bool {
+        true
+    }
+
+    func before<HookValue>(ctx: HookContext<HookValue>, hints: [String: Any]) {
+        let correlationID = UUID().uuidString
+        ctx.hookData["correlationID"] = correlationID
+        print("[\(correlationID)] evaluating \(ctx.flagKey)")
+    }
+
+    func after<HookValue>(ctx: HookContext<HookValue>, details: FlagEvaluationDetails<HookValue>, hints: [String: Any]) {
+        print("[\(correlationID(ctx))] \(ctx.flagKey) resolved to \(details.value)")
+    }
+
+    func error<HookValue>(ctx: HookContext<HookValue>, error: Error, hints: [String: Any]) {
+        print("[\(correlationID(ctx))] \(ctx.flagKey) failed: \(error)")
+    }
+
+    private func correlationID<HookValue>(_ ctx: HookContext<HookValue>) -> String {
+        ctx.hookData["correlationID"] as? String ?? "unknown"
+    }
+}
+```
+
+Keys are strings and values can be of any type; hook data is never serialised or sent to the provider.
+
 > Built a new hook? [Let us know](https://github.com/open-feature/openfeature.dev/issues/new?assignees=&labels=hook&projects=&template=document-hook.yaml&title=%5BHook%5D%3A+) so we can add it to the docs!
 
 <!-- x-hide-in-docs-start -->

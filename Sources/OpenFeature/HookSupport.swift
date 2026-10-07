@@ -1,44 +1,36 @@
 import Foundation
-import os
 
+/// Dispatches the stages of a flag evaluation to hooks, each paired with its own ``HookContext``.
+///
+/// ``OpenFeatureClient`` builds the pairs once per evaluation from the hooks that support the flag's value type, so
+/// every hook sees the same ``HookData`` at every stage. Nothing is filtered here, which keeps hooks and contexts
+/// from ever going out of step.
 class HookSupport {
-    func beforeHooks<T>(flagValueType: FlagValueType, hookCtx: HookContext<T>, hooks: [any Hook], hints: [String: Any])
-    {
-        hooks
+    typealias HookWithContext<T> = (hook: any Hook, ctx: HookContext<T>)
+
+    func beforeHooks<T>(hooksWithContext: [HookWithContext<T>], hints: [String: Any]) {
+        hooksWithContext
             .reversed()
-            .filter { $0.supportsFlagValueType(flagValueType: flagValueType) }
-            .forEach { $0.before(ctx: hookCtx, hints: hints) }
+            .forEach { $0.hook.before(ctx: $0.ctx, hints: hints) }
     }
 
     func afterHooks<T>(
-        flagValueType: FlagValueType,
-        hookCtx: HookContext<T>,
+        hooksWithContext: [HookWithContext<T>],
         details: FlagEvaluationDetails<T>,
-        hooks: [any Hook],
         hints: [String: Any]
-    ) throws {
-        hooks
-            .filter { $0.supportsFlagValueType(flagValueType: flagValueType) }
-            .forEach { $0.after(ctx: hookCtx, details: details, hints: hints) }
+    ) {
+        hooksWithContext.forEach { $0.hook.after(ctx: $0.ctx, details: details, hints: hints) }
     }
 
-    func errorHooks<T>(
-        flagValueType: FlagValueType, hookCtx: HookContext<T>, error: Error, hooks: [any Hook], hints: [String: Any]
-    ) {
-        hooks
-            .filter { $0.supportsFlagValueType(flagValueType: flagValueType) }
-            .forEach { $0.error(ctx: hookCtx, error: error, hints: hints) }
+    func errorHooks<T>(hooksWithContext: [HookWithContext<T>], error: Error, hints: [String: Any]) {
+        hooksWithContext.forEach { $0.hook.error(ctx: $0.ctx, error: error, hints: hints) }
     }
 
     func finallyHooks<T>(
-        flagValueType: FlagValueType,
-        hookCtx: HookContext<T>,
+        hooksWithContext: [HookWithContext<T>],
         details: FlagEvaluationDetails<T>,
-        hooks: [any Hook],
         hints: [String: Any]
     ) {
-        hooks
-            .filter { $0.supportsFlagValueType(flagValueType: flagValueType) }
-            .forEach { $0.finally(ctx: hookCtx, details: details, hints: hints) }
+        hooksWithContext.forEach { $0.hook.finally(ctx: $0.ctx, details: details, hints: hints) }
     }
 }
