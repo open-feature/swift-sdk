@@ -99,17 +99,16 @@ extension OpenFeatureClient {
         let providerMetadata = provider?.metadata ?? NoProviderMetadata()
         let mergedHooks = providerHooks + options.hooks + clientHooks + state.hooks
 
-        let hookCtx = HookContext(
-            flagKey: key,
-            type: T.flagValueType,
+        let hooksWithContext = makeHooksWithContext(
+            hooks: mergedHooks,
+            key: key,
             defaultValue: defaultValue,
-            ctx: context,
-            clientMetadata: self.metadata,
+            context: context,
             providerMetadata: providerMetadata)
         var details = FlagEvaluationDetails(flagKey: key, value: defaultValue)
 
         do {
-            hookSupport.beforeHooks(flagValueType: T.flagValueType, hookCtx: hookCtx, hooks: mergedHooks, hints: hints)
+            hookSupport.beforeHooks(hooksWithContext: hooksWithContext, hints: hints)
 
             guard let provider = provider else {
                 throw OpenFeatureError.providerNotReadyError
@@ -123,12 +122,7 @@ extension OpenFeatureClient {
                 logger: resolvedLogger)
 
             details = FlagEvaluationDetails<T>.from(providerEval: providerEval, flagKey: key)
-            try hookSupport.afterHooks(
-                flagValueType: T.flagValueType,
-                hookCtx: hookCtx,
-                details: details,
-                hooks: mergedHooks,
-                hints: hints)
+            hookSupport.afterHooks(hooksWithContext: hooksWithContext, details: details, hints: hints)
         } catch {
             if let error = error as? OpenFeatureError {
                 details.errorCode = error.errorCode()
@@ -137,12 +131,44 @@ extension OpenFeatureClient {
             }
             details.errorMessage = "\(error)"
             details.reason = Reason.error.rawValue
-            hookSupport.errorHooks(
-                flagValueType: T.flagValueType, hookCtx: hookCtx, error: error, hooks: mergedHooks, hints: hints)
+            hookSupport.errorHooks(hooksWithContext: hooksWithContext, error: error, hints: hints)
         }
-        hookSupport.finallyHooks(
-            flagValueType: T.flagValueType, hookCtx: hookCtx, details: details, hooks: mergedHooks, hints: hints)
+        hookSupport.finallyHooks(hooksWithContext: hooksWithContext, details: details, hints: hints)
         return details
+    }
+
+    /// Pairs every hook that supports `T` with its own ``HookContext``.
+    ///
+    /// Built once per evaluation, before any stage runs, and reused by every stage, so each hook gets a fresh
+    /// ``HookData`` that follows it from `before` through `finally` and is never shared with another hook.
+    /// - Parameters:
+    ///   - hooks: Provider, invocation, client and API hooks, already merged in that order.
+    ///   - key: The flag key.
+    ///   - defaultValue: The value returned when the flag cannot be resolved.
+    ///   - context: The evaluation context in effect for this evaluation.
+    ///   - providerMetadata: Metadata of the provider that will resolve the flag.
+    /// - Returns: The hooks that will run, in merged order, each with its context.
+    private func makeHooksWithContext<T: AllowedFlagValueType>(
+        hooks: [any Hook],
+        key: String,
+        defaultValue: T,
+        context: EvaluationContext?,
+        providerMetadata: ProviderMetadata
+    ) -> [HookSupport.HookWithContext<T>] {
+        hooks
+            .filter { $0.supportsFlagValueType(flagValueType: T.flagValueType) }
+            .map { hook in
+                (
+                    hook: hook,
+                    ctx: HookContext(
+                        flagKey: key,
+                        type: T.flagValueType,
+                        defaultValue: defaultValue,
+                        ctx: context,
+                        clientMetadata: self.metadata,
+                        providerMetadata: providerMetadata)
+                )
+            }
     }
 
     /// Dispatches the evaluation to the provider method matching the flag value type.
