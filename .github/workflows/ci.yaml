@@ -37,6 +37,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: GitHub Action for SwiftLint
-        uses: norio-nomura/action-swiftlint@3.2.1
+        uses: norio-nomura/action-swiftlint@9f4dcd7fd46b4e75d7935cf2f4df406d5cae3684 # 3.2.1
         with:
           args: --config .swiftlint.yml
