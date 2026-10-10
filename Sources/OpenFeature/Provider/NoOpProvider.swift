@@ -31,6 +31,11 @@ class NoOpProvider: FeatureProvider {
         return Future { $0(.success(())) }
     }
 
+    func shutdown() -> Future<Void, Never> {
+        statusTracker.reset()
+        return Future { $0(.success(())) }
+    }
+
     func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?) throws
         -> ProviderEvaluation<
             Bool

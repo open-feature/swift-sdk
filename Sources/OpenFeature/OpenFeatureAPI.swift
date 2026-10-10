@@ -24,6 +24,7 @@ public class OpenFeatureAPI {
 
     /**
     Set provider and calls its `initialize` in a background thread.
+    The previously set provider, if it is a different instance, is shut down first.
     Readiness can be determined from `getState` or listening for `ready` event.
     */
     public func setProvider(provider: FeatureProvider, initialContext: EvaluationContext?) {
@@ -32,6 +33,7 @@ public class OpenFeatureAPI {
 
     /**
     Set provider and calls its `initialize`.
+    The previously set provider, if it is a different instance, is shut down first.
     This async function returns when the `initialize` from the provider is completed.
     */
     public func setProviderAndWait(provider: FeatureProvider, initialContext: EvaluationContext?) async {
@@ -40,6 +42,7 @@ public class OpenFeatureAPI {
 
     /**
     Set provider and calls its `initialize` in a background thread.
+    The previously set provider, if it is a different instance, is shut down first.
     Readiness can be determined from `getState` or listening for `ready` event.
     */
     public func setProvider(provider: FeatureProvider) {
@@ -48,6 +51,7 @@ public class OpenFeatureAPI {
 
     /**
     Set provider and calls its `initialize`.
+    The previously set provider, if it is a different instance, is shut down first.
     This async function returns when the `initialize` from the provider is completed.
     */
     public func setProviderAndWait(provider: FeatureProvider) async {
@@ -60,22 +64,78 @@ public class OpenFeatureAPI {
         }
     }
 
+    /**
+    Clear provider and call its `shutdown` in a background thread.
+    Hooks and the evaluation context are kept; use `shutdown()` to reset the whole API.
+    */
     public func clearProvider() {
-        clearProviderInternal()
+        _ = clearProviderInternal()
     }
 
     /**
-    Clear provider.
-    This async function returns when the clear operation is completed.
+    Clear provider and call its `shutdown`.
+    This async function returns when the `shutdown` from the provider is completed.
     */
     public func clearProviderAndWait() async {
-        clearProviderInternal()
+        await clearProviderInternal().value
     }
 
-    private func clearProviderInternal() {
+    /**
+    Shut down the API: the current provider's `shutdown` is called in a background thread and all API state is
+    reset — provider, hooks and evaluation context — leaving the API ready to be configured again. The logger is
+    configuration rather than evaluation state and is kept. Subscribers of `observe()` receive no further events
+    until a new provider is set.
+    */
+    public func shutdown() {
+        _ = shutdownInternal()
+    }
+
+    /**
+    Shut down the API and reset all its state.
+    This async function returns when the `shutdown` from the provider is completed.
+    */
+    public func shutdownAndWait() async {
+        await shutdownInternal().value
+    }
+
+    /// Removes the current provider atomically on stateQueue, then runs its `shutdown` on
+    /// providerLifecycleQueue. Returns a Future that resolves when `shutdown` completes, or at once when no
+    /// provider was set.
+    private func clearProviderInternal() -> Future<Void, Never> {
         return stateQueue.sync {
+            let previous = self.providerSubject.value
             self.providerSubject.send(nil)
+            return self.shutdownLifecycle(of: previous)
         }
+    }
+
+    /// Resets provider, hooks and evaluation context atomically on stateQueue, then runs the previous provider's
+    /// `shutdown` on providerLifecycleQueue. Returns a Future that resolves when `shutdown` completes, or at once
+    /// when no provider was set.
+    private func shutdownInternal() -> Future<Void, Never> {
+        return stateQueue.sync {
+            let previous = self.providerSubject.value
+            self.providerSubject.send(nil)
+            self.hooks.removeAll()
+            self.evaluationContext = nil
+            return self.shutdownLifecycle(of: previous)
+        }
+    }
+
+    /// Runs `provider.shutdown()` on providerLifecycleQueue; resolves at once when there is no provider.
+    private func shutdownLifecycle(of provider: FeatureProvider?) -> Future<Void, Never> {
+        guard let provider = provider else {
+            return Future { $0(.success(())) }
+        }
+        return runLifecycle {
+            provider.shutdown()
+        }
+    }
+
+    /// Whether both values are the same provider object. Value-type providers are never "the same instance", so
+    /// on replacement they are shut down like any other previous provider.
+    private func isSameInstance(_ lhs: FeatureProvider, _ rhs: FeatureProvider) -> Bool {
+        return (lhs as AnyObject) === (rhs as AnyObject)
     }
 
     /**
@@ -178,16 +238,23 @@ public class OpenFeatureAPI {
         }
     }
 
-    /// Updates state atomically on stateQueue, then runs the provider's `initialize` on
-    /// providerLifecycleQueue.
+    /// Updates state atomically on stateQueue, then runs the previous provider's `shutdown` (when it is a
+    /// different instance) followed by the new provider's `initialize` on providerLifecycleQueue.
     /// Returns a Future that resolves when `initialize` completes.
     private func setProviderInternal(provider: FeatureProvider, initialContext: EvaluationContext? = nil)
         -> Future<Void, Never>
     {
         return stateQueue.sync {
+            let previous = self.providerSubject.value
             self.providerSubject.send(provider)
             if let initialContext = initialContext {
                 self.evaluationContext = initialContext
+            }
+            // From the send above, evaluations go to the new provider, so the previous one is no longer in use
+            // and is shut down. Queuing it before `initialize` keeps lifecycle calls serialised. Re-setting the
+            // same instance is not a replacement, so it is not shut down.
+            if let previous = previous, !isSameInstance(previous, provider) {
+                _ = self.shutdownLifecycle(of: previous)
             }
             return self.runLifecycle {
                 provider.initialize(initialContext: initialContext)
