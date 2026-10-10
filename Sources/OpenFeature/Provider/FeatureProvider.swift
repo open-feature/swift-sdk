@@ -36,6 +36,14 @@ import Foundation
 ///         }
 ///     }
 ///
+///     func shutdown() -> Future<Void, Never> {
+///         Future { promise in
+///             // Release what initialize acquired, then revert to .notReady.
+///             self.statusTracker.reset()
+///             promise(.success(()))
+///         }
+///     }
+///
 ///     // ... flag evaluation methods ...
 /// }
 /// ```
@@ -94,6 +102,25 @@ public protocol FeatureProvider: EventPublisher {
         oldContext: EvaluationContext?,
         newContext: EvaluationContext,
     ) -> Future<Void, Never>
+
+    /// Called by OpenFeatureAPI when the provider stops being used: when another provider replaces it, when it is
+    /// cleared, and when the API itself shuts down.
+    ///
+    /// Release what `initialize` acquired: flush pending tracking data, close connections, stop background work.
+    /// Afterwards the provider should be back in its uninitialized state (`status == .notReady`); providers built
+    /// on ``ProviderStatusTracker`` get there with ``ProviderStatusTracker/reset()``. The call must be safe to
+    /// repeat, and it may arrive while `initialize` or `onContextSet` is still doing asynchronous work, in which
+    /// case that work should be cancelled rather than awaited.
+    ///
+    /// It returns a `Future` instead of completing synchronously because the work it describes is asynchronous on
+    /// Apple platforms (network flushes, `URLSession` invalidation, file handles), because that keeps the lifecycle
+    /// API uniform with `initialize` and `onContextSet`, and because it is what lets `shutdownAndWait()` and
+    /// `clearProviderAndWait()` on ``OpenFeatureAPI`` return only once the provider has actually finished. Resolve
+    /// the `Future` when cleanup is complete. The SDK calls this at most once per registration, on the lifecycle
+    /// queue, and never on a provider that is still serving evaluations.
+    ///
+    /// Optional: the default implementation does nothing and resolves immediately.
+    func shutdown() -> Future<Void, Never>
 
     /// Evaluates a boolean feature flag.
     ///
@@ -214,6 +241,11 @@ extension FeatureProvider {
     /// Default implementation that ignores tracking events.
     public func track(key: String, context: (any EvaluationContext)?, details: (any TrackingEventDetails)?) throws {
         // Default to no-op
+    }
+
+    /// Default implementation for providers with nothing to release: resolves immediately.
+    public func shutdown() -> Future<Void, Never> {
+        return Future { $0(.success(())) }
     }
 
     /// Default implementation that ignores `logger` and delegates to

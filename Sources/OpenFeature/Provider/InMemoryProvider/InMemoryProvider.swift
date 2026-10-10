@@ -55,6 +55,15 @@ public final class InMemoryProvider: FeatureProvider, @unchecked Sendable {
         }
     }
 
+    /// Reverts the provider to `.notReady`. The flag configuration is kept, so the provider can be initialized
+    /// again.
+    public func shutdown() -> Future<Void, Never> {
+        statusTracker.reset()
+        return Future { promise in
+            promise(.success(()))
+        }
+    }
+
     // MARK: - Configuration
 
     /// Replaces the entire flag configuration. `flagsChanged` is the union of the previous and

@@ -121,7 +121,7 @@ The SDK is an abstraction layer, it holds the evaluation context and tracking ev
 | ✅     | [MultiProvider](#multiprovider) | Combine multiple providers with configurable evaluation strategies.                                                                 |
 | ✅     | [InMemoryProvider](#inmemoryprovider) | Resolve flags from an in-memory configuration, for demos and testing.                                                         |
 | ✅     | [Eventing](#eventing)           | React to state changes in the provider or flag management system.                                                                   |
-| ❌     | [Shutdown](#shutdown)           | Gracefully clean up a provider during application shutdown.                                                                         |
+| ✅     | [Shutdown](#shutdown)           | Gracefully clean up a provider during application shutdown.                                                                         |
 | ✅     | [Extending](#extending)         | Extend OpenFeature with custom providers and hooks.                                                                                 |
 
 <sub>Implemented: ✅ | In-progress: ⚠️ | Not implemented yet: ❌</sub>
@@ -444,7 +444,15 @@ let cancellable = OpenFeatureAPI.shared.observe().sink { event in
 
 ### Shutdown
 
-A shutdown function is not yet available in the iOS SDK.
+`OpenFeatureAPI.shared.shutdown()` calls the active provider's `shutdown` and resets the API — provider, hooks and evaluation context — so it can be configured again later; the logger is kept.
+Use `shutdownAndWait()` when you need to know the provider has finished, for example to flush tracking data before the process exits:
+
+```swift
+await OpenFeatureAPI.shared.shutdownAndWait()
+```
+
+Providers are also shut down whenever they stop being used: `setProvider` shuts down the provider it replaces, and `clearProvider` shuts down the one it removes (`clearProviderAndWait` returns once that is done).
+A provider that holds resources implements `shutdown() -> Future<Void, Never>` to release them and revert to `.notReady` — `ProviderStatusTracker.reset()` does the latter — and resolves the `Future` when it is done; providers with nothing to release inherit a no-op default.
 
 ## Extending
 
