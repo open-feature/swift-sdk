@@ -58,6 +58,17 @@ public class MultiProvider: FeatureProvider {
         }
     }
 
+    /// Shuts down every child provider, waits for all of them to finish, then reverts to `.notReady`.
+    public func shutdown() -> Future<Void, Never> {
+        let futures = providers.map { $0.shutdown() }
+        return Future { promise in
+            afterAll(futures) {
+                self.statusTracker.reset()
+                promise(.success(()))
+            }
+        }
+    }
+
     public func getBooleanEvaluation(key: String, defaultValue: Bool, context: EvaluationContext?) throws
         -> ProviderEvaluation<Bool>
     {
