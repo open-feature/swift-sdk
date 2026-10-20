@@ -595,6 +595,40 @@ class CorrelationIDHook: Hook {
 
 Keys are strings and values can be of any type; hook data is never serialised or sent to the provider.
 
+#### Telemetry
+
+`Telemetry.createEvaluationEvent` turns a finished evaluation into an [OpenTelemetry-compatible event](https://openfeature.dev/specification/appendix-d): the name `feature_flag.evaluation` plus attributes such as `feature_flag.key`, `feature_flag.result.variant`, `feature_flag.result.value`, `feature_flag.result.reason`, `feature_flag.provider.name` and, when the evaluation failed, `error.type` and `error.message`.
+Call it from the `finally` stage, where the evaluation details are complete, and hand the result to your telemetry client as a span event or a log record.
+Attribute values are booleans, strings, integers or doubles; object and list flag values arrive as JSON strings, and attributes without a value are left out.
+
+```swift
+class TelemetryHook: Hook {
+    typealias HookValue = Bool
+
+    /// Forwards an event to your telemetry client, e.g. `span.addEvent(name:attributes:)` or a log record.
+    private let emit: (_ name: String, _ attributes: TelemetryAttributes) -> Void
+
+    init(emit: @escaping (_ name: String, _ attributes: TelemetryAttributes) -> Void) {
+        self.emit = emit
+    }
+
+    // Telemetry is useful for every flag, not only boolean ones.
+    func supportsFlagValueType(flagValueType: FlagValueType) -> Bool {
+        true
+    }
+
+    func finally<HookValue>(ctx: HookContext<HookValue>, details: FlagEvaluationDetails<HookValue>, hints: [String: Any]) {
+        let event = Telemetry.createEvaluationEvent(hookContext: ctx, evaluationDetails: details)
+        var attributes = event.attributes
+        attributes[Telemetry.Attribute.value] = nil // drop the flag value when it may be sensitive or large
+        emit(event.name, attributes)
+    }
+}
+```
+
+Map each `TelemetryAttributeValue` to your client's attribute type with a `switch` over its four cases (`.boolean`, `.string`, `.integer`, `.double`).
+The SDK has no OpenTelemetry dependency and the utility takes no options: filtering, redacting or truncating attributes is the hook's responsibility, as the specification recommends.
+
 > Built a new hook? [Let us know](https://github.com/open-feature/openfeature.dev/issues/new?assignees=&labels=hook&projects=&template=document-hook.yaml&title=%5BHook%5D%3A+) so we can add it to the docs!
 
 <!-- x-hide-in-docs-start -->
