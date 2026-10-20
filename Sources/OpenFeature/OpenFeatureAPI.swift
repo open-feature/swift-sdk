@@ -24,7 +24,7 @@ public class OpenFeatureAPI {
 
     /**
     Set provider and calls its `initialize` in a background thread.
-    The previously set provider, if it is a different instance, is shut down first.
+    The previously set provider, if it is a different instance, is shut down; `initialize` does not wait for it.
     Readiness can be determined from `getState` or listening for `ready` event.
     */
     public func setProvider(provider: FeatureProvider, initialContext: EvaluationContext?) {
@@ -33,7 +33,7 @@ public class OpenFeatureAPI {
 
     /**
     Set provider and calls its `initialize`.
-    The previously set provider, if it is a different instance, is shut down first.
+    The previously set provider, if it is a different instance, is shut down; `initialize` does not wait for it.
     This async function returns when the `initialize` from the provider is completed.
     */
     public func setProviderAndWait(provider: FeatureProvider, initialContext: EvaluationContext?) async {
@@ -42,7 +42,7 @@ public class OpenFeatureAPI {
 
     /**
     Set provider and calls its `initialize` in a background thread.
-    The previously set provider, if it is a different instance, is shut down first.
+    The previously set provider, if it is a different instance, is shut down; `initialize` does not wait for it.
     Readiness can be determined from `getState` or listening for `ready` event.
     */
     public func setProvider(provider: FeatureProvider) {
@@ -51,7 +51,7 @@ public class OpenFeatureAPI {
 
     /**
     Set provider and calls its `initialize`.
-    The previously set provider, if it is a different instance, is shut down first.
+    The previously set provider, if it is a different instance, is shut down; `initialize` does not wait for it.
     This async function returns when the `initialize` from the provider is completed.
     */
     public func setProviderAndWait(provider: FeatureProvider) async {
@@ -238,9 +238,10 @@ public class OpenFeatureAPI {
         }
     }
 
-    /// Updates state atomically on stateQueue, then runs the previous provider's `shutdown` (when it is a
-    /// different instance) followed by the new provider's `initialize` on providerLifecycleQueue.
-    /// Returns a Future that resolves when `initialize` completes.
+    /// Updates state atomically on stateQueue, then invokes the previous provider's `shutdown` (when it is a
+    /// different instance) and the new provider's `initialize`, in that order, on providerLifecycleQueue.
+    /// The two may run concurrently. Returns a Future that resolves when `initialize` completes, without waiting
+    /// for `shutdown`.
     private func setProviderInternal(provider: FeatureProvider, initialContext: EvaluationContext? = nil)
         -> Future<Void, Never>
     {
@@ -250,9 +251,11 @@ public class OpenFeatureAPI {
             if let initialContext = initialContext {
                 self.evaluationContext = initialContext
             }
-            // From the send above, evaluations go to the new provider, so the previous one is no longer in use
-            // and is shut down. Queuing it before `initialize` keeps lifecycle calls serialised. Re-setting the
-            // same instance is not a replacement, so it is not shut down.
+            // From the send above, new evaluations go to the new provider, so the previous one is shut down.
+            // Evaluations that already snapshotted it may still be running. Only the calls are ordered: `shutdown`
+            // is invoked before `initialize`, but `initialize` does not wait for it to complete, so a slow or hung
+            // shutdown cannot hold back the provider now serving evaluations. Re-setting the same instance is not
+            // a replacement, so it is not shut down.
             if let previous = previous, !isSameInstance(previous, provider) {
                 _ = self.shutdownLifecycle(of: previous)
             }

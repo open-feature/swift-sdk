@@ -17,6 +17,14 @@ public class MultiProvider: FeatureProvider {
     private let statusTracker = ProviderStatusTracker()
     public var status: ProviderStatus { statusTracker.status }
 
+    /// Decides which lifecycle call may change the status. `initialize` and `shutdown` each start a new generation;
+    /// an `initialize`, `onContextSet` or `shutdown` changes the status only while the generation it started in is
+    /// still current, so a call overtaken by a later `initialize` or `shutdown` leaves the status alone. The check
+    /// and the change happen together under `lifecycleLock`. Holding it across `statusTracker.send` is safe because
+    /// the tracker delivers events to subscribers asynchronously.
+    private let lifecycleLock = NSLock()
+    private var generation = 0
+
     /// Initialize a MultiProvider with a list of providers and a strategy.
     /// - Parameters:
     ///   - providers: A list of providers to evaluate.
@@ -35,10 +43,11 @@ public class MultiProvider: FeatureProvider {
     }
 
     public func initialize(initialContext: EvaluationContext?) -> Future<Void, Never> {
+        let started = startGeneration()
         let futures = providers.map { $0.initialize(initialContext: initialContext) }
         return Future { promise in
             afterAll(futures) {
-                self.updateStatus()
+                self.ifCurrent(started) { self.updateStatus() }
                 promise(.success(()))
             }
         }
@@ -48,22 +57,27 @@ public class MultiProvider: FeatureProvider {
         oldContext: EvaluationContext?,
         newContext: EvaluationContext
     ) -> Future<Void, Never> {
+        let started = currentGeneration()
         let futures = providers.map { $0.onContextSet(oldContext: oldContext, newContext: newContext) }
         return Future { promise in
-            self.statusTracker.send(.reconciling())
+            self.ifCurrent(started) { self.statusTracker.send(.reconciling()) }
             afterAll(futures) {
-                self.updateStatus()
+                self.ifCurrent(started) { self.updateStatus() }
                 promise(.success(()))
             }
         }
     }
 
     /// Shuts down every child provider, waits for all of them to finish, then reverts to `.notReady`.
+    /// `initialize` or `onContextSet` calls still in flight no longer update the status, and an `initialize` that
+    /// arrives before the children finish takes over, so the reset is skipped. Calling it again shuts the children
+    /// down again, so it is only as repeat-safe as they are.
     public func shutdown() -> Future<Void, Never> {
+        let started = startGeneration()
         let futures = providers.map { $0.shutdown() }
         return Future { promise in
             afterAll(futures) {
-                self.statusTracker.reset()
+                self.ifCurrent(started) { self.statusTracker.reset() }
                 promise(.success(()))
             }
         }
@@ -237,6 +251,27 @@ public class MultiProvider: FeatureProvider {
         ) { provider in
             { (key: String, defaultValue: Value, context: EvaluationContext?) throws -> ProviderEvaluation<Value> in
                 try provider.getObjectEvaluation(key: key, defaultValue: defaultValue, context: context, logger: logger)
+            }
+        }
+    }
+
+    /// Starts a new generation, invalidating every lifecycle call still in flight, and returns it.
+    private func startGeneration() -> Int {
+        lifecycleLock.withLock {
+            generation += 1
+            return generation
+        }
+    }
+
+    private func currentGeneration() -> Int {
+        lifecycleLock.withLock { generation }
+    }
+
+    /// Runs `change` unless `initialize` or `shutdown` has started a new generation since `started`.
+    private func ifCurrent(_ started: Int, _ change: () -> Void) {
+        lifecycleLock.withLock {
+            if generation == started {
+                change()
             }
         }
     }

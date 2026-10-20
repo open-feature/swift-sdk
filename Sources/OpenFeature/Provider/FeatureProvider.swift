@@ -108,16 +108,21 @@ public protocol FeatureProvider: EventPublisher {
     ///
     /// Release what `initialize` acquired: flush pending tracking data, close connections, stop background work.
     /// Afterwards the provider should be back in its uninitialized state (`status == .notReady`); providers built
-    /// on ``ProviderStatusTracker`` get there with ``ProviderStatusTracker/reset()``. The call must be safe to
-    /// repeat, and it may arrive while `initialize` or `onContextSet` is still doing asynchronous work, in which
-    /// case that work should be cancelled rather than awaited.
+    /// on ``ProviderStatusTracker`` get there with ``ProviderStatusTracker/reset()``. The call may arrive while
+    /// `initialize` or `onContextSet` is still doing asynchronous work, in which case that work should be cancelled
+    /// rather than awaited, and must not change the status once shutdown has reset it.
+    ///
+    /// When this provider is replaced, the replacement's `initialize` is not held back until this call completes,
+    /// so the two can run concurrently. Providers that share resources with other provider instances (a client, a
+    /// cache file) must not assume exclusive access during shutdown.
     ///
     /// It returns a `Future` instead of completing synchronously because the work it describes is asynchronous on
     /// Apple platforms (network flushes, `URLSession` invalidation, file handles), because that keeps the lifecycle
     /// API uniform with `initialize` and `onContextSet`, and because it is what lets `shutdownAndWait()` and
     /// `clearProviderAndWait()` on ``OpenFeatureAPI`` return only once the provider has actually finished. Resolve
     /// the `Future` when cleanup is complete. The SDK calls this at most once per registration, on the lifecycle
-    /// queue, and never on a provider that is still serving evaluations.
+    /// queue, once the provider is no longer reachable for new evaluations. Evaluations that started before that
+    /// point may still be running against it.
     ///
     /// Optional: the default implementation does nothing and resolves immediately.
     func shutdown() -> Future<Void, Never>
