@@ -1,3 +1,4 @@
+#if SwiftLog
 import Foundation
 import Logging
 import OpenFeature
@@ -106,3 +107,4 @@ final class CapturingLogHandler: LogHandler {
         lock.withLock { storage.append(Entry(level: level, message: message.description)) }
     }
 }
+#endif
