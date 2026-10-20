@@ -4,6 +4,8 @@ excluded:
   - ${PWD}/DerivedData
   - ${PWD}/.build
   - ${PWD}/Tools/*/.build
+  - ${PWD}/e2e/.build
+  - ${PWD}/spec
   - ${PWD}/Tests/OpenFeatureTests/MockingbirdMocks/
   - ${PWD}/Sources/OpenFeature/FlagResolver
 

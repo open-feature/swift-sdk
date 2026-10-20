@@ -1,0 +1,4 @@
+[submodule "spec"]
+	path = spec
+	url = https://github.com/open-feature/spec.git
+	shallow = true
