@@ -311,6 +311,12 @@ final class ProviderStatusTrackerTests: XCTestCase {
 
         let queue = DispatchQueue(label: "test.concurrent", attributes: .concurrent)
 
+        // `cancellables` is a plain `Set`, so storing into it from the concurrently
+        // executing blocks below is a data race: one thread can reallocate the Set's
+        // storage while another is releasing one of its elements, which corrupts the
+        // heap and crashes the test process (seen as a SIGSEGV in `store(in:)`).
+        let cancellablesLock = NSLock()
+
         for _ in 0..<iterations {
             // Concurrent sends
             queue.async {
@@ -320,9 +326,13 @@ final class ProviderStatusTrackerTests: XCTestCase {
 
             // Concurrent subscribes
             queue.async {
-                tracker.observe()
+                let cancellable = tracker.observe()
                     .sink { _ in }
-                    .store(in: &self.cancellables)
+
+                cancellablesLock.withLock {
+                    _ = self.cancellables.insert(cancellable)
+                }
+
                 expectation.fulfill()
             }
         }
