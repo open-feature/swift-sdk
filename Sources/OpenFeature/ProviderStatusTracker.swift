@@ -91,6 +91,18 @@ public final class ProviderStatusTracker: EventSender, EventPublisher, @unchecke
         }
     }
 
+    /// Reverts the status to `.notReady`, the state the tracker had before any event was sent, without emitting
+    /// an event: the specification has no "not ready" event, and subscribers that arrive later simply receive no
+    /// replay, as they would for a provider that was never initialized.
+    ///
+    /// Call it from the provider's `shutdown` so the provider ends in its uninitialized state. Safe to call
+    /// repeatedly or before `initialize`.
+    public func reset() {
+        serializationLock.withLock {
+            status = .notReady
+        }
+    }
+
     public func observe() -> AnyPublisher<ProviderEvent, Never> {
         TrackerPublisher(tracker: self)
             .receive(on: subscriberQueue)
