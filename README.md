@@ -42,7 +42,7 @@ This SDK supports the following Apple platforms:
 - **watchOS 8+**
 - **tvOS 15+**
 
-The SDK is built with Swift 5.5+ and uses only Foundation and Combine, making it suitable for all Apple platform contexts including mobile, desktop, wearable, and TV applications. It has no third-party dependencies. An optional `OpenFeatureSwiftLog` product integrates with [swift-log](https://github.com/apple/swift-log) for those who use it (see [Logging](#logging)).
+The core SDK supports Swift 5.5+ and uses only Foundation and Combine. On Swift 6.2+, the package resolves no third-party dependencies by default. Older toolchains continue resolving SwiftLog. The optional `OpenFeatureSwiftLog` adapter is available on both; see [Logging](#logging).
 
 ### Install
 
@@ -75,10 +75,9 @@ and in the target dependencies section add:
 .product(name: "OpenFeature", package: "swift-sdk"),
 ```
 
-To log through [swift-log](https://github.com/apple/swift-log), also add the optional bridge product:
-```swift
-.product(name: "OpenFeatureSwiftLog", package: "swift-sdk"),
-```
+For external logging frameworks, see [Logging](#logging).
+
+Version 0.7.0 still resolves swift-log and does not support the `SwiftLog` trait. The dependency isolation and opt-in adapter described here require a release containing this change.
 
 ### iOS Usage
 
@@ -198,7 +197,7 @@ Note that some providers may not support tracking; check the documentation for y
 
 ### Logging
 
-The SDK does not depend on any logging framework. It logs through the small `OpenFeatureLogger` protocol, so you can plug in whatever logger your app already uses:
+The core SDK does not depend on any logging framework. It logs through the small `OpenFeatureLogger` protocol, so you can plug in whatever logger your app already uses:
 
 ```swift
 public protocol OpenFeatureLogger {
@@ -231,19 +230,35 @@ struct OSLogOpenFeatureLogger: OpenFeatureLogger {
 
 #### Using swift-log
 
-If you use [swift-log](https://github.com/apple/swift-log), the optional `OpenFeatureSwiftLog` product ships a ready-made `SwiftLogLogger` that forwards to a swift-log `Logger`:
+The optional `OpenFeatureSwiftLog` product provides a ready-made `SwiftLogLogger` that forwards to [swift-log](https://github.com/apple/swift-log).
+
+In a consuming `Package.swift` with `// swift-tools-version: 6.2` or newer:
+
+1. Add `traits: ["SwiftLog"]` to your OpenFeature package dependency declaration.
+2. Add the adapter alongside `OpenFeature` in your target's dependencies:
+
+    ```swift
+    .product(name: "OpenFeatureSwiftLog", package: "swift-sdk"),
+    ```
+
+On older toolchains, only add the adapter product; no trait configuration is needed.
+
+Then configure the logger:
 
 ```swift
-import Logging
 import OpenFeature
 import OpenFeatureSwiftLog
 
-let logger = SwiftLogLogger(Logger(label: "com.example.app.openfeature"))
-// or simply: SwiftLogLogger(label: "com.example.app.openfeature")
-OpenFeatureAPI.shared.setLogger(logger)
+OpenFeatureAPI.shared.setLogger(SwiftLogLogger(label: "com.example.app.openfeature"))
 ```
 
-The core `OpenFeature` product never links swift-log; only apps that add `OpenFeatureSwiftLog` do.
+The adapter also accepts an existing swift-log `Logger` through `SwiftLogLogger(logger)`. Applications that use `Logging` directly should declare swift-log and its `Logging` product as direct dependencies.
+
+On Swift 6.2+, the `SwiftLog` trait is disabled by default. Selecting the adapter product alone does not enable it. Traits combine across the dependency graph, so SwiftLog is resolved if any consumer enables this trait. The core `OpenFeature` target never links SwiftLog.
+
+[Xcode 26.4+](https://developer.apple.com/documentation/xcode-release-notes/xcode-26_4-release-notes) supports selecting package traits in its interface. With earlier Xcode versions that include Swift 6.2+, configure the dependency in a consuming `Package.swift`.
+
+Existing adapter users on Swift 6.2+ must enable the trait; see the [migration guide](docs/migrations/swift-log-package.md).
 
 #### Configure Logger
 
