@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.1](https://github.com/open-feature/swift-sdk/compare/0.7.0...0.7.1) (2026-10-26)
+
+
+### ✨ New Features
+
+* Add HookData ([#139](https://github.com/open-feature/swift-sdk/issues/139)) ([f649a0f](https://github.com/open-feature/swift-sdk/commit/f649a0f477a23e803c2c394e9f7ea537bff1e899))
+* Add Telemetry Utils ([#141](https://github.com/open-feature/swift-sdk/issues/141)) ([04062e9](https://github.com/open-feature/swift-sdk/commit/04062e9a6a6bf7faa1f4d4d89e7ba18c36d17c18))
+* Implement shutdown and shutdownAndWait ([#142](https://github.com/open-feature/swift-sdk/issues/142)) ([98232f4](https://github.com/open-feature/swift-sdk/commit/98232f493f8f39d2cd5c96dac7e30822ea11b6f9))
+
 ## [0.7.0](https://github.com/open-feature/swift-sdk/compare/0.6.0...0.7.0) (2026-09-28)
 
 
