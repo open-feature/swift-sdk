@@ -266,6 +266,22 @@ let options = FlagEvaluationOptions(logger: OSLogOpenFeatureLogger())
 let value = client.getBooleanValue(key: "my-flag", defaultValue: false, options: options)
 ```
 
+#### Logging Hook
+
+The SDK ships a `LoggingHook` that logs every flag evaluation through an `OpenFeatureLogger`, as described in the [specification](https://openfeature.dev/specification/appendix-a#logging-hook).
+The `before` and `after` stages are logged at debug level and the `error` stage at error level, each as one line of `key=value` pairs with JSON values:
+
+```swift
+OpenFeatureAPI.shared.addHooks(hooks: LoggingHook(logger: OSLogOpenFeatureLogger()))
+
+let client = OpenFeatureAPI.shared.getClient(name: "checkout", version: nil)
+_ = client.getBooleanValue(key: "new-checkout", defaultValue: false)
+// stage="before" domain="checkout" provider_name="InMemoryProvider" flag_key="new-checkout" default_value=false
+// stage="after" domain="checkout" provider_name="InMemoryProvider" flag_key="new-checkout" default_value=false reason="STATIC" variant="on" value=true
+```
+
+The evaluation context may contain personal data, so it is only logged when you opt in with `LoggingHook(logger: logger, includeEvaluationContext: true)`.
+
 #### Provider Support
 
 Providers can optionally use the logger for debugging and diagnostics. The resolved `OpenFeatureLogger` is passed to providers during flag evaluation through the `logger:` parameter of the evaluation methods, allowing them to log relevant information without depending on any logging framework.
