@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 /// Metadata for when no provider is set
@@ -38,6 +39,12 @@ public class OpenFeatureClient: Client {
         lock.lock()
         self.logger = logger
         lock.unlock()
+    }
+
+    /// Observes the events of the provider this client evaluates flags with, which is the API's provider.
+    /// - Returns: A publisher of the provider's events, delivered like those of ``OpenFeatureAPI/observe()``.
+    public func observe() -> AnyPublisher<ProviderEvent, Never> {
+        openFeatureApi.observe()
     }
 }
 

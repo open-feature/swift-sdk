@@ -442,6 +442,19 @@ let cancellable = OpenFeatureAPI.shared.observe().sink { event in
 }
 ```
 
+Event handlers can also be attached to a client. They receive the events of the provider the client evaluates flags with:
+
+```swift
+let client = OpenFeatureAPI.shared.getClient()
+let cancellable = client.observe().sink { event in
+    if case .configurationChanged = event {
+        // re-evaluate flags
+    }
+}
+```
+
+Cancel the subscription to remove the handler.
+
 ### Shutdown
 
 `OpenFeatureAPI.shared.shutdown()` calls the active provider's `shutdown` and resets the API — provider, hooks and evaluation context — so it can be configured again later; the logger is kept.
