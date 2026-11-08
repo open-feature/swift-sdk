@@ -1,3 +1,4 @@
+#if SwiftLog
 import Foundation
 import Logging
 import OpenFeature
@@ -58,3 +59,4 @@ public struct SwiftLogLogger: OpenFeatureLogger {
         logger.error("\(message())")
     }
 }
+#endif

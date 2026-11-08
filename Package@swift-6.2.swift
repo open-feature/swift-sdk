@@ -1,0 +1,57 @@
+// swift-tools-version: 6.2
+// The swift-tools-version declares the minimum version of Swift required to build this package.
+
+import PackageDescription
+
+let package = Package(
+    name: "OpenFeature",
+    platforms: [
+        .iOS(.v15),
+        .macOS(.v12),
+        .watchOS(.v8),
+        .tvOS(.v15),
+    ],
+    products: [
+        // The core SDK. Has no third-party dependencies.
+        .library(
+            name: "OpenFeature",
+            targets: ["OpenFeature"]),
+        // Optional bridge that lets the SDK log through swift-log.
+        .library(
+            name: "OpenFeatureSwiftLog",
+            targets: ["OpenFeatureSwiftLog"]),
+    ],
+    traits: [
+        .trait(name: "SwiftLog", description: "Enable the OpenFeatureSwiftLog adapter."),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-log", from: "1.5.4"),
+    ],
+    targets: [
+        .target(
+            name: "OpenFeature",
+            resources: [
+                .copy("PrivacyInfo.xcprivacy"),
+            ]
+        ),
+        .target(
+            name: "OpenFeatureSwiftLog",
+            dependencies: [
+                "OpenFeature",
+                .product(name: "Logging", package: "swift-log", condition: .when(traits: ["SwiftLog"])),
+            ]
+        ),
+        .testTarget(
+            name: "OpenFeatureTests",
+            dependencies: [
+                "OpenFeature",
+            ]),
+        .testTarget(
+            name: "OpenFeatureSwiftLogTests",
+            dependencies: [
+                "OpenFeatureSwiftLog",
+                .product(name: "Logging", package: "swift-log", condition: .when(traits: ["SwiftLog"])),
+            ]),
+    ],
+    swiftLanguageModes: [.v5]
+)

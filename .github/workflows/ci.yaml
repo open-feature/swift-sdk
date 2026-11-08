@@ -10,7 +10,9 @@ on:
 
 jobs:
   Tests:
-    runs-on: macOS-latest
+    runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     strategy:
       matrix:
         platform: [iOS, macOS, watchOS, tvOS]
@@ -19,7 +21,9 @@ jobs:
       - name: Build and Test on ${{ matrix.platform }}
         run: |
           if [ "${{ matrix.platform }}" = "macOS" ]; then
+            python3 scripts/check-core-dependencies.py
             swift test
+            swift test --traits SwiftLog
           else
             SIMULATOR=$(xcrun simctl list devices available -j | \
               python3 .github/scripts/find-simulator.py ${{ matrix.platform }})
@@ -31,6 +35,15 @@ jobs:
               -parallel-testing-enabled NO \
               -destination "id=$SIMULATOR"
           fi
+
+  OlderToolchain:
+    runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Test the core and SwiftLog adapter with the fallback manifest
+        run: swift test
 
   SwiftLint:
     runs-on: ubuntu-latest

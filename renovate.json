@@ -7,7 +7,7 @@
     {
       "description": "Manage swift-log manually to preserve compatibility with older Swift toolchains",
       "matchManagers": ["swift"],
-      "matchFileNames": ["Package.swift"],
+      "matchFileNames": ["Package.swift", "Package@swift-6.2.swift"],
       "matchPackageNames": ["apple/swift-log"],
       "enabled": false
     }
