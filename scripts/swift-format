@@ -5,4 +5,4 @@ set -e
 script_dir=$(dirname $0)
 root_dir="$script_dir/.."
 
-$root_dir/Tools/swift-format format -i --recursive --configuration $root_dir/.swift-format $root_dir/Sources $root_dir/Tests
+$root_dir/Tools/swift-format format -i --recursive --configuration $root_dir/.swift-format $root_dir/Sources $root_dir/Tests $root_dir/e2e/Tests
