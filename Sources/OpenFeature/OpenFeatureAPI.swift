@@ -26,6 +26,9 @@ public class OpenFeatureAPI {
     Set provider and calls its `initialize` in a background thread.
     The previously set provider, if it is a different instance, is shut down; `initialize` does not wait for it.
     Readiness can be determined from `getState` or listening for `ready` event.
+
+    A provider already claimed by another API instance is not registered (spec 1.8.4): the
+    registration is rejected, an error is logged, and this instance is left unchanged.
     */
     public func setProvider(provider: FeatureProvider, initialContext: EvaluationContext?) {
         _ = setProviderInternal(provider: provider, initialContext: initialContext)
@@ -35,6 +38,9 @@ public class OpenFeatureAPI {
     Set provider and calls its `initialize`.
     The previously set provider, if it is a different instance, is shut down; `initialize` does not wait for it.
     This async function returns when the `initialize` from the provider is completed.
+
+    A provider already claimed by another API instance is not registered (spec 1.8.4): the
+    registration is rejected, an error is logged, and this instance is left unchanged.
     */
     public func setProviderAndWait(provider: FeatureProvider, initialContext: EvaluationContext?) async {
         await setProviderInternal(provider: provider, initialContext: initialContext).value
@@ -44,6 +50,9 @@ public class OpenFeatureAPI {
     Set provider and calls its `initialize` in a background thread.
     The previously set provider, if it is a different instance, is shut down; `initialize` does not wait for it.
     Readiness can be determined from `getState` or listening for `ready` event.
+
+    A provider already claimed by another API instance is not registered (spec 1.8.4): the
+    registration is rejected, an error is logged, and this instance is left unchanged.
     */
     public func setProvider(provider: FeatureProvider) {
         setProvider(provider: provider, initialContext: nil)
@@ -53,6 +62,9 @@ public class OpenFeatureAPI {
     Set provider and calls its `initialize`.
     The previously set provider, if it is a different instance, is shut down; `initialize` does not wait for it.
     This async function returns when the `initialize` from the provider is completed.
+
+    A provider already claimed by another API instance is not registered (spec 1.8.4): the
+    registration is rejected, an error is logged, and this instance is left unchanged.
     */
     public func setProviderAndWait(provider: FeatureProvider) async {
         await setProviderAndWait(provider: provider, initialContext: nil)
@@ -105,6 +117,7 @@ public class OpenFeatureAPI {
         return stateQueue.sync {
             let previous = self.providerSubject.value
             self.providerSubject.send(nil)
+            releaseOwnership(of: previous)
             return self.shutdownLifecycle(of: previous)
         }
     }
@@ -116,10 +129,18 @@ public class OpenFeatureAPI {
         return stateQueue.sync {
             let previous = self.providerSubject.value
             self.providerSubject.send(nil)
+            releaseOwnership(of: previous)
             self.hooks.removeAll()
             self.evaluationContext = nil
             return self.shutdownLifecycle(of: previous)
         }
+    }
+
+    /// Releases `provider` from this instance's ownership (spec 1.8.4), if this instance
+    /// still holds it. A released provider can be claimed by another API instance.
+    private func releaseOwnership(of provider: FeatureProvider?) {
+        guard let provider = provider else { return }
+        ProviderOwnership.release(provider, heldBy: self)
     }
 
     /// Runs `provider.shutdown()` on providerLifecycleQueue; resolves at once when there is no provider.
@@ -246,6 +267,17 @@ public class OpenFeatureAPI {
         -> Future<Void, Never>
     {
         return stateQueue.sync {
+            // Spec 1.8.4: claim under the state lock, so the claim is serialized with the
+            // registration below and cannot be undone by a concurrent provider change on this
+            // instance. A provider already claimed by another API instance is rejected here,
+            // with this instance's configuration left untouched.
+            guard ProviderOwnership.claim(provider, for: self) else {
+                self.logger?.error(
+                    "Provider \(provider.metadata.name ?? "unknown") is already claimed by another "
+                        + "OpenFeature API instance, so it was not registered here. Shut down "
+                        + "or clear that instance before registering the provider elsewhere.")
+                return Future { $0(.success(())) }
+            }
             let previous = self.providerSubject.value
             self.providerSubject.send(provider)
             if let initialContext = initialContext {
@@ -257,6 +289,7 @@ public class OpenFeatureAPI {
             // shutdown cannot hold back the provider now serving evaluations. Re-setting the same instance is not
             // a replacement, so it is not shut down.
             if let previous = previous, !isSameInstance(previous, provider) {
+                releaseOwnership(of: previous)
                 _ = self.shutdownLifecycle(of: previous)
             }
             return self.runLifecycle {

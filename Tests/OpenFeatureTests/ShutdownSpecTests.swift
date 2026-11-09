@@ -177,6 +177,9 @@ final class ShutdownSpecTests: XCTestCase {
 
     private func installProviderAndWaitForReady(_ provider: FeatureProvider) {
         let ready = expectation(description: "Ready")
+        // A subscription may replay the current provider's `.ready` and then also deliver the newly
+        // installed provider's `.ready` when it races a replacement, so tolerate over-fulfillment.
+        ready.assertForOverFulfill = false
         let subscription = OpenFeatureAPI.shared.observe().sink { event in
             if case .ready = event {
                 ready.fulfill()

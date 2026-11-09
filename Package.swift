@@ -16,6 +16,12 @@ let package = Package(
         .library(
             name: "OpenFeature",
             targets: ["OpenFeature"]),
+        // Advanced, non-default capability (spec 1.8): factory for isolated API
+        // instances, separate from the core module so that creating instances is an
+        // explicit opt-in.
+        .library(
+            name: "OpenFeatureIsolated",
+            targets: ["OpenFeatureIsolated"]),
         // Optional bridge that lets the SDK log through swift-log.
         .library(
             name: "OpenFeatureSwiftLog",
@@ -33,6 +39,11 @@ let package = Package(
             ]
         ),
         .target(
+            name: "OpenFeatureIsolated",
+            dependencies: [
+                "OpenFeature",
+            ]),
+        .target(
             name: "OpenFeatureSwiftLog",
             dependencies: [
                 "OpenFeature",
@@ -43,6 +54,12 @@ let package = Package(
             name: "OpenFeatureTests",
             dependencies: [
                 "OpenFeature",
+            ]),
+        .testTarget(
+            name: "OpenFeatureIsolatedTests",
+            dependencies: [
+                "OpenFeature",
+                "OpenFeatureIsolated",
             ]),
         .testTarget(
             name: "OpenFeatureSwiftLogTests",
