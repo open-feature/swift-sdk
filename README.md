@@ -454,6 +454,22 @@ await OpenFeatureAPI.shared.shutdownAndWait()
 Providers are also shut down whenever they stop being used: `setProvider` shuts down the provider it replaces, and `clearProvider` shuts down the one it removes (`clearProviderAndWait` returns once that is done).
 A provider that holds resources implements `shutdown() -> Future<Void, Never>` to release them and revert to `.notReady` — `ProviderStatusTracker.reset()` does the latter — and resolves the `Future` when it is done; providers with nothing to release inherit a no-op default.
 
+### Isolated instances
+
+By default the SDK is configured through the `OpenFeatureAPI.shared` singleton. For dependency injection, multi-runtime applications, or test suites that need their own configuration, you can create independent API instances with fully isolated state — separate providers, evaluation context, hooks and events:
+
+```swift
+import OpenFeature
+import OpenFeatureIsolated
+
+let api = OpenFeatureAPI.isolated()
+await api.setProviderAndWait(provider: MyProvider())
+let client = api.getClient()
+```
+
+The factory lives in the separate `OpenFeatureIsolated` module ([specification §1.8](https://openfeature.dev/specification/sections/flag-evaluation#18-isolated-api-instances)) so that creating instances is an explicit opt-in into advanced, non-default behavior; most applications should keep using `OpenFeatureAPI.shared`.
+A provider must not be registered with more than one API instance at the same time — when it is, the registration is rejected, the rejection is logged, and the instance is left unchanged. Once its owning instance shuts down or clears it, the provider can be registered elsewhere.
+
 ## Extending
 
 ### Develop a provider

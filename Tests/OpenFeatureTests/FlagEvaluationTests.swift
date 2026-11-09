@@ -3,37 +3,42 @@ import Foundation
 import XCTest
 
 @testable import OpenFeature
+import OpenFeatureIsolated
 
 final class FlagEvaluationTests: XCTestCase {
+    /// A fresh API instance per test: XCTest creates a new test-case object for every test
+    /// method, so tests share no state and need no setUp reset of the shared singleton.
+    private let api = OpenFeatureAPI.isolated()
     func testSingletonPersists() {
+        // Deliberately the global singleton: each access returns the same instance.
         XCTAssertTrue(OpenFeatureAPI.shared === OpenFeatureAPI.shared)
     }
 
     func testApiSetsProvider() async {
         let provider = NoOpProvider()
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
-        XCTAssertTrue((OpenFeatureAPI.shared.getProvider() as? NoOpProvider) === provider)
+        await api.setProviderAndWait(provider: provider)
+        XCTAssertTrue((api.getProvider() as? NoOpProvider) === provider)
     }
 
     func testProviderMetadata() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: DoSomethingProvider())
-        XCTAssertEqual(OpenFeatureAPI.shared.getProviderMetadata()?.name, DoSomethingProvider.name)
+        await api.setProviderAndWait(provider: DoSomethingProvider())
+        XCTAssertEqual(api.getProviderMetadata()?.name, DoSomethingProvider.name)
     }
 
     func testHooksPersist() {
         let hook1 = BooleanHookMock()
         let hook2 = BooleanHookMock()
 
-        OpenFeatureAPI.shared.addHooks(hooks: hook1)
+        api.addHooks(hooks: hook1)
 
-        XCTAssertEqual(OpenFeatureAPI.shared.getHooks().count, 1)
+        XCTAssertEqual(api.getHooks().count, 1)
 
-        OpenFeatureAPI.shared.addHooks(hooks: hook2)
-        XCTAssertEqual(OpenFeatureAPI.shared.getHooks().count, 2)
+        api.addHooks(hooks: hook2)
+        XCTAssertEqual(api.getHooks().count, 2)
     }
 
     func testNamedClient() {
-        let client = OpenFeatureAPI.shared.getClient(name: "test", version: nil)
+        let client = api.getClient(name: "test", version: nil)
         XCTAssertEqual((client as? OpenFeatureClient)?.name, "test")
     }
 
@@ -41,7 +46,7 @@ final class FlagEvaluationTests: XCTestCase {
         let hook1 = BooleanHookMock()
         let hook2 = BooleanHookMock()
 
-        let client = OpenFeatureAPI.shared.getClient()
+        let client = api.getClient()
         client.addHooks(hook1)
 
         XCTAssertEqual(client.hooks.count, 1)
@@ -53,8 +58,8 @@ final class FlagEvaluationTests: XCTestCase {
     func testSimpleFlagEvaluation() async {
         let provider = DoSomethingProvider()
 
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: provider)
+        let client = api.getClient()
         let key = "key"
         XCTAssertEqual(client.getValue(key: key, defaultValue: false), true)
         XCTAssertEqual(client.getValue(key: key, defaultValue: false), true)
@@ -91,8 +96,8 @@ final class FlagEvaluationTests: XCTestCase {
     func testDetailedFlagEvaluation() async {
         let provider = DoSomethingProvider()
 
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: provider)
+        let client = api.getClient()
         let key = "key"
         let booleanDetails = FlagEvaluationDetails(
             flagKey: key, value: true, flagMetadata: DoSomethingProvider.flagMetadataMap, variant: nil)
@@ -140,9 +145,9 @@ final class FlagEvaluationTests: XCTestCase {
     func testHooksAreFired() async {
         let provider = NoOpProvider()
 
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
+        await api.setProviderAndWait(provider: provider)
 
-        let client = OpenFeatureAPI.shared.getClient()
+        let client = api.getClient()
 
         let clientHook = BooleanHookMock()
         let invocationHook = BooleanHookMock()
@@ -174,10 +179,10 @@ final class FlagEvaluationTests: XCTestCase {
                 XCTFail("Unexpected event")
             }
         }
-        OpenFeatureAPI.shared.setProvider(provider: provider)
+        api.setProvider(provider: provider)
         wait(for: [errorExpectation], timeout: 5)
 
-        let client = OpenFeatureAPI.shared.getClient()
+        let client = api.getClient()
 
         XCTAssertFalse(client.getValue(key: "testkey", defaultValue: false))
         let details = client.getDetails(key: "testkey", defaultValue: false)
@@ -201,10 +206,10 @@ final class FlagEvaluationTests: XCTestCase {
                 XCTFail("Unexpected event")
             }
         }
-        OpenFeatureAPI.shared.setProvider(provider: provider)
+        api.setProvider(provider: provider)
         wait(for: [fatalExpectation], timeout: 5)
 
-        let client = OpenFeatureAPI.shared.getClient()
+        let client = api.getClient()
 
         XCTAssertFalse(client.getValue(key: "testkey", defaultValue: false))
         let details = client.getDetails(key: "testkey", defaultValue: false)
@@ -216,16 +221,16 @@ final class FlagEvaluationTests: XCTestCase {
     }
 
     func testClientMetadata() {
-        let client1 = OpenFeatureAPI.shared.getClient()
+        let client1 = api.getClient()
         XCTAssertNil(client1.metadata.name)
 
-        let client = OpenFeatureAPI.shared.getClient(name: "test", version: nil)
+        let client = api.getClient(name: "test", version: nil)
         XCTAssertEqual(client.metadata.name, "test")
     }
 
     func testFlagMetadata() {
-        OpenFeatureAPI.shared.setProvider(provider: DoSomethingProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        api.setProvider(provider: DoSomethingProvider())
+        let client = api.getClient()
         let details = client.getDetails(key: "testkey", defaultValue: false)
 
         // These test values are hard coded for all evaluations from the DoSomethingProvider
