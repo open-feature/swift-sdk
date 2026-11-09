@@ -1,14 +1,13 @@
 import Foundation
 import OpenFeature
+import OpenFeatureIsolated
 import XCTest
 
 /// Resolution of the five flag types, flag metadata, and disabled flags.
 final class InMemoryProviderTests: XCTestCase {
-    override func tearDown() {
-        OpenFeatureAPI.shared.clearProvider()
-        super.tearDown()
-    }
-
+    /// A fresh API instance per test: XCTest creates a new test-case object for every test
+    /// method, so tests share no state and need no setUp reset of the shared singleton.
+    private let api = OpenFeatureAPI.isolated()
     // MARK: - Resolution
 
     func testBooleanEvaluationResolvesDefaultVariant() throws {
@@ -84,9 +83,9 @@ final class InMemoryProviderTests: XCTestCase {
     }
 
     func testEvaluationThroughClientResolvesEveryType() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(
+        await api.setProviderAndWait(
             provider: InMemoryProvider(flags: InMemoryTestFlags.all()))
-        let client = OpenFeatureAPI.shared.getClient()
+        let client = api.getClient()
 
         XCTAssertEqual(client.getBooleanValue(key: "boolean-flag", defaultValue: false), true)
         XCTAssertEqual(client.getStringValue(key: "string-flag", defaultValue: "bye"), "hi")

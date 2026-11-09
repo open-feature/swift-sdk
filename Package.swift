@@ -54,6 +54,7 @@ let package = Package(
             name: "OpenFeatureTests",
             dependencies: [
                 "OpenFeature",
+                "OpenFeatureIsolated",
             ]),
         .testTarget(
             name: "OpenFeatureIsolatedTests",

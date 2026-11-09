@@ -2,18 +2,16 @@ import Foundation
 import XCTest
 
 @testable import OpenFeature
+import OpenFeatureIsolated
 
 final class HookSpecTests: XCTestCase {
-    override func setUp() async throws {
-        try await super.setUp()
-        await OpenFeatureAPI.shared.clearProviderAndWait()
-        OpenFeatureAPI.shared.clearHooks()
-    }
-
+    /// A fresh API instance per test: XCTest creates a new test-case object for every test
+    /// method, so tests share no state and need no setUp reset of the shared singleton.
+    private let api = OpenFeatureAPI.isolated()
     func testNoErrorHookCalled() {
         let provider = NoOpProvider()
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let eventState = OpenFeatureAPI.shared.observe().sink { event in
+        let eventState = api.observe().sink { event in
             switch event {
             case .ready:
                 readyExpectation.fulfill()
@@ -21,10 +19,10 @@ final class HookSpecTests: XCTestCase {
                 XCTFail("Unexpected event")
             }
         }
-        OpenFeatureAPI.shared.setProvider(provider: provider)
+        api.setProvider(provider: provider)
         wait(for: [readyExpectation], timeout: 5)
 
-        let client = OpenFeatureAPI.shared.getClient()
+        let client = api.getClient()
         let hook = BooleanHookMock()
         let feo = FlagEvaluationOptions(hooks: [hook])
 
@@ -54,10 +52,10 @@ final class HookSpecTests: XCTestCase {
                 XCTFail("Unexpected event")
             }
         }
-        OpenFeatureAPI.shared.setProvider(provider: provider)
+        api.setProvider(provider: provider)
         wait(for: [errorExpectation], timeout: 5)
 
-        let client = OpenFeatureAPI.shared.getClient()
+        let client = api.getClient()
         let hook = BooleanHookMock()
 
         _ = client.getValue(
@@ -82,7 +80,7 @@ final class HookSpecTests: XCTestCase {
             BooleanHookMock(prefix: "provider", addEval: addEval)
         ])
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let eventState = OpenFeatureAPI.shared.observe().sink { event in
+        let eventState = api.observe().sink { event in
             switch event {
             case .ready:
                 readyExpectation.fulfill()
@@ -90,11 +88,11 @@ final class HookSpecTests: XCTestCase {
                 XCTFail("Unexpected event")
             }
         }
-        OpenFeatureAPI.shared.setProvider(provider: providerMock)
+        api.setProvider(provider: providerMock)
         wait(for: [readyExpectation], timeout: 5)
 
-        OpenFeatureAPI.shared.addHooks(hooks: BooleanHookMock(prefix: "api", addEval: addEval))
-        let client = OpenFeatureAPI.shared.getClient()
+        api.addHooks(hooks: BooleanHookMock(prefix: "api", addEval: addEval))
+        let client = api.getClient()
         client.addHooks(BooleanHookMock(prefix: "client", addEval: addEval))
         let flagOptions = FlagEvaluationOptions(hooks: [
             BooleanHookMock(prefix: "invocation", addEval: addEval)

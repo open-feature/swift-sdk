@@ -2,21 +2,19 @@ import Foundation
 import XCTest
 
 @testable import OpenFeature
+import OpenFeatureIsolated
 
 /// Hook data through the client, end to end: created before `before`, carried through every later stage of the
 /// same hook, and fresh on every evaluation (spec 4.1.1, 4.3.2, 4.6.1).
 final class HookDataSpecTests: XCTestCase {
-    override func setUp() async throws {
-        try await super.setUp()
-        await OpenFeatureAPI.shared.clearProviderAndWait()
-        OpenFeatureAPI.shared.clearHooks()
-    }
-
+    /// A fresh API instance per test: XCTest creates a new test-case object for every test
+    /// method, so tests share no state and need no setUp reset of the shared singleton.
+    private let api = OpenFeatureAPI.isolated()
     // MARK: - Lifecycle across stages
 
     func testHookDataIsEmptyWhenBeforeRuns() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         var wasEmpty: Bool?
         let hook = HookDataSpyHook<Bool>()
         hook.onBefore = { wasEmpty = $0.isEmpty }
@@ -27,8 +25,8 @@ final class HookDataSpecTests: XCTestCase {
     }
 
     func testHookDataIsSharedAcrossStagesForSameHook() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         var afterValue: Int?
         var finallyValue: Int?
         let hook = HookDataSpyHook<Bool>(
@@ -45,8 +43,8 @@ final class HookDataSpecTests: XCTestCase {
     }
 
     func testHookDataWrittenInAfterIsVisibleInFinally() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         var finallyValue: String?
         let hook = HookDataSpyHook<Bool>(
             onAfter: { $0["written-in-after"] = "yes" },
@@ -58,8 +56,8 @@ final class HookDataSpecTests: XCTestCase {
     }
 
     func testHookDataCarriesReferenceTypeBetweenStages() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         var startedSpan: FakeSpan?
         var endedSpan: FakeSpan?
         let hook = HookDataSpyHook<Bool>(
@@ -82,8 +80,8 @@ final class HookDataSpecTests: XCTestCase {
     }
 
     func testHookContextCarriesEvaluationDetailsAlongsideHookData() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         var capturedFlagKey: String?
         var capturedType: FlagValueType?
         var capturedDefault: Bool?
@@ -107,8 +105,8 @@ final class HookDataSpecTests: XCTestCase {
 
     func testHookDataPersistsThroughErrorAndFinallyStages() {
         let provider = AlwaysBrokenProvider()
-        let eventState = installProviderAndWaitForError(provider)
-        let client = OpenFeatureAPI.shared.getClient()
+        let eventState = installProviderAndWaitForError(provider, on: api)
+        let client = api.getClient()
         var errorValue: String?
         var finallyValue: String?
         var afterCalled = false
@@ -130,8 +128,8 @@ final class HookDataSpecTests: XCTestCase {
 
     func testHookDataWrittenInErrorIsVisibleInFinally() {
         let provider = AlwaysBrokenProvider()
-        let eventState = installProviderAndWaitForError(provider)
-        let client = OpenFeatureAPI.shared.getClient()
+        let eventState = installProviderAndWaitForError(provider, on: api)
+        let client = api.getClient()
         var finallyValue: String?
         let hook = HookDataSpyHook<Bool>(
             onError: { $0["written-in-error"] = "yes" },
@@ -144,8 +142,8 @@ final class HookDataSpecTests: XCTestCase {
     }
 
     func testHookDataPersistsThroughErrorWhenNoProviderIsSet() async {
-        await OpenFeatureAPI.shared.clearProviderAndWait()
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.clearProviderAndWait()
+        let client = api.getClient()
         var errorValue: String?
         var finallyValue: String?
         let hook = HookDataSpyHook<Bool>(
@@ -167,8 +165,8 @@ final class HookDataSpecTests: XCTestCase {
     // MARK: - Fresh per evaluation
 
     func testHookDataIsFreshForEachEvaluation() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         var leakedFromPreviousEvaluation = false
         let hook = HookDataSpyHook<Bool>()
         hook.onBefore = { data in
@@ -192,8 +190,8 @@ final class HookDataSpecTests: XCTestCase {
     }
 
     func testHookDataIsFreshForEachEvaluationOfDifferentFlags() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         let hook = HookDataSpyHook<Bool>()
         client.addHooks(hook)
 
@@ -205,8 +203,8 @@ final class HookDataSpecTests: XCTestCase {
     }
 
     func testConcurrentEvaluationsGetSeparateHookData() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         let iterations = 64
         let lock = NSLock()
         var tokensReadInFinally: [UUID] = []

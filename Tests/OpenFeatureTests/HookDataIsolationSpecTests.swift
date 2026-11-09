@@ -3,19 +3,17 @@ import Foundation
 import XCTest
 
 @testable import OpenFeature
+import OpenFeatureIsolated
 
 /// Hook data is never shared between hooks (spec 4.3.2), whatever their flag value type, registration level or
 /// position in the chain.
 final class HookDataIsolationSpecTests: XCTestCase {
-    override func setUp() async throws {
-        try await super.setUp()
-        await OpenFeatureAPI.shared.clearProviderAndWait()
-        OpenFeatureAPI.shared.clearHooks()
-    }
-
+    /// A fresh API instance per test: XCTest creates a new test-case object for every test
+    /// method, so tests share no state and need no setUp reset of the shared singleton.
+    private let api = OpenFeatureAPI.isolated()
     func testHookDataIsNotSharedBetweenDifferentHooks() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         var keysSeenByA: Set<String> = []
         var keysSeenByB: Set<String> = []
         let hookA = HookDataSpyHook<Bool>(
@@ -36,8 +34,8 @@ final class HookDataIsolationSpecTests: XCTestCase {
     }
 
     func testHookDataIsIsolatedWhenHooksOfDifferentTypesAreMixed() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         var keysSeenByFirst: Set<String> = []
         var keysSeenBySecond: Set<String> = []
         let firstBoolHook = HookDataSpyHook<Bool>(
@@ -76,15 +74,15 @@ final class HookDataIsolationSpecTests: XCTestCase {
 
         let providerMock = HookSpecTests.NoOpProviderMock(hooks: [providerHook])
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let eventState = OpenFeatureAPI.shared.observe().sink { event in
+        let eventState = api.observe().sink { event in
             if case .ready = event {
                 readyExpectation.fulfill()
             }
         }
-        OpenFeatureAPI.shared.setProvider(provider: providerMock)
+        api.setProvider(provider: providerMock)
         wait(for: [readyExpectation], timeout: 5)
-        OpenFeatureAPI.shared.addHooks(hooks: apiHook)
-        let client = OpenFeatureAPI.shared.getClient()
+        api.addHooks(hooks: apiHook)
+        let client = api.getClient()
         client.addHooks(clientHook)
 
         _ = client.getValue(
@@ -102,8 +100,8 @@ final class HookDataIsolationSpecTests: XCTestCase {
     }
 
     func testSameHookInstanceRegisteredTwiceGetsTwoStores() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         var leaked = false
         let hook = HookDataSpyHook<Bool>()
         hook.onBefore = { data in
@@ -124,8 +122,8 @@ final class HookDataIsolationSpecTests: XCTestCase {
     }
 
     func testHookDataWorksForEveryFlagValueType() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         var seen: [String: String] = [:]
         let boolHook = HookDataSpyHook<Bool>(
             onBefore: { $0["v"] = "bool" },
