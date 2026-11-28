@@ -2,11 +2,15 @@ import Foundation
 import XCTest
 
 @testable import OpenFeature
+import OpenFeatureIsolated
 
 final class OpenFeatureClientTests: XCTestCase {
+    /// A fresh API instance per test: XCTest creates a new test-case object for every test
+    /// method, so tests share no state and need no setUp reset of the shared singleton.
+    private let api = OpenFeatureAPI.isolated()
     func testShouldNowThrowIfHookHasDifferentTypeArgument() {
         let readyExpectation = XCTestExpectation(description: "Ready")
-        let eventState = OpenFeatureAPI.shared.observe().sink { event in
+        let eventState = api.observe().sink { event in
             switch event {
             case .ready:
                 readyExpectation.fulfill()
@@ -14,10 +18,10 @@ final class OpenFeatureClientTests: XCTestCase {
                 break
             }
         }
-        OpenFeatureAPI.shared.setProvider(provider: DoSomethingProvider())
-        OpenFeatureAPI.shared.addHooks(hooks: BooleanHookMock())
+        api.setProvider(provider: DoSomethingProvider())
+        api.addHooks(hooks: BooleanHookMock())
 
-        let client = OpenFeatureAPI.shared.getClient()
+        let client = api.getClient()
         wait(for: [readyExpectation], timeout: 2)
 
         let stringDetails = client.getDetails(key: "key", defaultValue: "test")
@@ -46,10 +50,10 @@ final class OpenFeatureClientTests: XCTestCase {
             targetingKey: "user-1",
             structure: ImmutableStructure(attributes: ["plan": .string("premium"), "num": .double(10)])
         )
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: MockProvider(track: onTrack))
-        await OpenFeatureAPI.shared.setEvaluationContextAndWait(evaluationContext: storedContext)
+        await api.setProviderAndWait(provider: MockProvider(track: onTrack))
+        await api.setEvaluationContextAndWait(evaluationContext: storedContext)
 
-        OpenFeatureAPI.shared.getClient().track(
+        api.getClient().track(
             key: "test",
             details: ImmutableTrackingEventDetails(value: 5)
         )

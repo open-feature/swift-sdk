@@ -1,14 +1,13 @@
 import Foundation
 import OpenFeature
+import OpenFeatureIsolated
 import XCTest
 
 /// `InMemoryFlag.contextEvaluator` behaviour.
 final class InMemoryProviderTargetingTests: XCTestCase {
-    override func tearDown() {
-        OpenFeatureAPI.shared.clearProvider()
-        super.tearDown()
-    }
-
+    /// A fresh API instance per test: XCTest creates a new test-case object for every test
+    /// method, so tests share no state and need no setUp reset of the shared singleton.
+    private let api = OpenFeatureAPI.isolated()
     func testContextEvaluatorResolvesTargetedVariantWithTargetingMatch() throws {
         let result = try InMemoryTestFlags.readyProvider().getStringEvaluation(
             key: "context-aware",
@@ -84,13 +83,13 @@ final class InMemoryProviderTargetingTests: XCTestCase {
     }
 
     func testEvaluationUsesContextSetOnOpenFeatureAPI() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(
+        await api.setProviderAndWait(
             provider: InMemoryProvider(flags: InMemoryTestFlags.all()))
-        let client = OpenFeatureAPI.shared.getClient()
+        let client = api.getClient()
 
         XCTAssertEqual(client.getStringValue(key: "context-aware", defaultValue: "fallback"), "EXTERNAL")
 
-        await OpenFeatureAPI.shared.setEvaluationContextAndWait(
+        await api.setEvaluationContextAndWait(
             evaluationContext: InMemoryTestFlags.internalCustomerContext())
 
         XCTAssertEqual(client.getStringValue(key: "context-aware", defaultValue: "fallback"), "INTERNAL")

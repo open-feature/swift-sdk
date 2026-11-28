@@ -2,6 +2,7 @@ import Foundation
 import XCTest
 
 @testable import OpenFeature
+import OpenFeatureIsolated
 
 final class HookSupportTests: XCTestCase {
     private let hints: [String: Any] = [:]
@@ -115,7 +116,7 @@ final class HookSupportTests: XCTestCase {
             type: .boolean,
             defaultValue: false,
             ctx: MutableContext(),
-            clientMetadata: OpenFeatureAPI.shared.getClient().metadata,
+            clientMetadata: OpenFeatureAPI.isolated().getClient().metadata,
             providerMetadata: NoOpProvider().metadata,
             hookData: hookData)
     }

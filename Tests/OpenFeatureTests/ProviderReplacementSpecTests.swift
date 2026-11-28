@@ -3,14 +3,14 @@ import Foundation
 import XCTest
 
 @testable import OpenFeature
+import OpenFeatureIsolated
 
 /// Provider mutators shut down the provider they retire (specification 1.1.2.3): `setProvider` for the one it
 /// replaces, `clearProvider` for the one it removes.
 final class ProviderReplacementSpecTests: XCTestCase {
-    override func setUp() async throws {
-        try await super.setUp()
-        await OpenFeatureAPI.shared.shutdownAndWait()
-    }
+    /// A fresh API instance per test: XCTest creates a new test-case object for every test
+    /// method, so tests share no state and need no setUp reset of the shared singleton.
+    private let api = OpenFeatureAPI.isolated()
 
     // MARK: - setProvider
 
@@ -18,10 +18,10 @@ final class ProviderReplacementSpecTests: XCTestCase {
         let first = ShutdownSpyProvider(name: "first")
         let second = ShutdownSpyProvider(name: "second")
 
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: first)
+        await api.setProviderAndWait(provider: first)
         XCTAssertEqual(first.shutdownCalls, 0)
 
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: second)
+        await api.setProviderAndWait(provider: second)
 
         XCTAssertEqual(first.shutdownCalls, 1)
         XCTAssertEqual(second.shutdownCalls, 0)
@@ -34,9 +34,9 @@ final class ProviderReplacementSpecTests: XCTestCase {
         let second = ShutdownSpyProvider(name: "second")
         let third = ShutdownSpyProvider(name: "third")
 
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: first)
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: second)
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: third)
+        await api.setProviderAndWait(provider: first)
+        await api.setProviderAndWait(provider: second)
+        await api.setProviderAndWait(provider: third)
 
         XCTAssertEqual(first.shutdownCalls, 1)
         XCTAssertEqual(second.shutdownCalls, 1)
@@ -50,8 +50,8 @@ final class ProviderReplacementSpecTests: XCTestCase {
         let first = ShutdownSpyProvider(name: "first", onLifecycle: record)
         let second = ShutdownSpyProvider(name: "second", onLifecycle: record)
 
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: first)
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: second)
+        await api.setProviderAndWait(provider: first)
+        await api.setProviderAndWait(provider: second)
 
         XCTAssertEqual(calls, ["initialize:first", "shutdown:first", "initialize:second"])
     }
@@ -75,24 +75,24 @@ final class ProviderReplacementSpecTests: XCTestCase {
 
     func testReSettingTheSameInstanceDoesNotShutItDown() async {
         let provider = ShutdownSpyProvider()
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
+        await api.setProviderAndWait(provider: provider)
 
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
+        await api.setProviderAndWait(provider: provider)
 
         XCTAssertEqual(provider.shutdownCalls, 0)
         XCTAssertEqual(provider.status, .ready)
-        XCTAssertTrue(OpenFeatureAPI.shared.getProvider() as AnyObject === provider)
+        XCTAssertTrue(api.getProvider() as AnyObject === provider)
     }
 
     func testTheNewProviderServesEvaluationsWhileThePreviousOneIsShuttingDown() async {
         let slow = ShutdownSpyProvider(name: "slow", holdShutdown: true)
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: slow)
+        await api.setProviderAndWait(provider: slow)
         let replacement = InMemoryProvider(flags: InMemoryTestFlags.all())
 
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: replacement)
+        await api.setProviderAndWait(provider: replacement)
 
         XCTAssertEqual(slow.shutdownCalls, 1)
-        XCTAssertTrue(OpenFeatureAPI.shared.getClient().getValue(key: "boolean-flag", defaultValue: false))
+        XCTAssertTrue(api.getClient().getValue(key: "boolean-flag", defaultValue: false))
         slow.completeShutdown()
     }
 
@@ -100,14 +100,14 @@ final class ProviderReplacementSpecTests: XCTestCase {
 
     func testClearProviderShutsDownTheRemovedProvider() async {
         let provider = ShutdownSpyProvider()
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
+        await api.setProviderAndWait(provider: provider)
 
-        await OpenFeatureAPI.shared.clearProviderAndWait()
+        await api.clearProviderAndWait()
 
         XCTAssertEqual(provider.shutdownCalls, 1)
         XCTAssertEqual(provider.status, .notReady)
-        XCTAssertNil(OpenFeatureAPI.shared.getProvider())
-        XCTAssertEqual(OpenFeatureAPI.shared.getProviderStatus(), .notReady)
+        XCTAssertNil(api.getProvider())
+        XCTAssertEqual(api.getProviderStatus(), .notReady)
     }
 
     func testClearProviderAndWaitReturnsOnlyAfterTheProviderFinishes() {
@@ -118,7 +118,7 @@ final class ProviderReplacementSpecTests: XCTestCase {
         let finished = expectation(description: "clearProviderAndWait returned")
 
         Task {
-            await OpenFeatureAPI.shared.clearProviderAndWait()
+            await api.clearProviderAndWait()
             returnedTooEarly.fulfill()
             finished.fulfill()
         }
@@ -138,37 +138,37 @@ final class ProviderReplacementSpecTests: XCTestCase {
         }
         installProviderAndWaitForReady(provider)
 
-        OpenFeatureAPI.shared.clearProvider()
+        api.clearProvider()
 
-        XCTAssertNil(OpenFeatureAPI.shared.getProvider())
+        XCTAssertNil(api.getProvider())
         wait(for: [shutDown], timeout: 5)
     }
 
     func testClearProviderKeepsHooksAndEvaluationContext() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(
+        await api.setProviderAndWait(
             provider: NoOpProvider(), initialContext: ImmutableContext(targetingKey: "user-1"))
-        OpenFeatureAPI.shared.addHooks(hooks: BooleanHookMock())
+        api.addHooks(hooks: BooleanHookMock())
 
-        await OpenFeatureAPI.shared.clearProviderAndWait()
+        await api.clearProviderAndWait()
 
-        XCTAssertEqual(OpenFeatureAPI.shared.getHooks().count, 1)
-        XCTAssertEqual(OpenFeatureAPI.shared.getEvaluationContext()?.getTargetingKey(), "user-1")
+        XCTAssertEqual(api.getHooks().count, 1)
+        XCTAssertEqual(api.getEvaluationContext()?.getTargetingKey(), "user-1")
     }
 
     func testClearProviderWithoutProviderIsANoOp() async {
-        await OpenFeatureAPI.shared.clearProviderAndWait()
+        await api.clearProviderAndWait()
 
-        XCTAssertNil(OpenFeatureAPI.shared.getProvider())
-        XCTAssertEqual(OpenFeatureAPI.shared.getProviderStatus(), .notReady)
+        XCTAssertNil(api.getProvider())
+        XCTAssertEqual(api.getProviderStatus(), .notReady)
     }
 
     func testAProviderIsShutDownOnlyOncePerRegistration() async {
         let provider = ShutdownSpyProvider()
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: provider)
+        await api.setProviderAndWait(provider: provider)
 
-        await OpenFeatureAPI.shared.clearProviderAndWait()
-        await OpenFeatureAPI.shared.clearProviderAndWait()
-        await OpenFeatureAPI.shared.shutdownAndWait()
+        await api.clearProviderAndWait()
+        await api.clearProviderAndWait()
+        await api.shutdownAndWait()
 
         XCTAssertEqual(provider.shutdownCalls, 1)
     }
@@ -177,12 +177,15 @@ final class ProviderReplacementSpecTests: XCTestCase {
 
     private func installProviderAndWaitForReady(_ provider: FeatureProvider) {
         let ready = expectation(description: "Ready")
-        let subscription = OpenFeatureAPI.shared.observe().sink { event in
+        // A subscription may replay the current provider's `.ready` and then also deliver the newly
+        // installed provider's `.ready` when it races a replacement, so tolerate over-fulfillment.
+        ready.assertForOverFulfill = false
+        let subscription = api.observe().sink { event in
             if case .ready = event {
                 ready.fulfill()
             }
         }
-        OpenFeatureAPI.shared.setProvider(provider: provider)
+        api.setProvider(provider: provider)
         wait(for: [ready], timeout: 5)
         subscription.cancel()
     }

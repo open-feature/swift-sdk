@@ -1,14 +1,13 @@
 import Foundation
 import OpenFeature
+import OpenFeatureIsolated
 import XCTest
 
 /// Error paths of `InMemoryProvider`, and how the client surfaces them.
 final class InMemoryProviderErrorTests: XCTestCase {
-    override func tearDown() {
-        OpenFeatureAPI.shared.clearProvider()
-        super.tearDown()
-    }
-
+    /// A fresh API instance per test: XCTest creates a new test-case object for every test
+    /// method, so tests share no state and need no setUp reset of the shared singleton.
+    private let api = OpenFeatureAPI.isolated()
     private func assertThrows(
         _ expected: ErrorCode,
         _ expression: () throws -> Void,
@@ -102,10 +101,10 @@ final class InMemoryProviderErrorTests: XCTestCase {
     // MARK: - Client mapping
 
     func testClientMapsFlagNotFoundToDetailsWithFallbackValue() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(
+        await api.setProviderAndWait(
             provider: InMemoryProvider(flags: InMemoryTestFlags.all()))
 
-        let details = OpenFeatureAPI.shared.getClient().getStringDetails(
+        let details = api.getClient().getStringDetails(
             key: "missing-flag", defaultValue: "uh-oh")
 
         XCTAssertEqual(details.value, "uh-oh")
@@ -115,10 +114,10 @@ final class InMemoryProviderErrorTests: XCTestCase {
     }
 
     func testClientMapsTypeMismatchToDetailsWithFallbackValue() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(
+        await api.setProviderAndWait(
             provider: InMemoryProvider(flags: InMemoryTestFlags.all()))
 
-        let details = OpenFeatureAPI.shared.getClient().getIntegerDetails(
+        let details = api.getClient().getIntegerDetails(
             key: "string-flag", defaultValue: 13)
 
         XCTAssertEqual(details.value, 13)

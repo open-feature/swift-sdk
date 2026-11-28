@@ -2,21 +2,19 @@ import Foundation
 import XCTest
 
 @testable import OpenFeature
+import OpenFeatureIsolated
 
 /// What each hook stage receives alongside its hook data: the resolved details, the thrown error, the hints and the
 /// per-hook context fields; plus the lifetime guarantee that the SDK lets go of hook data once an evaluation ends.
 final class HookStagePayloadSpecTests: XCTestCase {
-    override func setUp() async throws {
-        try await super.setUp()
-        await OpenFeatureAPI.shared.clearProviderAndWait()
-        OpenFeatureAPI.shared.clearHooks()
-    }
-
+    /// A fresh API instance per test: XCTest creates a new test-case object for every test
+    /// method, so tests share no state and need no setUp reset of the shared singleton.
+    private let api = OpenFeatureAPI.isolated()
     // MARK: - Details
 
     func testAfterAndFinallyReceiveTheResolvedDetails() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: InMemoryProvider(flags: InMemoryTestFlags.all()))
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: InMemoryProvider(flags: InMemoryTestFlags.all()))
+        let client = api.getClient()
         let hook = StageRecordingHook()
 
         let returned = client.getDetails(
@@ -36,8 +34,8 @@ final class HookStagePayloadSpecTests: XCTestCase {
 
     func testFinallyReceivesTheErrorDetailsWhenEvaluationFails() {
         let provider = AlwaysBrokenProvider()
-        let eventState = installProviderAndWaitForError(provider)
-        let client = OpenFeatureAPI.shared.getClient()
+        let eventState = installProviderAndWaitForError(provider, on: api)
+        let client = api.getClient()
         let hook = StageRecordingHook()
 
         let returned = client.getDetails(
@@ -58,8 +56,8 @@ final class HookStagePayloadSpecTests: XCTestCase {
 
     func testErrorStageReceivesTheThrownError() {
         let provider = AlwaysBrokenProvider()
-        let eventState = installProviderAndWaitForError(provider)
-        let client = OpenFeatureAPI.shared.getClient()
+        let eventState = installProviderAndWaitForError(provider, on: api)
+        let client = api.getClient()
         let hook = StageRecordingHook()
 
         _ = client.getValue(key: "missing", defaultValue: false, options: FlagEvaluationOptions(hooks: [hook]))
@@ -70,8 +68,8 @@ final class HookStagePayloadSpecTests: XCTestCase {
     }
 
     func testErrorStageReceivesProviderNotReadyWhenNoProviderIsSet() async {
-        await OpenFeatureAPI.shared.clearProviderAndWait()
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.clearProviderAndWait()
+        let client = api.getClient()
         let hook = StageRecordingHook()
 
         _ = client.getValue(key: "key", defaultValue: false, options: FlagEvaluationOptions(hooks: [hook]))
@@ -82,8 +80,8 @@ final class HookStagePayloadSpecTests: XCTestCase {
     }
 
     func testPlainSwiftErrorFromProviderReachesErrorStageAsGeneralError() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: PlainErrorProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: PlainErrorProvider())
+        let client = api.getClient()
         let hook = StageRecordingHook()
 
         let details = client.getDetails(
@@ -103,10 +101,10 @@ final class HookStagePayloadSpecTests: XCTestCase {
 
     func testEveryStageReceivesEvaluationContextAndMetadata() async {
         let provider = InMemoryProvider(flags: InMemoryTestFlags.all())
-        await OpenFeatureAPI.shared.setProviderAndWait(
+        await api.setProviderAndWait(
             provider: provider,
             initialContext: MutableContext(targetingKey: "user-1"))
-        let client = OpenFeatureAPI.shared.getClient(name: "payload-client", version: "1.2.3")
+        let client = api.getClient(name: "payload-client", version: "1.2.3")
         let hook = StageRecordingHook()
 
         _ = client.getValue(key: "boolean-flag", defaultValue: false, options: FlagEvaluationOptions(hooks: [hook]))
@@ -123,8 +121,8 @@ final class HookStagePayloadSpecTests: XCTestCase {
     }
 
     func testProviderMetadataIsAPlaceholderWhenNoProviderIsSet() async {
-        await OpenFeatureAPI.shared.clearProviderAndWait()
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.clearProviderAndWait()
+        let client = api.getClient()
         let hook = StageRecordingHook()
 
         _ = client.getValue(key: "key", defaultValue: false, options: FlagEvaluationOptions(hooks: [hook]))
@@ -137,8 +135,8 @@ final class HookStagePayloadSpecTests: XCTestCase {
     // MARK: - Hints
 
     func testHintsReachEveryStageUnchanged() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         let hook = StageRecordingHook()
         let options = FlagEvaluationOptions(hooks: [hook], hookHints: ["trace": "abc-123", "attempt": 2])
 
@@ -154,8 +152,8 @@ final class HookStagePayloadSpecTests: XCTestCase {
 
     func testHintsReachTheErrorStage() {
         let provider = AlwaysBrokenProvider()
-        let eventState = installProviderAndWaitForError(provider)
-        let client = OpenFeatureAPI.shared.getClient()
+        let eventState = installProviderAndWaitForError(provider, on: api)
+        let client = api.getClient()
         let hook = StageRecordingHook()
         let options = FlagEvaluationOptions(hooks: [hook], hookHints: ["trace": "abc-123"])
 
@@ -167,8 +165,8 @@ final class HookStagePayloadSpecTests: XCTestCase {
     }
 
     func testHintsDefaultToEmpty() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         let hook = StageRecordingHook()
         client.addHooks(hook)
 
@@ -181,8 +179,8 @@ final class HookStagePayloadSpecTests: XCTestCase {
     // MARK: - Type-agnostic hooks (the README's CorrelationIDHook pattern)
 
     func testHookSupportingAllTypesRunsForEveryFlagValueType() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         let hook = StageRecordingHook()
         hook.supportsAllTypes = true
         client.addHooks(hook)
@@ -204,8 +202,8 @@ final class HookStagePayloadSpecTests: XCTestCase {
     }
 
     func testBoolHookDoesNotRunForOtherTypesByDefault() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         let hook = StageRecordingHook()
         client.addHooks(hook)
 
@@ -219,8 +217,8 @@ final class HookStagePayloadSpecTests: XCTestCase {
     // MARK: - Lifetime
 
     func testHookDataIsReleasedOnceEvaluationCompletes() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         let hook = WeakHookDataHook()
 
         _ = client.getValue(key: "key", defaultValue: false, options: FlagEvaluationOptions(hooks: [hook]))
@@ -230,8 +228,8 @@ final class HookStagePayloadSpecTests: XCTestCase {
     }
 
     func testHookDataIsReleasedAfterFailedEvaluation() async {
-        await OpenFeatureAPI.shared.clearProviderAndWait()
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.clearProviderAndWait()
+        let client = api.getClient()
         let hook = WeakHookDataHook()
 
         _ = client.getValue(key: "key", defaultValue: false, options: FlagEvaluationOptions(hooks: [hook]))

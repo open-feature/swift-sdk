@@ -2,24 +2,25 @@ import Foundation
 import XCTest
 
 @testable import OpenFeature
+import OpenFeatureIsolated
 
 /// `Telemetry.createEvaluationEvent` used the way it is meant to be: from a hook's `finally` stage, on evaluations
 /// that went through the client and a real provider.
 final class TelemetryHookSpecTests: XCTestCase {
+    /// A fresh API instance per test: XCTest creates a new test-case object for every test
+    /// method, so tests share no state and need no setUp reset of the shared singleton.
+    private let api = OpenFeatureAPI.isolated()
     override func setUp() async throws {
-        try await super.setUp()
-        await OpenFeatureAPI.shared.clearProviderAndWait()
-        // The API keeps the evaluation context across providers; start every test without a targeting key.
-        await OpenFeatureAPI.shared.setEvaluationContextAndWait(evaluationContext: ImmutableContext())
-        OpenFeatureAPI.shared.clearHooks()
+        // Start every test with an empty evaluation context, without a targeting key.
+        await api.setEvaluationContextAndWait(evaluationContext: ImmutableContext())
     }
 
     func testSuccessfulEvaluationProducesCompleteEvent() async {
         let provider = InMemoryProvider(flags: InMemoryTestFlags.all())
-        await OpenFeatureAPI.shared.setProviderAndWait(
+        await api.setProviderAndWait(
             provider: provider,
             initialContext: ImmutableContext(targetingKey: "user-1"))
-        let client = OpenFeatureAPI.shared.getClient()
+        let client = api.getClient()
         let hook = TelemetryCapturingHook()
 
         let value = client.getValue(
@@ -50,10 +51,10 @@ final class TelemetryHookSpecTests: XCTestCase {
                 "flagSetId": .string("proj-1"),
                 "version": .string("2024-01-01"),
             ])
-        await OpenFeatureAPI.shared.setProviderAndWait(
+        await api.setProviderAndWait(
             provider: InMemoryProvider(flags: ["telemetry-flag": flag]),
             initialContext: ImmutableContext(targetingKey: "user-1"))
-        let client = OpenFeatureAPI.shared.getClient()
+        let client = api.getClient()
         let hook = TelemetryCapturingHook()
 
         _ = client.getValue(key: "telemetry-flag", defaultValue: false, options: FlagEvaluationOptions(hooks: [hook]))
@@ -66,8 +67,8 @@ final class TelemetryHookSpecTests: XCTestCase {
     }
 
     func testObjectValueIsCarriedAsJsonString() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: InMemoryProvider(flags: InMemoryTestFlags.all()))
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: InMemoryProvider(flags: InMemoryTestFlags.all()))
+        let client = api.getClient()
         let hook = TelemetryCapturingHook()
 
         _ = client.getValue(key: "object-flag", defaultValue: Value.null, options: FlagEvaluationOptions(hooks: [hook]))
@@ -80,8 +81,8 @@ final class TelemetryHookSpecTests: XCTestCase {
 
     func testFailedEvaluationProducesErrorEvent() {
         let provider = AlwaysBrokenProvider()
-        let eventState = installProviderAndWaitForError(provider)
-        let client = OpenFeatureAPI.shared.getClient()
+        let eventState = installProviderAndWaitForError(provider, on: api)
+        let client = api.getClient()
         let hook = TelemetryCapturingHook()
 
         _ = client.getValue(key: "missing", defaultValue: true, options: FlagEvaluationOptions(hooks: [hook]))
@@ -103,8 +104,8 @@ final class TelemetryHookSpecTests: XCTestCase {
     }
 
     func testEvaluationWithoutProviderProducesProviderNotReadyEvent() async {
-        await OpenFeatureAPI.shared.clearProviderAndWait()
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.clearProviderAndWait()
+        let client = api.getClient()
         let hook = TelemetryCapturingHook()
 
         _ = client.getValue(key: "key", defaultValue: "fallback", options: FlagEvaluationOptions(hooks: [hook]))
@@ -119,8 +120,8 @@ final class TelemetryHookSpecTests: XCTestCase {
     }
 
     func testEveryFlagValueTypeProducesAnEvent() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         let hook = TelemetryCapturingHook()
         client.addHooks(hook)
 
@@ -145,8 +146,8 @@ final class TelemetryHookSpecTests: XCTestCase {
     }
 
     func testEventIsCreatedOncePerEvaluation() async {
-        await OpenFeatureAPI.shared.setProviderAndWait(provider: NoOpProvider())
-        let client = OpenFeatureAPI.shared.getClient()
+        await api.setProviderAndWait(provider: NoOpProvider())
+        let client = api.getClient()
         let hook = TelemetryCapturingHook()
         client.addHooks(hook)
 
