@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.1](https://github.com/open-feature/swift-sdk/compare/0.7.0...0.7.1) (2026-11-28)
+
+
+### ✨ New Features
+
+* Add HookData ([#139](https://github.com/open-feature/swift-sdk/issues/139)) ([f649a0f](https://github.com/open-feature/swift-sdk/commit/f649a0f477a23e803c2c394e9f7ea537bff1e899))
+* Add Telemetry Utils ([#141](https://github.com/open-feature/swift-sdk/issues/141)) ([04062e9](https://github.com/open-feature/swift-sdk/commit/04062e9a6a6bf7faa1f4d4d89e7ba18c36d17c18))
+* Implement shutdown and shutdownAndWait ([#142](https://github.com/open-feature/swift-sdk/issues/142)) ([98232f4](https://github.com/open-feature/swift-sdk/commit/98232f493f8f39d2cd5c96dac7e30822ea11b6f9))
+
+
+### 🧹 Chore
+
+* **deps:** update amannn/action-semantic-pull-request action to v6.1.2 ([#150](https://github.com/open-feature/swift-sdk/issues/150)) ([0cc72f9](https://github.com/open-feature/swift-sdk/commit/0cc72f928f6d6e970c4c5b44b92a5ae187c25f98))
+* **deps:** update amannn/action-semantic-pull-request action to v6.1.4 ([#154](https://github.com/open-feature/swift-sdk/issues/154)) ([055360e](https://github.com/open-feature/swift-sdk/commit/055360e87c6b9c87a6e04a90b1fc852d3c6a2283))
+
 ## [0.7.0](https://github.com/open-feature/swift-sdk/compare/0.6.0...0.7.0) (2026-09-28)
 
 
