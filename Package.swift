@@ -37,7 +37,8 @@ let package = Package(
             dependencies: [
                 "OpenFeature",
                 .product(name: "Logging", package: "swift-log"),
-            ]
+            ],
+            swiftSettings: [.define("SwiftLog")]
         ),
         .testTarget(
             name: "OpenFeatureTests",
@@ -49,6 +50,7 @@ let package = Package(
             dependencies: [
                 "OpenFeatureSwiftLog",
                 .product(name: "Logging", package: "swift-log"),
-            ]),
+            ],
+            swiftSettings: [.define("SwiftLog")]),
     ]
 )

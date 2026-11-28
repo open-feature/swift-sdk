@@ -24,3 +24,15 @@ You can automatically format your code using:
 ```shell
 swift test
 ```
+
+On older toolchains, `swift test` includes the adapter tests. With Swift 6.2+, enable the trait to run them:
+
+```shell
+swift test --traits SwiftLog
+```
+
+SwiftPM selects `Package.swift` on Swift 5.5–6.1 and `Package@swift-6.2.swift` on Swift 6.2+. Keep the core product, platform requirements, resources, and language mode consistent between the manifests.
+
+### Checking core dependency isolation
+
+With Swift 6.2+, run `python3 scripts/check-core-dependencies.py` to verify a fresh core-only consumer resolves no external packages. Older toolchains continue resolving SwiftLog.
