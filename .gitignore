@@ -12,3 +12,4 @@ DerivedData/
 .mockingbird
 project.json
 .cursor/
+e2e/.swiftpm/
